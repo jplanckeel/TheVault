@@ -1,0 +1,27 @@
+*.iml
+.gradle/
+.idea/
+build/
+local.properties
+*.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+*.keystore
+
+# Gradle wrapper (keep the jar)
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+*.swp
+*.swo
+
+# Kotlin incremental compilation
+.kotlin/
+
+# Generated files
+generated/
+
+# macOS
+.DS_Store
+**/.DS_Store

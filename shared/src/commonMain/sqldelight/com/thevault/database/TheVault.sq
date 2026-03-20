@@ -1,0 +1,159 @@
+-- TheVault Database Schema
+-- Version 1
+
+CREATE TABLE game (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    genre TEXT NOT NULL,
+    release_year INTEGER NOT NULL,
+    region TEXT NOT NULL,
+    condition_ TEXT NOT NULL,
+    cover_url TEXT,
+    status TEXT NOT NULL,
+    purchase_price REAL,
+    current_value REAL,
+    notes TEXT,
+    acquired_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    rating INTEGER,
+    developer TEXT,
+    publisher TEXT,
+    game_modes TEXT,
+    themes TEXT,
+    is_collector_edition INTEGER NOT NULL DEFAULT 0,
+    is_limited_edition INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX game_status ON game(status);
+CREATE INDEX game_platform ON game(platform);
+
+selectAll:
+SELECT * FROM game ORDER BY title ASC;
+
+selectById:
+SELECT * FROM game WHERE id = :id;
+
+selectByStatus:
+SELECT * FROM game WHERE status = :status ORDER BY title ASC;
+
+search:
+SELECT * FROM game
+WHERE title LIKE :query OR platform LIKE :query
+ORDER BY title ASC;
+
+upsert:
+INSERT OR REPLACE INTO game VALUES ?;
+
+deleteById:
+DELETE FROM game WHERE id = :id;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE console (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    manufacturer TEXT NOT NULL,
+    region TEXT NOT NULL,
+    color TEXT NOT NULL,
+    condition_ TEXT NOT NULL,
+    production_year INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    purchase_price REAL,
+    current_value REAL,
+    image_url TEXT,
+    notes TEXT,
+    acquired_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    is_collector_edition INTEGER NOT NULL DEFAULT 0,
+    is_limited_edition INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX console_status ON console(status);
+
+selectAllConsoles:
+SELECT * FROM console ORDER BY name ASC;
+
+selectConsoleById:
+SELECT * FROM console WHERE id = :id;
+
+upsertConsole:
+INSERT OR REPLACE INTO console VALUES ?;
+
+deleteConsoleById:
+DELETE FROM console WHERE id = :id;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE accessory (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    compatible_console TEXT NOT NULL,
+    condition_ TEXT NOT NULL,
+    status TEXT NOT NULL,
+    purchase_price REAL,
+    current_value REAL,
+    image_url TEXT,
+    notes TEXT,
+    acquired_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    is_collector_edition INTEGER NOT NULL DEFAULT 0,
+    is_limited_edition INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX accessory_status ON accessory(status);
+
+selectAllAccessories:
+SELECT * FROM accessory ORDER BY name ASC;
+
+selectAccessoryById:
+SELECT * FROM accessory WHERE id = :id;
+
+upsertAccessory:
+INSERT OR REPLACE INTO accessory VALUES ?;
+
+deleteAccessoryById:
+DELETE FROM accessory WHERE id = :id;
+
+selectAccessoryByStatus:
+SELECT * FROM accessory WHERE status = :status ORDER BY name ASC;
+
+selectConsoleByStatus:
+SELECT * FROM console WHERE status = :status ORDER BY name ASC;
+
+-- Statistics
+-- ─────────────────────────────────────────────────────────────────────────────
+
+countOwnedGames:
+SELECT COUNT(*) FROM game WHERE status = 'OWNED';
+
+countOwnedConsoles:
+SELECT COUNT(*) FROM console WHERE status = 'OWNED';
+
+countOwnedAccessories:
+SELECT COUNT(*) FROM accessory WHERE status = 'OWNED';
+
+countWishlistItems:
+SELECT
+    COALESCE((SELECT COUNT(*) FROM game WHERE status = 'WISHLIST'), 0) +
+    COALESCE((SELECT COUNT(*) FROM console WHERE status = 'WISHLIST'), 0) +
+    COALESCE((SELECT COUNT(*) FROM accessory WHERE status = 'WISHLIST'), 0)
+AS total_wishlist;
+
+sumEstimatedValue:
+SELECT
+    COALESCE((SELECT SUM(current_value) FROM game WHERE status = 'OWNED'), 0.0) +
+    COALESCE((SELECT SUM(current_value) FROM console WHERE status = 'OWNED'), 0.0) +
+    COALESCE((SELECT SUM(current_value) FROM accessory WHERE status = 'OWNED'), 0.0)
+AS total_value;
+
+sumTotalInvested:
+SELECT
+    COALESCE((SELECT SUM(purchase_price) FROM game WHERE status = 'OWNED'), 0.0) +
+    COALESCE((SELECT SUM(purchase_price) FROM console WHERE status = 'OWNED'), 0.0) +
+    COALESCE((SELECT SUM(purchase_price) FROM accessory WHERE status = 'OWNED'), 0.0)
+AS total_invested;

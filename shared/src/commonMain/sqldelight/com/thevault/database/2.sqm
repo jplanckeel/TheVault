@@ -1,0 +1,4 @@
+ALTER TABLE game ADD COLUMN developer TEXT;
+ALTER TABLE game ADD COLUMN publisher TEXT;
+ALTER TABLE game ADD COLUMN game_modes TEXT;
+ALTER TABLE game ADD COLUMN themes TEXT;
