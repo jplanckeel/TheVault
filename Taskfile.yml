@@ -1,0 +1,53 @@
+version: '3'
+
+dotenv: ['.env']
+
+tasks:
+  dev:
+    desc: Start PostgreSQL, backend (hot-reload), and frontend dev server
+    cmds:
+      - docker compose up -d postgres
+      - until docker compose exec -T postgres pg_isready -U postgres -q; do sleep 1; done
+      - task dev:backend & task dev:frontend; wait
+
+  dev:db:
+    desc: Start PostgreSQL only and wait until ready
+    cmds:
+      - docker compose up -d postgres
+      - until docker compose exec -T postgres pg_isready -U postgres -q; do sleep 1; done
+
+  dev:backend:
+    desc: Start backend with Air hot-reload
+    dir: backend
+    cmds:
+      - air
+
+  dev:frontend:
+    desc: Start frontend Vite dev server
+    dir: frontend
+    cmds:
+      - npm run dev
+
+  db:reset:
+    desc: Drop and recreate the database (server restart will re-migrate)
+    cmds:
+      - docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS thevaultbo"
+      - docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE thevaultbo"
+
+  build:
+    desc: Build backend binary and frontend bundle
+    cmds:
+      - cd backend && go build -o bin/server ./cmd/server
+      - cd frontend && npm run build
+
+  test:
+    desc: Run all Go tests
+    dir: backend
+    cmds:
+      - go test ./...
+
+  lint:
+    desc: Run golangci-lint on the backend
+    dir: backend
+    cmds:
+      - golangci-lint run ./...
