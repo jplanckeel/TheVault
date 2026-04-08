@@ -4,6 +4,7 @@
 # Go
 backend/bin/
 backend/.air/
+backend/tmp/
 backend/vendor/
 
 # Node

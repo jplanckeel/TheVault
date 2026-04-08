@@ -31,14 +31,17 @@ tasks:
   db:reset:
     desc: Drop and recreate the database (server restart will re-migrate)
     cmds:
+      - docker compose exec -T postgres psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='thevaultbo' AND pid <> pg_backend_pid()"
       - docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS thevaultbo"
       - docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE thevaultbo"
 
   build:
     desc: Build backend binary and frontend bundle
     cmds:
-      - cd backend && go build -o bin/server ./cmd/server
-      - cd frontend && npm run build
+      - cmd: go build -o bin/server ./cmd/server
+        dir: backend
+      - cmd: npm run build
+        dir: frontend
 
   test:
     desc: Run all Go tests
