@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/jplanckeel/thevaultbo/internal/domain"
 	"github.com/jplanckeel/thevaultbo/internal/scraper"
@@ -162,7 +161,6 @@ func TestRunner_ScrapesItems_SavesPrices(t *testing.T) {
 	if j.Status != "done" {
 		t.Errorf("want job status 'done', got %q", j.Status)
 	}
-	_ = time.Now() // ensure time import used
 }
 
 func TestRunner_SpecificItems(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -61,23 +62,23 @@ func NewEbayRunner(
 	return r.run
 }
 
-func (r *ebayRunner) run(jobID, _ string, itemIDs ...string) {
+func (r *ebayRunner) run(jobID, triggeredBy string, itemIDs ...string) {
 	ctx := context.Background()
 
 	// Mark job as running
-	r.updateJob(ctx, jobID, "running", 0, 0, "")
+	r.updateJob(ctx, jobID, triggeredBy, "running", 0, 0, "")
 
 	// Resolve items to scrape
 	items, err := r.resolveItems(ctx, itemIDs)
 	if err != nil {
-		r.updateJob(ctx, jobID, "failed", 0, 0, fmt.Sprintf("resolve items: %v", err))
+		r.updateJob(ctx, jobID, triggeredBy, "failed", 0, 0, fmt.Sprintf("resolve items: %v", err))
 		return
 	}
 
 	// Get OAuth token
 	token, err := r.getToken(ctx)
 	if err != nil {
-		r.updateJob(ctx, jobID, "failed", len(items), 0, fmt.Sprintf("oauth: %v", err))
+		r.updateJob(ctx, jobID, triggeredBy, "failed", len(items), 0, fmt.Sprintf("oauth: %v", err))
 		return
 	}
 
@@ -85,23 +86,29 @@ func (r *ebayRunner) run(jobID, _ string, itemIDs ...string) {
 
 	total := len(items)
 	done := 0
-	r.updateJob(ctx, jobID, "running", total, done, "")
+	r.updateJob(ctx, jobID, triggeredBy, "running", total, done, "")
 
+	var itemErrors []string
 	for _, item := range items {
 		snaps, err := r.scrapeItem(ctx, token, marketplace, item)
 		if err != nil {
-			// log and continue; don't abort entire job for one item
-			_ = err
+			itemErrors = append(itemErrors, fmt.Sprintf("%s: %v", item.ID, err))
 		} else {
 			for _, s := range snaps {
-				_, _ = r.prices.Insert(ctx, s)
+				if _, err := r.prices.Insert(ctx, s); err != nil {
+					itemErrors = append(itemErrors, fmt.Sprintf("%s insert: %v", item.ID, err))
+				}
 			}
 		}
 		done++
-		r.updateJob(ctx, jobID, "running", total, done, "")
+		r.updateJob(ctx, jobID, triggeredBy, "running", total, done, "")
 	}
 
-	r.updateJob(ctx, jobID, "done", total, done, "")
+	errMsg := ""
+	if len(itemErrors) > 0 {
+		errMsg = strings.Join(itemErrors, "; ")
+	}
+	r.updateJob(ctx, jobID, triggeredBy, "done", total, done, errMsg)
 }
 
 func (r *ebayRunner) resolveItems(ctx context.Context, itemIDs []string) ([]domain.Item, error) {
@@ -276,19 +283,22 @@ func computeStats(prices []float64) domain.PriceStats {
 	}
 }
 
-func (r *ebayRunner) updateJob(ctx context.Context, jobID, status string, total, done int, errMsg string) {
+func (r *ebayRunner) updateJob(ctx context.Context, jobID, triggeredBy, status string, total, done int, errMsg string) {
 	now := time.Now().UTC()
 	job := domain.ScrapeJob{
-		ID:         jobID,
-		Status:     status,
-		ItemsTotal: total,
-		ItemsDone:  done,
-		Error:      errMsg,
+		ID:          jobID,
+		TriggeredBy: triggeredBy,
+		Status:      status,
+		ItemsTotal:  total,
+		ItemsDone:   done,
+		Error:       errMsg,
 	}
 	if status == "done" || status == "failed" {
 		job.FinishedAt = &now
 	}
-	_ = r.jobs.Update(ctx, job)
+	if err := r.jobs.Update(ctx, job); err != nil {
+		fmt.Fprintf(os.Stderr, "scraper: update job %s: %v\n", jobID, err)
+	}
 }
 
 func (r *ebayRunner) settingOrDefault(ctx context.Context, key, def string) string {
@@ -300,12 +310,14 @@ func (r *ebayRunner) settingOrDefault(ctx context.Context, key, def string) stri
 }
 
 // mapCondition maps eBay condition strings to our domain conditions.
+// "Like New" maps to CIB as the closest eBay equivalent of "complete in box".
+// "New" maps to New. Everything else (Used, Good, Acceptable, etc.) maps to Loose.
 func mapCondition(ebayCondition string) domain.PriceCondition {
 	switch strings.ToLower(ebayCondition) {
 	case "new", "brand new":
 		return domain.ConditionNew
-	case "like new", "very good", "good", "acceptable", "used":
-		return domain.ConditionLoose
+	case "like new":
+		return domain.ConditionCIB
 	default:
 		return domain.ConditionLoose
 	}
