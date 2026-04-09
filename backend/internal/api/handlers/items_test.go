@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,7 +11,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
+	"github.com/jplanckeel/thevaultbo/internal/store"
 )
+
 
 // mockItemStore is an in-memory ItemStore for testing.
 type mockItemStore struct {
@@ -45,7 +46,7 @@ func (m *mockItemStore) GetByID(_ context.Context, id string) (domain.Item, erro
 			return v, nil
 		}
 	}
-	return domain.Item{}, errors.New("not found")
+	return domain.Item{}, store.ErrNotFound
 }
 
 // mockPriceStore is a minimal PriceStore for testing items handler.
@@ -126,17 +127,63 @@ func TestListItems_ReturnsJSON(t *testing.T) {
 	}
 }
 
+func chiRequest(method, path, id string, body *bytes.Reader) *http.Request {
+	var req *http.Request
+	if body != nil {
+		req = httptest.NewRequest(method, path, body)
+	} else {
+		req = httptest.NewRequest(method, path, nil)
+	}
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", id)
+	return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+}
+
 func TestGetItem_NotFound_Returns404(t *testing.T) {
 	h := handlers.NewItemsHandler(newMockItemStore(), &mockPriceStore{})
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/items/nonexistent", nil)
-	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", "nonexistent")
-	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	req := chiRequest(http.MethodGet, "/api/v1/items/nonexistent", "nonexistent", nil)
 	w := httptest.NewRecorder()
 
 	h.GetItem(w, req)
 
 	if w.Code != http.StatusNotFound {
 		t.Errorf("want 404, got %d", w.Code)
+	}
+}
+
+func TestGetItem_Found_Returns200(t *testing.T) {
+	s := newMockItemStore()
+	s.items["ext-1"] = domain.Item{ID: "item-1", ExternalID: "ext-1", Title: "Metroid"}
+	h := handlers.NewItemsHandler(s, &mockPriceStore{})
+	req := chiRequest(http.MethodGet, "/api/v1/items/item-1", "item-1", nil)
+	w := httptest.NewRecorder()
+
+	h.GetItem(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", w.Code)
+	}
+	var resp domain.Item
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Title != "Metroid" {
+		t.Errorf("want 'Metroid', got %q", resp.Title)
+	}
+}
+
+func TestGetItemPrices_Returns200(t *testing.T) {
+	h := handlers.NewItemsHandler(newMockItemStore(), &mockPriceStore{})
+	req := chiRequest(http.MethodGet, "/api/v1/items/any/prices", "any", nil)
+	w := httptest.NewRecorder()
+
+	h.GetItemPrices(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", w.Code)
+	}
+	var snaps []domain.PriceSnapshot
+	if err := json.NewDecoder(w.Body).Decode(&snaps); err != nil {
+		t.Fatalf("decode: %v", err)
 	}
 }
