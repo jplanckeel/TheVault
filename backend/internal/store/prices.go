@@ -53,7 +53,7 @@ func (s *PostgresPriceStore) ListByItemID(ctx context.Context, itemID string) ([
 	}
 	defer rows.Close()
 
-	var snaps []domain.PriceSnapshot
+	snaps := make([]domain.PriceSnapshot, 0)
 	for rows.Next() {
 		var p domain.PriceSnapshot
 		if err := rows.Scan(
@@ -85,7 +85,7 @@ func (s *PostgresPriceStore) LatestPerItem(ctx context.Context) ([]domain.PriceS
 	}
 	defer rows.Close()
 
-	var snaps []domain.PriceSnapshot
+	snaps := make([]domain.PriceSnapshot, 0)
 	for rows.Next() {
 		var p domain.PriceSnapshot
 		if err := rows.Scan(

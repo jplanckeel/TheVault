@@ -2,9 +2,13 @@ package store
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jplanckeel/thevaultbo/internal/domain"
 )
+
+// errNotFound is returned when an update or delete targets a row that does not exist.
+var errNotFound = errors.New("not found")
 
 // ItemStore defines persistence operations for items.
 type ItemStore interface {

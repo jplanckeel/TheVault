@@ -36,9 +36,12 @@ func (s *PostgresJobStore) Update(ctx context.Context, job domain.ScrapeJob) err
 		UPDATE scrape_jobs SET status=$1, items_done=$2, error=$3, finished_at=$4
 		WHERE id=$5
 	`
-	_, err := s.pool.Exec(ctx, q, job.Status, job.ItemsDone, job.Error, job.FinishedAt, job.ID)
+	tag, err := s.pool.Exec(ctx, q, job.Status, job.ItemsDone, job.Error, job.FinishedAt, job.ID)
 	if err != nil {
 		return fmt.Errorf("job update: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("job update: %w", errNotFound)
 	}
 	return nil
 }
@@ -71,7 +74,7 @@ func (s *PostgresJobStore) List(ctx context.Context) ([]domain.ScrapeJob, error)
 			&j.ID, &j.TriggeredBy, &j.Status, &j.ItemsTotal,
 			&j.ItemsDone, &j.Error, &j.StartedAt, &j.FinishedAt,
 		); err != nil {
-			return nil, fmt.Errorf("job scan: %w", err)
+			return nil, fmt.Errorf("jobs list scan: %w", err)
 		}
 		jobs = append(jobs, j)
 	}
