@@ -16,7 +16,7 @@ func NewRouter(
 	prices store.PriceStore,
 	jobs store.JobStore,
 	settings store.SettingsStore, //nolint:unparam // wired in a later task
-	ebayRunner func(triggeredBy string, itemIDs ...string),
+	ebayRunner func(jobID, triggeredBy string, itemIDs ...string),
 ) http.Handler {
 	r := chi.NewRouter()
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
@@ -54,7 +55,7 @@ func (m *mockJobStore) List(_ context.Context) ([]domain.ScrapeJob, error) {
 
 func TestTriggerScrape_Returns202(t *testing.T) {
 	ranCh := make(chan struct{}, 1)
-	runner := func(triggeredBy string, itemIDs ...string) {
+	runner := func(jobID, triggeredBy string, itemIDs ...string) {
 		ranCh <- struct{}{}
 	}
 	h := handlers.NewScrapeHandler(newMockJobStore(), runner)
@@ -75,12 +76,17 @@ func TestTriggerScrape_Returns202(t *testing.T) {
 	if resp.ID == "" {
 		t.Error("want job ID in response")
 	}
+	select {
+	case <-ranCh:
+	case <-time.After(time.Second):
+		t.Error("runner was not called within 1s")
+	}
 }
 
 func TestListJobs_Returns200(t *testing.T) {
 	js := newMockJobStore()
 	js.jobs["job-1"] = domain.ScrapeJob{ID: "job-1", TriggeredBy: "user", Status: "done"}
-	h := handlers.NewScrapeHandler(js, func(string, ...string) {})
+	h := handlers.NewScrapeHandler(js, func(string, string, ...string) {})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/scrape", nil)
 	w := httptest.NewRecorder()
 
@@ -98,8 +104,20 @@ func TestListJobs_Returns200(t *testing.T) {
 	}
 }
 
+func TestTriggerScrape_EmptyBody_Returns202(t *testing.T) {
+	h := handlers.NewScrapeHandler(newMockJobStore(), func(string, string, ...string) {})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/scrape", nil)
+	w := httptest.NewRecorder()
+
+	h.TriggerScrape(w, req)
+
+	if w.Code != http.StatusAccepted {
+		t.Errorf("want 202 on empty body, got %d", w.Code)
+	}
+}
+
 func TestGetJob_NotFound_Returns404(t *testing.T) {
-	h := handlers.NewScrapeHandler(newMockJobStore(), func(string, ...string) {})
+	h := handlers.NewScrapeHandler(newMockJobStore(), func(string, string, ...string) {})
 	req := chiRequest(http.MethodGet, "/api/v1/scrape/nonexistent", "nonexistent", nil)
 	w := httptest.NewRecorder()
 
@@ -113,7 +131,7 @@ func TestGetJob_NotFound_Returns404(t *testing.T) {
 func TestGetJob_Found_Returns200(t *testing.T) {
 	js := newMockJobStore()
 	js.jobs["job-1"] = domain.ScrapeJob{ID: "job-1", TriggeredBy: "user", Status: "done"}
-	h := handlers.NewScrapeHandler(js, func(string, ...string) {})
+	h := handlers.NewScrapeHandler(js, func(string, string, ...string) {})
 	req := chiRequest(http.MethodGet, "/api/v1/scrape/job-1", "job-1", nil)
 	w := httptest.NewRecorder()
 

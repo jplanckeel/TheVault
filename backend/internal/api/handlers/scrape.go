@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -13,11 +14,11 @@ import (
 // ScrapeHandler handles HTTP requests for scrape jobs.
 type ScrapeHandler struct {
 	jobs   store.JobStore
-	runner func(triggeredBy string, itemIDs ...string)
+	runner func(jobID, triggeredBy string, itemIDs ...string)
 }
 
 // NewScrapeHandler creates a new ScrapeHandler.
-func NewScrapeHandler(jobs store.JobStore, runner func(triggeredBy string, itemIDs ...string)) *ScrapeHandler {
+func NewScrapeHandler(jobs store.JobStore, runner func(jobID, triggeredBy string, itemIDs ...string)) *ScrapeHandler {
 	return &ScrapeHandler{jobs: jobs, runner: runner}
 }
 
@@ -27,7 +28,7 @@ func (h *ScrapeHandler) TriggerScrape(w http.ResponseWriter, r *http.Request) {
 		TriggeredBy string   `json:"triggered_by"`
 		ItemIDs     []string `json:"item_ids"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
 		http.Error(w, "invalid body", http.StatusBadRequest)
 		return
 	}
@@ -41,7 +42,7 @@ func (h *ScrapeHandler) TriggerScrape(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go h.runner(req.TriggeredBy, req.ItemIDs...)
+	go h.runner(job.ID, req.TriggeredBy, req.ItemIDs...)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
