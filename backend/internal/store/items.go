@@ -73,8 +73,14 @@ func (s *PostgresItemStore) List(ctx context.Context) ([]domain.Item, error) {
 		}
 		items = append(items, i)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("items list rows: %w", err)
+	}
+	return items, nil
 }
+
+// compile-time interface satisfaction check
+var _ ItemStore = (*PostgresItemStore)(nil)
 
 // GetByID returns an item by its UUID.
 func (s *PostgresItemStore) GetByID(ctx context.Context, id string) (domain.Item, error) {
