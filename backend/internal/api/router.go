@@ -11,12 +11,11 @@ import (
 )
 
 // NewRouter builds and returns the chi router with all routes mounted.
-// ebayRunner is called to trigger a scrape job; it is wired in Task 9 (scheduler).
 func NewRouter(
 	items store.ItemStore,
 	prices store.PriceStore,
 	jobs store.JobStore,
-	settings store.SettingsStore,
+	settings store.SettingsStore, //nolint:unparam // wired in a later task
 	ebayRunner func(triggeredBy string, itemIDs ...string),
 ) http.Handler {
 	r := chi.NewRouter()
@@ -30,6 +29,8 @@ func NewRouter(
 	}))
 
 	ih := handlers.NewItemsHandler(items, prices)
+	ph := handlers.NewPricesHandler(prices)
+	sh := handlers.NewScrapeHandler(jobs, ebayRunner)
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -43,7 +44,13 @@ func NewRouter(
 		r.Get("/items/{id}", ih.GetItem)
 		r.Get("/items/{id}/prices", ih.GetItemPrices)
 
-		// Prices and scrape routes will be added in Task 7
+		// Prices
+		r.Get("/prices/latest", ph.GetLatestPrices)
+
+		// Scrape jobs
+		r.Post("/scrape", sh.TriggerScrape)
+		r.Get("/scrape", sh.ListJobs)
+		r.Get("/scrape/{id}", sh.GetJob)
 	})
 
 	return r
