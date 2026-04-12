@@ -50,7 +50,9 @@ func TestScheduler_FiresRunner(t *testing.T) {
 
 	// Use "@every 50ms" so the test doesn't have to wait a full hour
 	s := scheduler.New(js, runner, scheduler.WithSchedule("@every 50ms"))
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
 	defer s.Stop()
 
 	select {
@@ -71,7 +73,9 @@ func TestScheduler_CreatesJob_BeforeCallingRunner(t *testing.T) {
 	js := newMemJobStore()
 
 	s := scheduler.New(js, runner, scheduler.WithSchedule("@every 50ms"))
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
 	defer s.Stop()
 
 	select {
@@ -88,5 +92,37 @@ func TestScheduler_CreatesJob_BeforeCallingRunner(t *testing.T) {
 		}
 	case <-time.After(500 * time.Millisecond):
 		t.Fatal("runner was not called within 500ms")
+	}
+}
+
+func TestScheduler_InvalidSchedule_ReturnsError(t *testing.T) {
+	s := scheduler.New(newMemJobStore(), func(string, string, ...string) {},
+		scheduler.WithSchedule("not-a-valid-cron"),
+	)
+	if err := s.Start(); err == nil {
+		s.Stop()
+		t.Error("want error for invalid cron expression, got nil")
+	}
+}
+
+func TestScheduler_CronPath_FiresRunner(t *testing.T) {
+	ranCh := make(chan string, 1)
+	runner := func(jobID, triggeredBy string, itemIDs ...string) {
+		ranCh <- triggeredBy
+	}
+	// "@every 1s" uses robfig/cron directly (>= 1 second)
+	s := scheduler.New(newMemJobStore(), runner, scheduler.WithSchedule("@every 1s"))
+	if err := s.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer s.Stop()
+
+	select {
+	case tb := <-ranCh:
+		if tb != "cron" {
+			t.Errorf("want triggeredBy 'cron', got %q", tb)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("runner was not called within 3s via robfig/cron path")
 	}
 }

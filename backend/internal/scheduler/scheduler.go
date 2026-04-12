@@ -53,7 +53,8 @@ func New(
 // Start registers the cron job and starts the scheduler.
 // If the schedule is "@every <duration>" with a duration < 1s, a time.Ticker
 // is used instead of robfig/cron (which rounds sub-second durations to 1s).
-func (s *Scheduler) Start() {
+// Returns an error if the schedule expression is invalid.
+func (s *Scheduler) Start() error {
 	if dur, ok := parseEvery(s.schedule); ok && dur < time.Second {
 		s.stopCh = make(chan struct{})
 		s.ticker = time.NewTicker(dur)
@@ -67,16 +68,15 @@ func (s *Scheduler) Start() {
 				}
 			}
 		}()
-		return
+		return nil
 	}
 
 	s.cron = cron.New()
-	_, err := s.cron.AddFunc(s.schedule, s.fire)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "scheduler: invalid schedule %q: %v\n", s.schedule, err)
-		return
+	if _, err := s.cron.AddFunc(s.schedule, s.fire); err != nil {
+		return fmt.Errorf("scheduler: invalid schedule %q: %w", s.schedule, err)
 	}
 	s.cron.Start()
+	return nil
 }
 
 // Stop gracefully stops the scheduler.
