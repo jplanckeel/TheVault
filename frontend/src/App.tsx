@@ -1,19 +1,56 @@
-import { BrowserRouter, Link, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, NavLink, Outlet, Route, Routes } from 'react-router-dom'
 import CataloguePage from './pages/CataloguePage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import JobsPage from './pages/JobsPage'
 
+function Sidebar() {
+  return (
+    <aside className="fixed top-0 left-0 h-screen w-64 flex flex-col bg-vault-surface-low border-r border-vault-outline-variant z-10">
+      <div className="px-6 py-6 border-b border-vault-outline-variant">
+        <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-1">Backoffice</p>
+        <h1 className="text-lg font-bold text-vault-primary">TheVaultBO</h1>
+      </div>
+      <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-vault-surface text-vault-primary'
+                : 'text-vault-on-surface-variant hover:bg-vault-surface hover:text-vault-on-surface'
+            }`
+          }
+        >
+          <span>📦</span>
+          Catalogue
+        </NavLink>
+        <NavLink
+          to="/jobs"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-vault-surface text-vault-primary'
+                : 'text-vault-on-surface-variant hover:bg-vault-surface hover:text-vault-on-surface'
+            }`
+          }
+        >
+          <span>⚙️</span>
+          Scrape Jobs
+        </NavLink>
+      </nav>
+      <div className="px-6 py-4 border-t border-vault-outline-variant">
+        <p className="text-xs text-vault-on-surface-variant">The Vault — Admin</p>
+      </div>
+    </aside>
+  )
+}
+
 function Layout() {
   return (
-    <div style={{ fontFamily: 'sans-serif' }}>
-      <header style={{ padding: '1rem', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '1rem' }}>
-        <strong>TheVaultBO</strong>
-        <nav style={{ display: 'flex', gap: '1rem', marginLeft: '2rem' }}>
-          <Link to="/">Catalogue</Link>
-          <Link to="/jobs">Jobs</Link>
-        </nav>
-      </header>
-      <main style={{ padding: '1rem' }}>
+    <div className="min-h-screen bg-vault-bg">
+      <Sidebar />
+      <main className="ml-64 min-h-screen p-8">
         <Outlet />
       </main>
     </div>
@@ -21,7 +58,11 @@ function Layout() {
 }
 
 function NotFound() {
-  return <h1>404 — Page not found</h1>
+  return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-vault-on-surface-variant text-lg">404 — Page not found</p>
+    </div>
+  )
 }
 
 export default function App() {
