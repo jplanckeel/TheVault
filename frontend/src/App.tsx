@@ -1,4 +1,5 @@
 import { BrowserRouter, Link, Outlet, Route, Routes } from 'react-router-dom'
+import CataloguePage from './pages/CataloguePage'
 
 function Layout() {
   return (
@@ -15,10 +16,6 @@ function Layout() {
       </main>
     </div>
   )
-}
-
-function CataloguePage() {
-  return <h1>Catalogue</h1>
 }
 
 function JobsPage() {
