@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+
+  /* Surfaces */
+  --color-vault-bg: #060E20;
+  --color-vault-surface-low: #091328;
+  --color-vault-surface: #0F1930;
+  --color-vault-surface-high: #141F38;
+  --color-vault-surface-highest: #192540;
+  --color-vault-bright: #1F2B49;
+
+  /* Accents */
+  --color-vault-primary: #BA9EFF;
+  --color-vault-primary-dim: #8455EF;
+  --color-vault-tertiary: #EC63FF;
+  --color-vault-secondary-container: #444173;
+  --color-vault-secondary-text: #CFCBFF;
+
+  /* Text */
+  --color-vault-on-surface: #DEE5FF;
+  --color-vault-on-surface-variant: #A3AAC4;
+
+  /* Borders */
+  --color-vault-outline: #6D758C;
+  --color-vault-outline-variant: #40485D;
+
+  /* Semantic */
+  --color-vault-error: #FF6E84;
+  --color-vault-success: #10B981;
+  --color-vault-info: #3B82F6;
+
+  /* Prix par condition */
+  --color-price-loose: #3B82F6;
+  --color-price-cib: #BA9EFF;
+  --color-price-new: #10B981;
+}
+
+body {
+  background-color: var(--color-vault-bg);
+  color: var(--color-vault-on-surface);
+  font-family: var(--font-sans);
+}
