@@ -63,6 +63,7 @@ export default function CataloguePage() {
   const [error, setError] = useState<string | null>(null)
   const [scraping, setScraping] = useState(false)
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     api.items.list()
@@ -84,6 +85,17 @@ export default function CataloguePage() {
     }
   }
 
+  const filtered = query.trim()
+    ? items.filter((item) => {
+        const q = query.toLowerCase()
+        return (
+          item.title.toLowerCase().includes(q) ||
+          item.platform.toLowerCase().includes(q) ||
+          item.type.toLowerCase().includes(q)
+        )
+      })
+    : items
+
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <p className="text-vault-on-surface-variant animate-pulse">Chargement…</p>
@@ -100,6 +112,27 @@ export default function CataloguePage() {
     <div>
       <PageHeader onScrape={triggerScrape} scraping={scraping} />
 
+      <div className="relative mb-6">
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-vault-on-surface-variant pointer-events-none">
+          🔍
+        </span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher par titre, plateforme…"
+          className="w-full bg-vault-surface border border-vault-outline-variant rounded-xl pl-10 pr-4 py-2.5 text-sm text-vault-on-surface placeholder:text-vault-on-surface-variant focus:outline-none focus:border-vault-primary transition-colors"
+        />
+        {query && (
+          <button
+            onClick={() => setQuery('')}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-vault-on-surface-variant hover:text-vault-on-surface transition-colors text-xs"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       {scrapeMsg && (
         <div className="mb-6 px-4 py-3 rounded-lg bg-vault-surface border border-vault-outline-variant">
           <p className="text-sm text-vault-primary">{scrapeMsg}</p>
@@ -111,16 +144,27 @@ export default function CataloguePage() {
           <p className="text-vault-on-surface-variant">Aucun item pour l'instant.</p>
           <p className="text-xs text-vault-outline mt-2">Lance un scrape pour commencer.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onClick={() => navigate(`/items/${item.id}`)}
-            />
-          ))}
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <p className="text-vault-on-surface-variant">Aucun résultat pour « {query} ».</p>
         </div>
+      ) : (
+        <>
+          {query && (
+            <p className="text-xs text-vault-on-surface-variant mb-4">
+              {filtered.length} résultat{filtered.length > 1 ? 's' : ''}
+            </p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onClick={() => navigate(`/items/${item.id}`)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
