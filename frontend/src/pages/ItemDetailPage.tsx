@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend,
+} from 'recharts'
 import { api } from '../api'
 import type { Item, PriceSnapshot } from '../types'
 
@@ -44,6 +48,98 @@ function PriceCard({ condition, snapshots }: { condition: string; snapshots: Pri
     </div>
   )
 }
+
+// ─── Tooltip personnalisé ────────────────────────────────────────────────────
+
+function PriceTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-xl border border-vault-outline-variant bg-vault-surface-high px-4 py-3 text-xs shadow-lg">
+      <p className="text-vault-on-surface-variant mb-2">{label}</p>
+      {payload.map((entry: any) => (
+        <p key={entry.name} className="font-semibold" style={{ color: entry.color }}>
+          {entry.name} : {Number(entry.value).toFixed(2)} €
+        </p>
+      ))}
+    </div>
+  )
+}
+
+// ─── Graphique ───────────────────────────────────────────────────────────────
+
+function PriceChart({ prices }: { prices: PriceSnapshot[] }) {
+  if (prices.length < 2) return null
+
+  // Construire les points chronologiques : une entrée par (date, condition)
+  // puis pivoter en { date, loose?, cib?, new? }
+  type ChartPoint = { date: string; loose?: number; cib?: number; new?: number }
+  const byDate: Record<string, ChartPoint> = {}
+  for (const p of prices) {
+    const date = new Date(p.scraped_at).toLocaleDateString('fr-FR')
+    if (!byDate[date]) byDate[date] = { date }
+    ;(byDate[date] as any)[p.condition] = p.price_median
+  }
+
+  const data: ChartPoint[] = Object.values(byDate).sort((a, b) => {
+    const toMs = (d: string) => {
+      const [day, month, year] = d.split('/').map(Number)
+      return new Date(year, month - 1, day).getTime()
+    }
+    return toMs(a.date) - toMs(b.date)
+  })
+
+  const conditions = (['loose', 'cib', 'new'] as const).filter((c) =>
+    data.some((d) => d[c] !== undefined)
+  )
+
+  return (
+    <div className="rounded-xl border border-vault-outline-variant bg-vault-surface p-6 mb-8">
+      <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-6">
+        Évolution des prix
+      </p>
+      <ResponsiveContainer width="100%" height={260}>
+        <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#40485D" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tick={{ fill: '#A3AAC4', fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fill: '#A3AAC4', fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v) => `${v} €`}
+            width={60}
+          />
+          <Tooltip content={<PriceTooltip />} cursor={{ stroke: '#40485D' }} />
+          <Legend
+            wrapperStyle={{ fontSize: 12, paddingTop: 16 }}
+            formatter={(value) =>
+              CONDITION_STYLE[value]?.label ?? value
+            }
+          />
+          {conditions.map((cond) => (
+            <Line
+              key={cond}
+              type="monotone"
+              dataKey={cond}
+              name={cond}
+              stroke={CONDITION_STYLE[cond]?.color ?? '#A3AAC4'}
+              strokeWidth={2}
+              dot={{ r: 3, fill: CONDITION_STYLE[cond]?.color ?? '#A3AAC4' }}
+              activeDot={{ r: 5 }}
+              connectNulls
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ─── Table historique ────────────────────────────────────────────────────────
 
 function PriceHistoryTable({ prices }: { prices: PriceSnapshot[] }) {
   if (prices.length === 0) return (
@@ -169,6 +265,8 @@ export default function ItemDetailPage() {
           </div>
         </div>
       )}
+
+      <PriceChart prices={prices} />
 
       <div>
         <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-4">
