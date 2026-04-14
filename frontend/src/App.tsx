@@ -1,6 +1,7 @@
 import { BrowserRouter, Link, Outlet, Route, Routes } from 'react-router-dom'
 import CataloguePage from './pages/CataloguePage'
 import ItemDetailPage from './pages/ItemDetailPage'
+import JobsPage from './pages/JobsPage'
 
 function Layout() {
   return (
@@ -17,10 +18,6 @@ function Layout() {
       </main>
     </div>
   )
-}
-
-function JobsPage() {
-  return <h1>Jobs</h1>
 }
 
 function NotFound() {
