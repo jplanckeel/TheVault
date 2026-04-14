@@ -4,6 +4,8 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend,
 } from 'recharts'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faEbay } from '@fortawesome/free-brands-svg-icons'
 import { api } from '../api'
 import type { Item, PriceSnapshot } from '../types'
 
@@ -238,7 +240,18 @@ export default function ItemDetailPage() {
         <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-2">
           Item
         </p>
-        <h1 className="text-2xl font-semibold text-vault-on-surface mb-4">{item.title}</h1>
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <h1 className="text-2xl font-semibold text-vault-on-surface">{item.title}</h1>
+          <a
+            href={`https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(`${item.title} ${item.platform}`)}&_sacat=0`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Voir sur eBay"
+            className="shrink-0 text-vault-on-surface-variant hover:text-[#E53238] transition-colors"
+          >
+            <FontAwesomeIcon icon={faEbay} className="text-3xl" />
+          </a>
+        </div>
         <div className="flex flex-wrap gap-2">
           {badges.map((b) => (
             <span

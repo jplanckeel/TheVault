@@ -33,15 +33,15 @@ func (s *PostgresJobStore) Create(ctx context.Context, job domain.ScrapeJob) (do
 // Update persists status, items_done, error, and finished_at for a job.
 func (s *PostgresJobStore) Update(ctx context.Context, job domain.ScrapeJob) error {
 	const q = `
-		UPDATE scrape_jobs SET status=$1, items_done=$2, error=$3, finished_at=$4
-		WHERE id=$5
+		UPDATE scrape_jobs SET status=$1, items_total=$2, items_done=$3, error=$4, finished_at=$5
+		WHERE id=$6
 	`
-	tag, err := s.pool.Exec(ctx, q, job.Status, job.ItemsDone, job.Error, job.FinishedAt, job.ID)
+	tag, err := s.pool.Exec(ctx, q, job.Status, job.ItemsTotal, job.ItemsDone, job.Error, job.FinishedAt, job.ID)
 	if err != nil {
 		return fmt.Errorf("job update: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("job update: %w", errNotFound)
+		return fmt.Errorf("job update: %w", ErrNotFound)
 	}
 	return nil
 }

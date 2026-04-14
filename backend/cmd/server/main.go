@@ -39,7 +39,14 @@ func main() {
 	settings := store.NewSettingsStore(pool)
 
 	// Build runner
-	runner := scraper.NewEbayRunner(items, prices, jobs, settings)
+	ebayClientID := getenv("EBAY_CLIENT_ID", "")
+	ebayClientSecret := getenv("EBAY_CLIENT_SECRET", "")
+	ebayBaseURL := getenv("EBAY_BASE_URL", "")
+	opts := []scraper.Option{scraper.WithCredentials(ebayClientID, ebayClientSecret)}
+	if ebayBaseURL != "" {
+		opts = append(opts, scraper.WithBaseURL(ebayBaseURL))
+	}
+	runner := scraper.NewEbayRunner(items, prices, jobs, settings, opts...)
 
 	// Start scheduler
 	sched := scheduler.New(jobs, runner)

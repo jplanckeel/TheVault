@@ -31,13 +31,23 @@ func WithBaseURL(u string) Option {
 	return func(r *ebayRunner) { r.baseURL = u }
 }
 
+// WithCredentials sets the eBay OAuth credentials directly (overrides settings store).
+func WithCredentials(clientID, clientSecret string) Option {
+	return func(r *ebayRunner) {
+		r.clientID = clientID
+		r.clientSecret = clientSecret
+	}
+}
+
 type ebayRunner struct {
-	items    store.ItemStore
-	prices   store.PriceStore
-	jobs     store.JobStore
-	settings store.SettingsStore
-	baseURL  string
-	client   *http.Client
+	items        store.ItemStore
+	prices       store.PriceStore
+	jobs         store.JobStore
+	settings     store.SettingsStore
+	baseURL      string
+	client       *http.Client
+	clientID     string
+	clientSecret string
 }
 
 // NewEbayRunner returns the runner func used by ScrapeHandler.
@@ -127,13 +137,22 @@ func (r *ebayRunner) resolveItems(ctx context.Context, itemIDs []string) ([]doma
 }
 
 func (r *ebayRunner) getToken(ctx context.Context) (string, error) {
-	clientID, err := r.settings.Get(ctx, "ebay_client_id")
-	if err != nil {
-		return "", fmt.Errorf("ebay_client_id setting: %w", err)
+	clientID := r.clientID
+	clientSecret := r.clientSecret
+
+	if clientID == "" {
+		var err error
+		clientID, err = r.settings.Get(ctx, "ebay_client_id")
+		if err != nil {
+			return "", fmt.Errorf("ebay_client_id setting: %w", err)
+		}
 	}
-	clientSecret, err := r.settings.Get(ctx, "ebay_client_secret")
-	if err != nil {
-		return "", fmt.Errorf("ebay_client_secret setting: %w", err)
+	if clientSecret == "" {
+		var err error
+		clientSecret, err = r.settings.Get(ctx, "ebay_client_secret")
+		if err != nil {
+			return "", fmt.Errorf("ebay_client_secret setting: %w", err)
+		}
 	}
 
 	creds := base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
@@ -201,10 +220,13 @@ func (r *ebayRunner) scrapeItem(ctx context.Context, token, marketplace string, 
 
 	var result struct {
 		ItemSummaries []ebayItemSummary `json:"itemSummaries"`
+		Total         int               `json:"total"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decode search: %w", err)
 	}
+
+	fmt.Fprintf(os.Stderr, "scraper: item %s — eBay returned %d results (total=%d)\n", item.ID, len(result.ItemSummaries), result.Total)
 
 	// Group prices by condition
 	type priceEntry struct {
