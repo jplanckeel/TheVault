@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import type { Item } from '../types'
 
 export default function CataloguePage() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +60,11 @@ export default function CataloguePage() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id}>
+              <tr
+                key={item.id}
+                onClick={() => navigate(`/items/${item.id}`)}
+                style={{ cursor: 'pointer' }}
+              >
                 <td style={{ padding: '0.5rem', borderBottom: '1px solid #f0f0f0' }}>{item.title}</td>
                 <td style={{ padding: '0.5rem', borderBottom: '1px solid #f0f0f0' }}>{item.platform}</td>
                 <td style={{ padding: '0.5rem', borderBottom: '1px solid #f0f0f0' }}>{item.type}</td>

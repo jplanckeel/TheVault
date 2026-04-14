@@ -1,5 +1,6 @@
 import { BrowserRouter, Link, Outlet, Route, Routes } from 'react-router-dom'
 import CataloguePage from './pages/CataloguePage'
+import ItemDetailPage from './pages/ItemDetailPage'
 
 function Layout() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<CataloguePage />} />
+          <Route path="items/:id" element={<ItemDetailPage />} />
           <Route path="jobs" element={<JobsPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
