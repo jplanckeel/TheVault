@@ -9,15 +9,18 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; 
   failed:  { color: '#FF6E84', bg: 'rgba(255,110,132,0.15)', label: 'Échoué' },
 }
 
-const JOB_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  ebay: { label: 'eBay Scrape', color: '#E53238' },
-  igdb: { label: 'IGDB Sync',  color: '#BA9EFF' },
+const JOB_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  ebay: { label: 'eBay Scrape', color: '#E53238', bg: 'rgba(229,50,56,0.15)' },
+  igdb: { label: 'IGDB Sync',  color: '#BA9EFF', bg: 'rgba(186,158,255,0.15)' },
 }
 
 function JobTypeBadge({ type }: { type: string }) {
-  const cfg = JOB_TYPE_CONFIG[type] ?? { label: type, color: '#A3AAC4' }
+  const cfg = JOB_TYPE_CONFIG[type] ?? { label: type, color: '#A3AAC4', bg: 'rgba(163,170,196,0.15)' }
   return (
-    <span className="text-xs font-semibold" style={{ color: cfg.color }}>
+    <span
+      className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full"
+      style={{ color: cfg.color, background: cfg.bg }}
+    >
       {cfg.label}
     </span>
   )
