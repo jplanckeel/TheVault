@@ -9,7 +9,12 @@ const CATEGORIES = [
   { key: 'accessory', label: 'Accessoires',  icon: '🎧' },
 ] as const
 
-function PageHeader({ onScrape, scraping }: { onScrape: () => void; scraping: boolean }) {
+function PageHeader({
+  onScrape, scraping, onSyncIGDB, syncing,
+}: {
+  onScrape: () => void; scraping: boolean
+  onSyncIGDB: () => void; syncing: boolean
+}) {
   return (
     <div className="flex items-start justify-between mb-8">
       <div>
@@ -18,14 +23,23 @@ function PageHeader({ onScrape, scraping }: { onScrape: () => void; scraping: bo
         </p>
         <h1 className="text-2xl font-semibold text-vault-on-surface">Catalogue</h1>
       </div>
-      <button
-        onClick={onScrape}
-        disabled={scraping}
-        className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-        style={{ background: 'linear-gradient(135deg, #8455EF, #EC63FF)' }}
-      >
-        {scraping ? 'Scraping…' : 'Trigger Scrape'}
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={onSyncIGDB}
+          disabled={syncing}
+          className="px-4 py-2 rounded-lg text-sm font-semibold text-vault-on-surface border border-vault-outline-variant disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:border-vault-primary"
+        >
+          {syncing ? 'Sync IGDB…' : 'Sync IGDB'}
+        </button>
+        <button
+          onClick={onScrape}
+          disabled={scraping}
+          className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+          style={{ background: 'linear-gradient(135deg, #8455EF, #EC63FF)' }}
+        >
+          {scraping ? 'Scraping…' : 'Trigger Scrape'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -55,30 +69,46 @@ function ItemCard({ item, onClick }: { item: Item; onClick: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="bg-vault-surface border border-vault-outline-variant rounded-xl p-5 cursor-pointer transition-all hover:border-vault-primary hover:shadow-[0_0_0_1px_#BA9EFF]"
+      className="bg-vault-surface border border-vault-outline-variant rounded-xl overflow-hidden cursor-pointer transition-all hover:border-vault-primary hover:shadow-[0_0_0_1px_#BA9EFF] flex gap-4 p-4"
     >
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-sm font-semibold text-vault-on-surface leading-snug flex-1 mr-2">
-          {item.title}
-        </h3>
-        {item.region && (
-          <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-vault-secondary-container text-vault-secondary-text font-medium">
-            {item.region}
-          </span>
+      {/* Cover thumbnail */}
+      <div className="shrink-0 w-14 h-20 rounded-lg overflow-hidden bg-vault-surface-highest flex items-center justify-center">
+        {item.cover_url ? (
+          <img src={item.cover_url} alt={item.title} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-2xl opacity-30">🎮</span>
         )}
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-vault-on-surface-variant">{item.platform}</span>
-        {item.platform && item.type && (
-          <span className="text-vault-outline text-xs">·</span>
-        )}
-        <span className="text-xs text-vault-on-surface-variant capitalize">{item.type}</span>
-      </div>
-      {item.status && (
-        <div className="mt-3 pt-3 border-t border-vault-outline-variant">
-          <span className="text-xs text-vault-on-surface-variant">{item.status}</span>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3 className="text-sm font-semibold text-vault-on-surface leading-snug">
+            {item.title}
+          </h3>
+          {item.region && (
+            <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-vault-secondary-container text-vault-secondary-text font-medium">
+              {item.region}
+            </span>
+          )}
         </div>
-      )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-vault-on-surface-variant">{item.platform}</span>
+          {item.release_year > 0 && (
+            <>
+              <span className="text-vault-outline text-xs">·</span>
+              <span className="text-xs text-vault-on-surface-variant">{item.release_year}</span>
+            </>
+          )}
+        </div>
+        {item.genres && (
+          <p className="text-xs text-vault-on-surface-variant mt-1 truncate">{item.genres}</p>
+        )}
+        {item.status && (
+          <div className="mt-2 pt-2 border-t border-vault-outline-variant">
+            <span className="text-xs text-vault-on-surface-variant">{item.status}</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -105,6 +135,8 @@ export default function CataloguePage() {
   const [error, setError] = useState<string | null>(null)
   const [scraping, setScraping] = useState(false)
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [query, setQuery] = useState('')
 
   useEffect(() => {
@@ -120,6 +152,19 @@ export default function CataloguePage() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }, [])
+
+  async function triggerSyncIGDB() {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const res = await api.items.syncIGDB()
+      setSyncMsg(res.message)
+    } catch (e) {
+      setSyncMsg(`Erreur: ${String(e)}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   async function triggerScrape() {
     setScraping(true)
@@ -169,7 +214,7 @@ export default function CataloguePage() {
 
   return (
     <div>
-      <PageHeader onScrape={triggerScrape} scraping={scraping} />
+      <PageHeader onScrape={triggerScrape} scraping={scraping} onSyncIGDB={triggerSyncIGDB} syncing={syncing} />
 
       {/* Summary cards */}
       {items.length > 0 && (
@@ -208,6 +253,11 @@ export default function CataloguePage() {
         )}
       </div>
 
+      {syncMsg && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-vault-surface border border-vault-outline-variant">
+          <p className="text-sm text-vault-primary">{syncMsg}</p>
+        </div>
+      )}
       {scrapeMsg && (
         <div className="mb-6 px-4 py-3 rounded-lg bg-vault-surface border border-vault-outline-variant">
           <p className="text-sm text-vault-primary">{scrapeMsg}</p>

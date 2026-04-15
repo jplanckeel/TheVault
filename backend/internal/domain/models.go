@@ -22,17 +22,34 @@ const (
 
 // Item is a game, console, or accessory synced from the mobile app.
 type Item struct {
-	ID         string    `json:"id"`
-	ExternalID string    `json:"external_id"`
-	Type       ItemType  `json:"type"`
-	Title      string    `json:"title"`
-	Platform   string    `json:"platform"`
-	Region     string    `json:"region"`
-	Condition  string    `json:"condition"`
-	Status     string    `json:"status"`
-	CoverURL   string    `json:"cover_url"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	ExternalID  string    `json:"external_id"`
+	Type        ItemType  `json:"type"`
+	Title       string    `json:"title"`
+	Platform    string    `json:"platform"`
+	Region      string    `json:"region"`
+	Condition   string    `json:"condition"`
+	Status      string    `json:"status"`
+	CoverURL    string    `json:"cover_url"`
+	IgdbID      string    `json:"igdb_id"`
+	Summary     string    `json:"summary"`
+	Genres      string    `json:"genres"`
+	Developer   string    `json:"developer"`
+	Publisher   string    `json:"publisher"`
+	ReleaseYear int       `json:"release_year"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// IGDBData holds metadata fetched from IGDB for an item.
+type IGDBData struct {
+	IgdbID      string
+	CoverURL    string
+	Summary     string
+	Genres      string
+	Developer   string
+	Publisher   string
+	ReleaseYear int
 }
 
 // PriceSnapshot is one scrape result for a given item + condition.

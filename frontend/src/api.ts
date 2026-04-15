@@ -23,6 +23,7 @@ export const api = {
     list: () => get<Item[]>('/items'),
     get: (id: string) => get<Item>(`/items/${id}`),
     prices: (id: string) => get<PriceSnapshot[]>(`/items/${id}/prices`),
+    syncIGDB: () => post<{ message: string; total: number }>('/items/sync-igdb', {}),
   },
   prices: {
     latest: () => get<PriceSnapshot[]>('/prices/latest'),

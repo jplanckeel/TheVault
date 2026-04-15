@@ -70,7 +70,7 @@ function PriceTooltip({ active, payload, label }: any) {
 // ─── Graphique ───────────────────────────────────────────────────────────────
 
 function PriceChart({ prices }: { prices: PriceSnapshot[] }) {
-  if (prices.length < 2) return null
+  if (prices.length === 0) return null
 
   // Construire les points chronologiques : une entrée par (date, condition)
   // puis pivoter en { date, loose?, cib?, new? }
@@ -237,31 +237,77 @@ export default function ItemDetailPage() {
       </button>
 
       <div className="mb-8">
-        <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-2">
+        <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-4">
           Item
         </p>
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <h1 className="text-2xl font-semibold text-vault-on-surface">{item.title}</h1>
-          <a
-            href={`https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(`${item.title} ${item.platform}`)}&_sacat=0`}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Voir sur eBay"
-            className="shrink-0 text-vault-on-surface-variant hover:text-[#E53238] transition-colors"
-          >
-            <FontAwesomeIcon icon={faEbay} className="text-3xl" />
-          </a>
+        <div className="flex gap-6 items-start mb-4">
+          {/* Cover image */}
+          {item.cover_url && (
+            <div className="shrink-0 w-28 rounded-xl overflow-hidden shadow-lg">
+              <img src={item.cover_url} alt={item.title} className="w-full h-auto object-cover" />
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <h1 className="text-2xl font-semibold text-vault-on-surface mb-1">{item.title}</h1>
+                {item.release_year > 0 && (
+                  <p className="text-sm text-vault-on-surface-variant">{item.release_year}</p>
+                )}
+              </div>
+              <a
+                href={`https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(`${item.title} ${item.platform}`)}&_sacat=0`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Voir sur eBay"
+                className="shrink-0 text-vault-on-surface-variant hover:text-[#E53238] transition-colors"
+              >
+                <FontAwesomeIcon icon={faEbay} className="text-3xl" />
+              </a>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {badges.map((b) => (
+                <span
+                  key={b.label}
+                  className="text-xs px-3 py-1 rounded-full bg-vault-secondary-container text-vault-secondary-text font-medium"
+                >
+                  {b.label}
+                </span>
+              ))}
+            </div>
+
+            {/* IGDB metadata */}
+            <div className="flex flex-wrap gap-x-6 gap-y-1">
+              {item.genres && (
+                <p className="text-xs text-vault-on-surface-variant">
+                  <span className="uppercase tracking-wider mr-1">Genres</span>
+                  <span className="text-vault-on-surface">{item.genres}</span>
+                </p>
+              )}
+              {item.developer && (
+                <p className="text-xs text-vault-on-surface-variant">
+                  <span className="uppercase tracking-wider mr-1">Dev</span>
+                  <span className="text-vault-on-surface">{item.developer}</span>
+                </p>
+              )}
+              {item.publisher && item.publisher !== item.developer && (
+                <p className="text-xs text-vault-on-surface-variant">
+                  <span className="uppercase tracking-wider mr-1">Éditeur</span>
+                  <span className="text-vault-on-surface">{item.publisher}</span>
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {badges.map((b) => (
-            <span
-              key={b.label}
-              className="text-xs px-3 py-1 rounded-full bg-vault-secondary-container text-vault-secondary-text font-medium"
-            >
-              {b.label}
-            </span>
-          ))}
-        </div>
+
+        {/* Summary */}
+        {item.summary && (
+          <p className="text-sm text-vault-on-surface-variant leading-relaxed border-l-2 border-vault-primary/40 pl-4">
+            {item.summary}
+          </p>
+        )}
       </div>
 
       {Object.keys(byCondition).length > 0 && (

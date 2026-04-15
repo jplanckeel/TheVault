@@ -8,6 +8,12 @@ export interface Item {
   condition: string
   status: string
   cover_url: string
+  igdb_id: string
+  summary: string
+  genres: string
+  developer: string
+  publisher: string
+  release_year: number
   created_at: string
   updated_at: string
 }

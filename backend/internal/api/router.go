@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
+	"github.com/jplanckeel/thevaultbo/internal/igdb"
 	"github.com/jplanckeel/thevaultbo/internal/store"
 )
 
@@ -17,6 +18,7 @@ func NewRouter(
 	jobs store.JobStore,
 	settings store.SettingsStore, //nolint:unparam // wired in a later task
 	ebayRunner func(jobID, triggeredBy string, itemIDs ...string),
+	igdbClient *igdb.Client,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -31,6 +33,7 @@ func NewRouter(
 	ih := handlers.NewItemsHandler(items, prices)
 	ph := handlers.NewPricesHandler(prices)
 	sh := handlers.NewScrapeHandler(jobs, ebayRunner)
+	gh := handlers.NewIGDBHandler(items, igdbClient)
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -41,6 +44,7 @@ func NewRouter(
 		// Items
 		r.Post("/items", ih.UpsertItem)
 		r.Get("/items", ih.ListItems)
+		r.Post("/items/sync-igdb", gh.SyncIGDB)
 		r.Get("/items/{id}", ih.GetItem)
 		r.Get("/items/{id}/prices", ih.GetItemPrices)
 

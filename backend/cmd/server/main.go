@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/jplanckeel/thevaultbo/internal/api"
+	"github.com/jplanckeel/thevaultbo/internal/igdb"
 	"github.com/jplanckeel/thevaultbo/internal/scheduler"
 	"github.com/jplanckeel/thevaultbo/internal/scraper"
 	"github.com/jplanckeel/thevaultbo/internal/store"
@@ -55,8 +56,13 @@ func main() {
 	}
 	defer sched.Stop()
 
+	// Build IGDB client
+	igdbClientID := getenv("IGDB_CLIENT_ID", "")
+	igdbClientSecret := getenv("IGDB_CLIENT_SECRET", "")
+	igdbClient := igdb.New(igdbClientID, igdbClientSecret)
+
 	// Build router
-	router := api.NewRouter(items, prices, jobs, settings, runner)
+	router := api.NewRouter(items, prices, jobs, settings, runner, igdbClient)
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("listening on %s", addr)

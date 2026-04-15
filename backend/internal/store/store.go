@@ -15,6 +15,8 @@ type ItemStore interface {
 	Upsert(ctx context.Context, item domain.Item) (domain.Item, error)
 	List(ctx context.Context) ([]domain.Item, error)
 	GetByID(ctx context.Context, id string) (domain.Item, error)
+	ListWithoutIGDB(ctx context.Context) ([]domain.Item, error)
+	UpdateIGDB(ctx context.Context, id string, data domain.IGDBData) error
 }
 
 // PriceStore defines persistence operations for price snapshots.
