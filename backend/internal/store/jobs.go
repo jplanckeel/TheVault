@@ -21,12 +21,12 @@ func NewJobStore(pool *pgxpool.Pool) *PostgresJobStore {
 // Create inserts a new scrape job and returns it with its generated ID.
 func (s *PostgresJobStore) Create(ctx context.Context, job domain.ScrapeJob) (domain.ScrapeJob, error) {
 	const q = `
-		INSERT INTO scrape_jobs (triggered_by, status, items_total, items_done, error, started_at)
-		VALUES ($1, $2, $3, $4, $5, NOW())
-		RETURNING id, triggered_by, status, items_total, items_done, error, started_at, finished_at
+		INSERT INTO scrape_jobs (job_type, triggered_by, status, items_total, items_done, error, started_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		RETURNING id, job_type, triggered_by, status, items_total, items_done, error, started_at, finished_at
 	`
 	return scanJob(s.pool.QueryRow(ctx, q,
-		job.TriggeredBy, job.Status, job.ItemsTotal, job.ItemsDone, job.Error,
+		job.JobType, job.TriggeredBy, job.Status, job.ItemsTotal, job.ItemsDone, job.Error,
 	))
 }
 
@@ -49,7 +49,7 @@ func (s *PostgresJobStore) Update(ctx context.Context, job domain.ScrapeJob) err
 // GetByID returns a job by its UUID.
 func (s *PostgresJobStore) GetByID(ctx context.Context, id string) (domain.ScrapeJob, error) {
 	const q = `
-		SELECT id, triggered_by, status, items_total, items_done, error, started_at, finished_at
+		SELECT id, job_type, triggered_by, status, items_total, items_done, error, started_at, finished_at
 		FROM scrape_jobs WHERE id = $1
 	`
 	return scanJob(s.pool.QueryRow(ctx, q, id))
@@ -58,7 +58,7 @@ func (s *PostgresJobStore) GetByID(ctx context.Context, id string) (domain.Scrap
 // List returns all jobs ordered by start time descending.
 func (s *PostgresJobStore) List(ctx context.Context) ([]domain.ScrapeJob, error) {
 	const q = `
-		SELECT id, triggered_by, status, items_total, items_done, error, started_at, finished_at
+		SELECT id, job_type, triggered_by, status, items_total, items_done, error, started_at, finished_at
 		FROM scrape_jobs ORDER BY started_at DESC
 	`
 	rows, err := s.pool.Query(ctx, q)
@@ -69,12 +69,9 @@ func (s *PostgresJobStore) List(ctx context.Context) ([]domain.ScrapeJob, error)
 
 	var jobs []domain.ScrapeJob
 	for rows.Next() {
-		var j domain.ScrapeJob
-		if err := rows.Scan(
-			&j.ID, &j.TriggeredBy, &j.Status, &j.ItemsTotal,
-			&j.ItemsDone, &j.Error, &j.StartedAt, &j.FinishedAt,
-		); err != nil {
-			return nil, fmt.Errorf("jobs list scan: %w", err)
+		j, err := scanJob(rows)
+		if err != nil {
+			return nil, err
 		}
 		jobs = append(jobs, j)
 	}
@@ -92,7 +89,7 @@ type rowScanner interface {
 func scanJob(row rowScanner) (domain.ScrapeJob, error) {
 	var j domain.ScrapeJob
 	err := row.Scan(
-		&j.ID, &j.TriggeredBy, &j.Status, &j.ItemsTotal,
+		&j.ID, &j.JobType, &j.TriggeredBy, &j.Status, &j.ItemsTotal,
 		&j.ItemsDone, &j.Error, &j.StartedAt, &j.FinishedAt,
 	)
 	if err != nil {

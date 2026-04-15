@@ -34,6 +34,7 @@ func (h *ScrapeHandler) TriggerScrape(w http.ResponseWriter, r *http.Request) {
 	}
 
 	job, err := h.jobs.Create(r.Context(), domain.ScrapeJob{
+		JobType:     "ebay",
 		TriggeredBy: req.TriggeredBy,
 		Status:      "pending",
 	})

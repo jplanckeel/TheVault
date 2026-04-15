@@ -33,7 +33,7 @@ func NewRouter(
 	ih := handlers.NewItemsHandler(items, prices)
 	ph := handlers.NewPricesHandler(prices)
 	sh := handlers.NewScrapeHandler(jobs, ebayRunner)
-	gh := handlers.NewIGDBHandler(items, igdbClient)
+	gh := handlers.NewIGDBHandler(items, jobs, igdbClient)
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

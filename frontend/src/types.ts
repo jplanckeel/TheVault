@@ -35,6 +35,7 @@ export type JobStatus = 'pending' | 'running' | 'done' | 'failed'
 
 export interface ScrapeJob {
   id: string
+  job_type: string
   triggered_by: string
   status: JobStatus
   items_total: number

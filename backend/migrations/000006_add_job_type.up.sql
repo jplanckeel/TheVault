@@ -1,0 +1,2 @@
+ALTER TABLE scrape_jobs
+  ADD COLUMN IF NOT EXISTS job_type TEXT NOT NULL DEFAULT 'ebay';

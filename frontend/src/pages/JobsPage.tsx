@@ -9,6 +9,20 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; 
   failed:  { color: '#FF6E84', bg: 'rgba(255,110,132,0.15)', label: 'Échoué' },
 }
 
+const JOB_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  ebay: { label: 'eBay Scrape', color: '#E53238' },
+  igdb: { label: 'IGDB Sync',  color: '#BA9EFF' },
+}
+
+function JobTypeBadge({ type }: { type: string }) {
+  const cfg = JOB_TYPE_CONFIG[type] ?? { label: type, color: '#A3AAC4' }
+  return (
+    <span className="text-xs font-semibold" style={{ color: cfg.color }}>
+      {cfg.label}
+    </span>
+  )
+}
+
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? { color: '#A3AAC4', bg: 'rgba(163,170,196,0.15)', label: status }
   return (
@@ -86,7 +100,7 @@ export default function JobsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-vault-outline-variant bg-vault-surface">
-                {['Démarré le', 'Déclenché par', 'Statut', 'Progression', 'Erreur'].map((h) => (
+                {['Démarré le', 'Type', 'Déclenché par', 'Statut', 'Progression', 'Erreur'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium tracking-wider text-vault-on-surface-variant uppercase">
                     {h}
                   </th>
@@ -98,6 +112,9 @@ export default function JobsPage() {
                 <tr key={job.id} className="border-b border-vault-outline-variant/50 hover:bg-vault-surface/50 transition-colors">
                   <td className="px-4 py-3 text-vault-on-surface-variant">
                     {new Date(job.started_at).toLocaleString('fr-FR')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <JobTypeBadge type={job.job_type} />
                   </td>
                   <td className="px-4 py-3 text-vault-on-surface">{job.triggered_by}</td>
                   <td className="px-4 py-3">

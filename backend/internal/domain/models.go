@@ -66,9 +66,10 @@ type PriceSnapshot struct {
 	ScrapedAt   time.Time      `json:"scraped_at"`
 }
 
-// ScrapeJob tracks a scraping run (cron or manual).
+// ScrapeJob tracks a scraping or sync run (cron or manual).
 type ScrapeJob struct {
 	ID          string     `json:"id"`
+	JobType     string     `json:"job_type"`
 	TriggeredBy string     `json:"triggered_by"`
 	Status      string     `json:"status"`
 	ItemsTotal  int        `json:"items_total"`
