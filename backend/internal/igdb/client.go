@@ -75,12 +75,13 @@ func (c *Client) getToken() (string, error) {
 		return c.cachedToken, nil
 	}
 
-	params := url.Values{}
-	params.Set("client_id", c.clientID)
-	params.Set("client_secret", c.clientSecret)
-	params.Set("grant_type", "client_credentials")
+	tokenURL := fmt.Sprintf("%s?client_id=%s&client_secret=%s&grant_type=client_credentials",
+		twitchTokenURL,
+		url.QueryEscape(c.clientID),
+		url.QueryEscape(c.clientSecret),
+	)
 
-	resp, err := c.http.PostForm(twitchTokenURL, params)
+	resp, err := c.http.Post(tokenURL, "", nil)
 	if err != nil {
 		return "", fmt.Errorf("igdb token request: %w", err)
 	}
