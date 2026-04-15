@@ -10,8 +10,8 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; 
 }
 
 const JOB_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  ebay: { label: 'eBay Scrape', color: '#E53238', bg: 'rgba(229,50,56,0.15)' },
-  igdb: { label: 'IGDB Sync',  color: '#BA9EFF', bg: 'rgba(186,158,255,0.15)' },
+  ebay: { label: 'eBay', color: '#E53238', bg: 'rgba(229,50,56,0.15)' },
+  igdb: { label: 'IGDB', color: '#BA9EFF', bg: 'rgba(186,158,255,0.15)' },
 }
 
 function JobTypeBadge({ type }: { type: string }) {
