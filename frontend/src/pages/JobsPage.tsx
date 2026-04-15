@@ -18,7 +18,7 @@ function JobTypeBadge({ type }: { type: string }) {
   const cfg = JOB_TYPE_CONFIG[type] ?? { label: type, color: '#A3AAC4', bg: 'rgba(163,170,196,0.15)' }
   return (
     <span
-      className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full"
+      className="inline-flex items-center justify-center text-xs font-semibold px-2.5 py-1 rounded-full"
       style={{ color: cfg.color, background: cfg.bg }}
     >
       {cfg.label}
