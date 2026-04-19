@@ -37,13 +37,17 @@ const PLATFORM_CONTROLLER: Record<string, string> = {
   'virtual boy':        'virtual-boy',  // virtual-boy.svg
 
   // ── Nintendo Switch ──────────────────────────────────────────────────────
-  'nintendo switch':    'switch-pro',   // switch-pro.svg — Pro Controller
-  'switch':             'switch-pro',
-  'nintendo switch lite':'joy-cons',    // joy-cons.svg — no Pro on Lite
+  'nintendo switch':    'joy-cons',
+  'switch':             'joy-cons',
+  'nintendo switch lite':'joy-cons',
   'switch lite':        'joy-cons',
+  'nintendo switch 2':  'joy-cons',
+  'switch 2':           'joy-cons',
   'joy-con':            'joy-cons',
-  'joy-con (l)':        'joy-con-l',   // joy-con-l.svg
-  'joy-con (r)':        'joy-con-r',   // joy-con-r.svg
+  'joy-con (l)':        'joy-con-l',
+  'joy-con (r)':        'joy-con-r',
+  'switch pro':         'switch-pro',
+  'switch pro controller': 'switch-pro',
 
   // ── Sony ─────────────────────────────────────────────────────────────────
   'playstation':        'ps1',
@@ -73,15 +77,17 @@ const PLATFORM_CONTROLLER: Record<string, string> = {
   'sega dreamcast':     'dreamcast',
 
   // ── Microsoft Xbox ───────────────────────────────────────────────────────
-  'xbox':               'xbox-controller-s', // xbox-controller-s.svg — original Xbox S controller
-  'xbox original':      'xbox-controller-s',
-  'microsoft xbox':     'xbox-controller-s',
-  'xbox 360':           'xbox-360',          // xbox-360.svg
-  'xbox one':           'xbox-one',          // xbox-one.svg
-  'xbox series x':      'xbox-series-x',     // xbox-series-x.svg
+  'xbox':               'xbox',
+  'xbox original':      'xbox',
+  'microsoft xbox':     'xbox',
+  'xbox (original)':    'xbox',
+  'xbox controller s':  'xbox-controller-s',
+  'xbox s':             'xbox-controller-s',
+  'xbox 360':           'xbox-360',
+  'xbox one':           'xbox-one',
+  'xbox series x':      'xbox-series-x',
   'xbox series s':      'xbox-series-x',
   'xbox series':        'xbox-series-x',
-  'xbox (original)':    'xbox',              // xbox.svg — alternate original Xbox icon
 
   // ── Atari ────────────────────────────────────────────────────────────────
   'atari 2600':         'atari-2600',
