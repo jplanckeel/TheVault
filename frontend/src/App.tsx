@@ -1,5 +1,6 @@
 import { BrowserRouter, NavLink, Outlet, Route, Routes } from 'react-router-dom'
 import CataloguePage from './pages/CataloguePage'
+import HomePage from './pages/HomePage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import JobsPage from './pages/JobsPage'
 
@@ -11,33 +12,27 @@ function Sidebar() {
         <h1 className="text-lg font-bold text-vault-primary">TheVaultBO</h1>
       </div>
       <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive
-                ? 'bg-vault-surface text-vault-primary'
-                : 'text-vault-on-surface-variant hover:bg-vault-surface hover:text-vault-on-surface'
-            }`
-          }
-        >
-          <span>📦</span>
-          Catalogue
-        </NavLink>
-        <NavLink
-          to="/jobs"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive
-                ? 'bg-vault-surface text-vault-primary'
-                : 'text-vault-on-surface-variant hover:bg-vault-surface hover:text-vault-on-surface'
-            }`
-          }
-        >
-          <span>⚙️</span>
-          Scrape Jobs
-        </NavLink>
+        {[
+          { to: '/',          end: true,  icon: '🎮', label: 'Collection'  },
+          { to: '/catalogue', end: false, icon: '📦', label: 'Catalogue'   },
+          { to: '/jobs',      end: false, icon: '⚙️', label: 'Jobs'        },
+        ].map(({ to, end, icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-vault-surface text-vault-primary'
+                  : 'text-vault-on-surface-variant hover:bg-vault-surface hover:text-vault-on-surface'
+              }`
+            }
+          >
+            <span>{icon}</span>
+            {label}
+          </NavLink>
+        ))}
       </nav>
       <div className="px-6 py-4 border-t border-vault-outline-variant">
         <p className="text-xs text-vault-on-surface-variant">The Vault — Admin</p>
@@ -70,7 +65,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<CataloguePage />} />
+          <Route index element={<HomePage />} />
+          <Route path="catalogue" element={<CataloguePage />} />
           <Route path="items/:id" element={<ItemDetailPage />} />
           <Route path="jobs" element={<JobsPage />} />
           <Route path="*" element={<NotFound />} />
