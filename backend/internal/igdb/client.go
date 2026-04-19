@@ -98,21 +98,13 @@ func (c *Client) getToken() (string, error) {
 	return c.cachedToken, nil
 }
 
-// SearchGame queries IGDB for the best match for a game title and returns its metadata.
-// Returns nil IGDBData (no error) when no result is found.
-func (c *Client) SearchGame(title string) (*domain.IGDBData, error) {
+// search executes a raw IGDB query string and returns the decoded game list.
+// It handles 401 token expiry with a single retry.
+func (c *Client) search(query string) ([]igdbGame, error) {
 	token, err := c.getToken()
 	if err != nil {
 		return nil, err
 	}
-
-	// Escape double-quotes in the title to avoid breaking the IGDB query syntax.
-	safeTitle := strings.ReplaceAll(title, `"`, `\"`)
-	query := fmt.Sprintf(
-		`fields id,first_release_date,cover.url,genres.name,summary,involved_companies.company.name,involved_companies.developer,involved_companies.publisher;`+
-			`search "%s"; where version_parent = null; limit 1;`,
-		safeTitle,
-	)
 
 	req, err := http.NewRequest(http.MethodPost, igdbGamesURL, bytes.NewBufferString(query))
 	if err != nil {
@@ -128,12 +120,11 @@ func (c *Client) SearchGame(title string) (*domain.IGDBData, error) {
 	}
 	defer resp.Body.Close()
 
-	// If token expired (401), clear cache and retry once.
 	if resp.StatusCode == http.StatusUnauthorized {
 		c.mu.Lock()
 		c.cachedToken = ""
 		c.mu.Unlock()
-		return c.SearchGame(title)
+		return c.search(query)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("igdb search: HTTP %d", resp.StatusCode)
@@ -143,6 +134,52 @@ func (c *Client) SearchGame(title string) (*domain.IGDBData, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&games); err != nil {
 		return nil, fmt.Errorf("igdb decode: %w", err)
 	}
+	return games, nil
+}
+
+// igdbQuery builds an IGDB APIv4 query for the given search term.
+// No version_parent filter so remasters and ports are included.
+func igdbQuery(term string) string {
+	safe := strings.ReplaceAll(term, `"`, `\"`)
+	return fmt.Sprintf(
+		`fields id,first_release_date,cover.url,genres.name,summary,`+
+			`involved_companies.company.name,involved_companies.developer,involved_companies.publisher;`+
+			`search "%s"; limit 1;`,
+		safe,
+	)
+}
+
+// cleanTitle strips common noise from a game title so a fallback search
+// has a better chance of matching (e.g. "Zelda: Wind Waker HD (GCN)" → "Zelda Wind Waker HD").
+func cleanTitle(title string) string {
+	// Remove anything in parentheses or brackets (region tags, editions…)
+	re := strings.NewReplacer("(", " ", ")", " ", "[", " ", "]", " ")
+	cleaned := re.Replace(title)
+	// Collapse extra spaces
+	fields := strings.Fields(cleaned)
+	return strings.Join(fields, " ")
+}
+
+// SearchGame queries IGDB for the best match for a game title.
+// Returns nil IGDBData (no error) when no result is found after all attempts.
+func (c *Client) SearchGame(title string) (*domain.IGDBData, error) {
+	// Pass 1: exact title
+	games, err := c.search(igdbQuery(title))
+	if err != nil {
+		return nil, err
+	}
+
+	// Pass 2: cleaned title (removes parentheses / region codes)
+	if len(games) == 0 {
+		cleaned := cleanTitle(title)
+		if cleaned != title {
+			games, err = c.search(igdbQuery(cleaned))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	if len(games) == 0 {
 		return nil, nil
 	}
