@@ -4,64 +4,93 @@ import { api } from '../api'
 import type { Item } from '../types'
 
 // ─── Platform → controller SVG mapping ──────────────────────────────────────
+// All 30 available SVGs are mapped below.
 
 const PLATFORM_CONTROLLER: Record<string, string> = {
-  // Nintendo handhelds (no dedicated icon — use nes as fallback)
-  'game boy':          'nes',
-  'game boy color':    'nes',
-  'game boy advance':  'nes',
-  'gba':               'nes',
-  'nintendo ds':       'nes',
-  'ds':                'nes',
-  'nintendo 3ds':      'nes',
-  '3ds':               'nes',
-  // Nintendo home
-  'nes':               'nes',
-  'famicom':           'nes',
-  'snes':              'snes',
-  'super nintendo':    'snes',
-  'super famicom':     'snes',
-  'nintendo 64':       'n64',
-  'n64':               'n64',
-  'gamecube':          'gamecube',
-  'nintendo gamecube': 'gamecube',
-  'wii':               'wii',
-  'wii u':             'wii-u',
-  'nintendo switch':   'joy-cons',
-  'switch':            'joy-cons',
-  'virtual boy':       'virtual-boy',
-  // Sony
-  'playstation':       'ps1',
-  'ps1':               'ps1',
-  'ps one':            'ps1',
-  'playstation 2':     'ps2',
-  'ps2':               'ps2',
-  'playstation 3':     'ps3',
-  'ps3':               'ps3',
-  'playstation 4':     'ps4',
-  'ps4':               'ps4',
-  'playstation 5':     'ps5',
-  'ps5':               'ps5',
-  // Sega
-  'master system':         'master-system',
-  'sega master system':    'master-system',
-  'mega drive':            'mega-drive',
-  'genesis':               'mega-drive',
-  'sega genesis':          'mega-drive',
-  'sega mega drive':       'mega-drive',
-  'saturn':                'sega-saturn',
-  'sega saturn':           'sega-saturn',
-  'dreamcast':             'dreamcast',
-  'sega dreamcast':        'dreamcast',
-  // Microsoft
-  'xbox':           'xbox',
-  'xbox 360':       'xbox-360',
-  'xbox one':       'xbox-one',
-  'xbox series x':  'xbox-series-x',
-  'xbox series s':  'xbox-series-x',
-  // Atari
-  'atari 2600': 'atari-2600',
-  'atari jaguar': 'atari-jaguar',
+  // ── Nintendo handhelds ───────────────────────────────────────────────────
+  'game boy':           'nes',          // no GB-specific icon
+  'game boy color':     'nes',
+  'game boy advance':   'nes',
+  'gba':                'nes',
+  'nintendo ds':        'nes',
+  'ds':                 'nes',
+  'nintendo 3ds':       'nes',
+  '3ds':                'nes',
+  'new nintendo 3ds':   'nes',
+
+  // ── Nintendo home consoles ───────────────────────────────────────────────
+  'nes':                'nes',
+  'famicom':            'nes',
+  'snes':               'snes',
+  'super nintendo':     'snes',
+  'super famicom':      'snes',
+  'nintendo 64':        'n64',
+  'n64':                'n64',
+  'gamecube':           'gamecube',
+  'nintendo gamecube':  'gamecube',
+  'wii':                'wii',
+  'wii classic':        'wii-classic',  // wii-classic.svg
+  'wii u':              'wii-u-pro',    // wii-u-pro.svg — the Pro Controller
+  'nintendo wii u':     'wii-u-pro',
+  'wii u pro':          'wii-u-pro',
+  'wii u gamepad':      'wii-u',        // wii-u.svg — the Gamepad
+  'virtual boy':        'virtual-boy',  // virtual-boy.svg
+
+  // ── Nintendo Switch ──────────────────────────────────────────────────────
+  'nintendo switch':    'switch-pro',   // switch-pro.svg — Pro Controller
+  'switch':             'switch-pro',
+  'nintendo switch lite':'joy-cons',    // joy-cons.svg — no Pro on Lite
+  'switch lite':        'joy-cons',
+  'joy-con':            'joy-cons',
+  'joy-con (l)':        'joy-con-l',   // joy-con-l.svg
+  'joy-con (r)':        'joy-con-r',   // joy-con-r.svg
+
+  // ── Sony ─────────────────────────────────────────────────────────────────
+  'playstation':        'ps1',
+  'ps1':                'ps1',
+  'ps one':             'ps1',
+  'playstation 2':      'ps2',
+  'ps2':                'ps2',
+  'playstation 3':      'ps3',
+  'ps3':                'ps3',
+  'playstation 4':      'ps4',
+  'ps4':                'ps4',
+  'playstation 5':      'ps5',
+  'ps5':                'ps5',
+  'psp':                'ps2',          // no PSP icon, closest is ps2
+  'ps vita':            'ps4',          // no Vita icon, closest is ps4
+
+  // ── Sega ─────────────────────────────────────────────────────────────────
+  'master system':      'master-system',
+  'sega master system': 'master-system',
+  'mega drive':         'mega-drive',
+  'genesis':            'mega-drive',
+  'sega genesis':       'mega-drive',
+  'sega mega drive':    'mega-drive',
+  'saturn':             'sega-saturn',
+  'sega saturn':        'sega-saturn',
+  'dreamcast':          'dreamcast',
+  'sega dreamcast':     'dreamcast',
+
+  // ── Microsoft Xbox ───────────────────────────────────────────────────────
+  'xbox':               'xbox-controller-s', // xbox-controller-s.svg — original Xbox S controller
+  'xbox original':      'xbox-controller-s',
+  'microsoft xbox':     'xbox-controller-s',
+  'xbox 360':           'xbox-360',          // xbox-360.svg
+  'xbox one':           'xbox-one',          // xbox-one.svg
+  'xbox series x':      'xbox-series-x',     // xbox-series-x.svg
+  'xbox series s':      'xbox-series-x',
+  'xbox series':        'xbox-series-x',
+  'xbox (original)':    'xbox',              // xbox.svg — alternate original Xbox icon
+
+  // ── Atari ────────────────────────────────────────────────────────────────
+  'atari 2600':         'atari-2600',
+  'atari':              'atari-2600',
+  'atari jaguar':       'atari-jaguar',
+
+  // ── Google ───────────────────────────────────────────────────────────────
+  'stadia':             'stadia',            // stadia.svg
+  'google stadia':      'stadia',
 }
 
 function controllerFor(platform: string): string | null {
