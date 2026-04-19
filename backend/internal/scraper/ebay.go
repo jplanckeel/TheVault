@@ -333,30 +333,59 @@ func (r *ebayRunner) settingOrDefault(ctx context.Context, key, def string) stri
 
 // mapCondition maps eBay condition strings to our domain conditions.
 //
-// New  : explicitly new/sealed items (neuf, scellé, sealed…)
-// Loose: items sold without box/manual (loose, cd only, disc only…)
-// CIB  : everything else — used games are assumed complete in box by default.
+// New  : new/sealed items — never opened, shrink-wrap intact.
+// Loose: item sold without original box or manual (disc/cart only, for parts…).
+// CIB  : default — complete or assumed complete (very good → acceptable, used…).
 func mapCondition(ebayCondition string) domain.PriceCondition {
 	c := strings.ToLower(strings.TrimSpace(ebayCondition))
 
-	// ── New / Sealed ────────────────────────────────────────────────────────
-	switch c {
-	case "new", "brand new", "sealed", "neuf", "scellé", "scelle":
+	// ── New / Sealed ─────────────────────────────────────────────────────────
+	// Exact eBay condition labels (EN + FR) and common seller descriptions.
+	newTerms := []string{
+		"new", "brand new",
+		"sealed", "factory sealed", "shrink wrapped",
+		"mint", "mint condition", "mint sealed",
+		"new in box", "new in package", "new in wrap",
+		"new with box", "new with tags",
+		"neuf", "neuf scellé", "neuf autre",
+		"scellé", "scelle",
+		"neu", "versiegelt", // DE
+	}
+	for _, t := range newTerms {
+		if c == t {
+			return domain.ConditionNew
+		}
+	}
+	// Partial matches for sealed/mint descriptions
+	if strings.Contains(c, "sealed") || strings.Contains(c, "scellé") ||
+		strings.Contains(c, "shrink") || strings.Contains(c, "mint") {
 		return domain.ConditionNew
 	}
 
-	// ── Loose / disc-only ───────────────────────────────────────────────────
-	if strings.Contains(c, "loose") ||
-		strings.Contains(c, "cd only") ||
-		strings.Contains(c, "cd uniquement") ||
-		strings.Contains(c, "disc only") ||
-		strings.Contains(c, "disk only") ||
-		strings.Contains(c, "cartridge only") ||
-		strings.Contains(c, "cart only") {
-		return domain.ConditionLoose
+	// ── Loose / disc or cartridge only ───────────────────────────────────────
+	// Items explicitly missing box, manual or both.
+	looseTerms := []string{
+		"loose",
+		"cd only", "cd uniquement",
+		"disc only", "disk only", "disque seul",
+		"cartridge only", "cart only", "cartouche seule", "cartouche uniquement",
+		"game only", "jeu seul", "jeu uniquement",
+		"new without box", "neuf sans boite", "neuf sans boîte",
+		"sans boite", "sans boîte", "sans étui",
+		"no box", "no case", "no manual", "sans notice",
+		"for parts", "pour pièces", "pour pieces",
+		"not working", "ne fonctionne pas",
+		"defective", "défectueux", "defectueux",
+		"untested", "non testé", "non teste",
+	}
+	for _, t := range looseTerms {
+		if strings.Contains(c, t) {
+			return domain.ConditionLoose
+		}
 	}
 
-	// ── CIB (default for all other used conditions) ─────────────────────────
-	// Like New, Very Good, Good, Acceptable, Used, Complet, Complete, CIB…
+	// ── CIB (default) ────────────────────────────────────────────────────────
+	// Like New, Very Good, Good, Acceptable, Used, Très bon état, Bon état,
+	// État correct, Complet, Complete, CIB, Refurbished, etc.
 	return domain.ConditionCIB
 }
