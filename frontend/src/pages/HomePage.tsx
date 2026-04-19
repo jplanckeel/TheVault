@@ -127,15 +127,32 @@ function sortPlatforms(platforms: string[]): string[] {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function ControllerIcon({ platform, className }: { platform: string; className?: string }) {
+// CSS filter chains to recolour black SVG paths:
+// Primary violet  #BA9EFF
+const FILTER_PRIMARY = 'brightness(0) saturate(100%) invert(78%) sepia(35%) saturate(600%) hue-rotate(215deg) brightness(108%)'
+// Muted blue-grey #A3AAC4 at 50 % opacity
+const FILTER_MUTED   = 'brightness(0) saturate(100%) invert(72%) sepia(10%) saturate(350%) hue-rotate(188deg) brightness(96%) opacity(0.5)'
+// Watermark: primary at 18 % opacity for large section header
+const FILTER_WATERMARK = 'brightness(0) saturate(100%) invert(78%) sepia(35%) saturate(600%) hue-rotate(215deg) brightness(108%) opacity(0.18)'
+
+function ControllerIcon({
+  platform, className, variant = 'muted',
+}: {
+  platform: string
+  className?: string
+  variant?: 'primary' | 'muted' | 'watermark'
+}) {
   const icon = controllerFor(platform)
+  const filter = variant === 'primary' ? FILTER_PRIMARY
+    : variant === 'watermark' ? FILTER_WATERMARK
+    : FILTER_MUTED
   if (!icon) return <span className={`text-4xl opacity-30 ${className}`}>🎮</span>
   return (
     <img
       src={`/controllercons/${icon}.svg`}
       alt={platform}
       className={className}
-      style={{ filter: 'invert(1) opacity(0.9)' }}
+      style={{ filter }}
     />
   )
 }
@@ -154,7 +171,7 @@ function ConsoleCard({
           : 'border-vault-outline-variant bg-vault-surface hover:border-vault-primary/60'
       }`}
     >
-      <ControllerIcon platform={platform} className="w-12 h-12 object-contain" />
+      <ControllerIcon platform={platform} className="w-12 h-12 object-contain" variant={active ? 'primary' : 'muted'} />
       <p className="text-xs font-semibold text-vault-on-surface leading-tight">{platform}</p>
       <span className="text-xs px-2 py-0.5 rounded-full bg-vault-surface-highest text-vault-on-surface-variant">
         {count}
@@ -285,7 +302,7 @@ export default function HomePage() {
               {/* Console header */}
               <div className="flex items-center gap-4 mb-6 pb-4 border-b border-vault-outline-variant">
                 <div className="w-16 h-16 rounded-xl bg-vault-surface border border-vault-outline-variant flex items-center justify-center p-3">
-                  <ControllerIcon platform={activePlatform} className="w-full h-full object-contain" />
+                  <ControllerIcon platform={activePlatform} className="w-full h-full object-contain" variant="primary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-vault-on-surface">{activePlatform}</h2>
