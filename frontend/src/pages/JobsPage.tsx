@@ -56,10 +56,41 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   )
 }
 
+function ErrorModal({ error, onClose }: { error: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(6,14,32,0.8)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl border border-vault-error/40 bg-vault-surface-low p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-vault-error">
+            Détail de l'erreur
+          </p>
+          <button
+            onClick={onClose}
+            className="text-vault-on-surface-variant hover:text-vault-on-surface transition-colors text-sm"
+          >
+            ✕
+          </button>
+        </div>
+        <pre className="text-xs text-vault-error/90 whitespace-pre-wrap break-all font-mono leading-relaxed bg-vault-surface rounded-lg p-4 border border-vault-error/20 max-h-72 overflow-y-auto">
+          {error}
+        </pre>
+      </div>
+    </div>
+  )
+}
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<ScrapeJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedError, setSelectedError] = useState<string | null>(null)
 
   function loadJobs() {
     return api.scrape.list()
@@ -87,6 +118,10 @@ export default function JobsPage() {
 
   return (
     <div>
+      {selectedError && (
+        <ErrorModal error={selectedError} onClose={() => setSelectedError(null)} />
+      )}
+
       <div className="mb-8">
         <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-2">
           Backoffice
@@ -126,8 +161,16 @@ export default function JobsPage() {
                   <td className="px-4 py-3">
                     <ProgressBar done={job.items_done} total={job.items_total} />
                   </td>
-                  <td className="px-4 py-3 text-vault-error text-xs max-w-xs truncate">
-                    {job.error ?? ''}
+                  <td className="px-4 py-3 max-w-xs">
+                    {job.error ? (
+                      <button
+                        onClick={() => setSelectedError(job.error!)}
+                        className="text-xs text-vault-error truncate max-w-[200px] block text-left hover:underline cursor-pointer"
+                        title="Cliquer pour voir le détail"
+                      >
+                        {job.error}
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
