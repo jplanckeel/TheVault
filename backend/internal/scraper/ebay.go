@@ -332,15 +332,31 @@ func (r *ebayRunner) settingOrDefault(ctx context.Context, key, def string) stri
 }
 
 // mapCondition maps eBay condition strings to our domain conditions.
-// "Like New" maps to CIB as the closest eBay equivalent of "complete in box".
-// "New" maps to New. Everything else (Used, Good, Acceptable, etc.) maps to Loose.
+//
+// New  : explicitly new/sealed items (neuf, scellé, sealed…)
+// Loose: items sold without box/manual (loose, cd only, disc only…)
+// CIB  : everything else — used games are assumed complete in box by default.
 func mapCondition(ebayCondition string) domain.PriceCondition {
-	switch strings.ToLower(ebayCondition) {
-	case "new", "brand new":
+	c := strings.ToLower(strings.TrimSpace(ebayCondition))
+
+	// ── New / Sealed ────────────────────────────────────────────────────────
+	switch c {
+	case "new", "brand new", "sealed", "neuf", "scellé", "scelle":
 		return domain.ConditionNew
-	case "like new":
-		return domain.ConditionCIB
-	default:
+	}
+
+	// ── Loose / disc-only ───────────────────────────────────────────────────
+	if strings.Contains(c, "loose") ||
+		strings.Contains(c, "cd only") ||
+		strings.Contains(c, "cd uniquement") ||
+		strings.Contains(c, "disc only") ||
+		strings.Contains(c, "disk only") ||
+		strings.Contains(c, "cartridge only") ||
+		strings.Contains(c, "cart only") {
 		return domain.ConditionLoose
 	}
+
+	// ── CIB (default for all other used conditions) ─────────────────────────
+	// Like New, Very Good, Good, Acceptable, Used, Complet, Complete, CIB…
+	return domain.ConditionCIB
 }
