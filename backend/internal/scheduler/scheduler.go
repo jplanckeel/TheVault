@@ -93,6 +93,7 @@ func (s *Scheduler) Stop() {
 func (s *Scheduler) fire() {
 	ctx := context.Background()
 	job, err := s.jobs.Create(ctx, domain.ScrapeJob{
+		JobType:     "ebay",
 		TriggeredBy: "cron",
 		Status:      "pending",
 	})
