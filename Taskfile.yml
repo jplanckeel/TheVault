@@ -8,6 +8,9 @@ vars:
   PG_PASSWORD: postgres
   PG_DB: thevaultbo
   PG_PORT: 5432
+  IMAGE: jplanckeel/thevaultbo
+  TAG:
+    sh: git rev-parse --short HEAD
 
 tasks:
   dev:
@@ -55,6 +58,23 @@ tasks:
       - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='{{.PG_DB}}' AND pid <> pg_backend_pid()"
       - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "DROP DATABASE IF EXISTS {{.PG_DB}}"
       - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "CREATE DATABASE {{.PG_DB}}"
+
+  docker:build:
+    desc: Build Docker image (tag = git short SHA + latest)
+    cmds:
+      - docker build -t {{.IMAGE}}:{{.TAG}} -t {{.IMAGE}}:latest .
+
+  docker:push:
+    desc: Push Docker image to registry (jplanckeel/thevaultbo)
+    cmds:
+      - docker push {{.IMAGE}}:{{.TAG}}
+      - docker push {{.IMAGE}}:latest
+
+  docker:release:
+    desc: Build and push Docker image in one step
+    cmds:
+      - task: docker:build
+      - task: docker:push
 
   build:
     desc: Build backend binary and frontend bundle
