@@ -62,7 +62,8 @@ func main() {
 	igdbClient := igdb.New(igdbClientID, igdbClientSecret)
 
 	// Build router
-	router := api.NewRouter(items, prices, jobs, settings, runner, igdbClient)
+	staticDir := getenv("STATIC_DIR", "")
+	router := api.NewRouter(items, prices, jobs, settings, runner, igdbClient, staticDir)
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("listening on %s", addr)

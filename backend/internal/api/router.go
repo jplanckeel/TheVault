@@ -19,6 +19,7 @@ func NewRouter(
 	settings store.SettingsStore, //nolint:unparam // wired in a later task
 	ebayRunner func(jobID, triggeredBy string, itemIDs ...string),
 	igdbClient *igdb.Client,
+	staticDir string,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -39,6 +40,20 @@ func NewRouter(
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+
+	// Serve frontend SPA (only when a static dir is configured)
+	if staticDir != "" {
+		fs := http.FileServer(http.Dir(staticDir))
+		r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
+			// If the requested file exists, serve it directly.
+			// Otherwise fall back to index.html for client-side routing.
+			if _, err := http.Dir(staticDir).Open(req.URL.Path); err != nil {
+				http.ServeFile(w, req, staticDir+"/index.html")
+				return
+			}
+			fs.ServeHTTP(w, req)
+		})
+	}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Items
