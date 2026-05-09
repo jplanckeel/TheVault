@@ -14,5 +14,11 @@ frontend/dist/
 # OS
 .DS_Store
 
+# CSV
+*.csv
+
+# Controllers
+controllercons/
+
 # worktrees
 .worktrees/
