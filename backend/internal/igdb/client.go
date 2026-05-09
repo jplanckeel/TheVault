@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	twitchTokenURL = "https://id.twitch.tv/oauth2/token"
-	igdbGamesURL   = "https://api.igdb.com/v4/games"
+	twitchTokenURL    = "https://id.twitch.tv/oauth2/token"
+	igdbGamesURL      = "https://api.igdb.com/v4/games"
+	igdbPlatformsURL  = "https://api.igdb.com/v4/platforms"
 )
 
 // Client is an IGDB API client backed by Twitch OAuth2.
@@ -136,7 +137,6 @@ func (c *Client) search(query string) ([]igdbGame, error) {
 	}
 	return games, nil
 }
-
 // igdbQuery builds an IGDB APIv4 query for the given search term.
 // No version_parent filter so remasters and ports are included.
 func igdbQuery(term string) string {
@@ -225,4 +225,61 @@ func (c *Client) SearchGame(title string) (*domain.IGDBData, error) {
 	}
 
 	return data, nil
+}
+
+// igdbPlatform is the raw IGDB platform response.
+type igdbPlatform struct {
+	ID             int64      `json:"id"`
+	Name           string     `json:"name"`
+	PlatformLogo   *igdbCover `json:"platform_logo"`
+}
+
+// SearchPlatform queries IGDB /platforms for a console name and returns its logo URL.
+func (c *Client) SearchPlatform(name string) (string, error) {
+	safe := strings.ReplaceAll(name, `"`, `\"`)
+	query := fmt.Sprintf(`fields id,name,platform_logo.url; search "%s"; limit 1;`, safe)
+
+	token, err := c.getToken()
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, igdbPlatformsURL, bytes.NewBufferString(query))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Client-ID", c.clientID)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.mu.Lock()
+		c.cachedToken = ""
+		c.mu.Unlock()
+		return c.SearchPlatform(name)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("igdb platforms: HTTP %d", resp.StatusCode)
+	}
+
+	var platforms []igdbPlatform
+	if err := json.NewDecoder(resp.Body).Decode(&platforms); err != nil {
+		return "", err
+	}
+
+	if len(platforms) == 0 || platforms[0].PlatformLogo == nil {
+		return "", nil
+	}
+
+	logoURL := strings.Replace(platforms[0].PlatformLogo.URL, "t_thumb", "t_logo_med", 1)
+	if strings.HasPrefix(logoURL, "//") {
+		logoURL = "https:" + logoURL
+	}
+	return logoURL, nil
 }

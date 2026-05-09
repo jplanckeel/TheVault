@@ -17,6 +17,7 @@ type ItemStore interface {
 	GetByID(ctx context.Context, id string) (domain.Item, error)
 	ListWithoutIGDB(ctx context.Context) ([]domain.Item, error)
 	UpdateIGDB(ctx context.Context, id string, data domain.IGDBData) error
+	UpdateCoverURL(ctx context.Context, id string, coverURL string) error
 }
 
 // PriceStore defines persistence operations for price snapshots.

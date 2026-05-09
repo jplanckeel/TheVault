@@ -8,7 +8,7 @@ vars:
   PG_PASSWORD: postgres
   PG_DB: thevaultbo
   PG_PORT: 5432
-  IMAGE: jplanckeel/thevaultbo
+  IMAGE: jplanckeel/thevault
   TAG:
     sh: git rev-parse --short HEAD
 
@@ -16,7 +16,7 @@ tasks:
   dev:
     desc: Start PostgreSQL, backend (hot-reload), and frontend dev server
     cmds:
-      - task: db
+      #- task: db
       - task dev:backend & task dev:frontend; wait
 
   dev:backend:
@@ -65,7 +65,7 @@ tasks:
       - docker build -t {{.IMAGE}}:{{.TAG}} -t {{.IMAGE}}:latest .
 
   docker:push:
-    desc: Push Docker image to registry (jplanckeel/thevaultbo)
+    desc: Push Docker image to registry (jplanckeel/thevault)
     cmds:
       - docker push {{.IMAGE}}:{{.TAG}}
       - docker push {{.IMAGE}}:latest

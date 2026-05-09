@@ -9,12 +9,7 @@ const CATEGORIES = [
   { key: 'accessory', label: 'Accessoires',  icon: '🎧' },
 ] as const
 
-function PageHeader({
-  onScrape, scraping, onSyncIGDB, syncing,
-}: {
-  onScrape: () => void; scraping: boolean
-  onSyncIGDB: () => void; syncing: boolean
-}) {
+function PageHeader() {
   return (
     <div className="flex items-start justify-between mb-8">
       <div>
@@ -22,23 +17,6 @@ function PageHeader({
           Backoffice
         </p>
         <h1 className="text-2xl font-semibold text-vault-on-surface">Catalogue</h1>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={onSyncIGDB}
-          disabled={syncing}
-          className="px-4 py-2 rounded-lg text-sm font-semibold text-vault-on-surface border border-vault-outline-variant disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:border-vault-primary"
-        >
-          {syncing ? 'Sync IGDB…' : 'Sync IGDB'}
-        </button>
-        <button
-          onClick={onScrape}
-          disabled={scraping}
-          className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #8455EF, #EC63FF)' }}
-        >
-          {scraping ? 'Scraping…' : 'Trigger Scrape'}
-        </button>
       </div>
     </div>
   )
@@ -133,10 +111,6 @@ export default function CataloguePage() {
   const [priceMap, setPriceMap] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [scraping, setScraping] = useState(false)
-  const [scrapeMsg, setScrapeMsg] = useState<string | null>(null)
-  const [syncing, setSyncing] = useState(false)
-  const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [query, setQuery] = useState('')
 
   useEffect(() => {
@@ -152,32 +126,6 @@ export default function CataloguePage() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }, [])
-
-  async function triggerSyncIGDB() {
-    setSyncing(true)
-    setSyncMsg(null)
-    try {
-      const res = await api.items.syncIGDB()
-      setSyncMsg(res.message)
-    } catch (e) {
-      setSyncMsg(`Erreur: ${String(e)}`)
-    } finally {
-      setSyncing(false)
-    }
-  }
-
-  async function triggerScrape() {
-    setScraping(true)
-    setScrapeMsg(null)
-    try {
-      const job = await api.scrape.trigger('user')
-      setScrapeMsg(`Job démarré (ID: ${job.id})`)
-    } catch (e) {
-      setScrapeMsg(`Erreur: ${String(e)}`)
-    } finally {
-      setScraping(false)
-    }
-  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -214,7 +162,7 @@ export default function CataloguePage() {
 
   return (
     <div>
-      <PageHeader onScrape={triggerScrape} scraping={scraping} onSyncIGDB={triggerSyncIGDB} syncing={syncing} />
+      <PageHeader />
 
       {/* Summary cards */}
       {items.length > 0 && (
@@ -252,17 +200,6 @@ export default function CataloguePage() {
           </button>
         )}
       </div>
-
-      {syncMsg && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-vault-surface border border-vault-outline-variant">
-          <p className="text-sm text-vault-primary">{syncMsg}</p>
-        </div>
-      )}
-      {scrapeMsg && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-vault-surface border border-vault-outline-variant">
-          <p className="text-sm text-vault-primary">{scrapeMsg}</p>
-        </div>
-      )}
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-center">

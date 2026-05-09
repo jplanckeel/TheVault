@@ -18,7 +18,7 @@ func NewRouter(
 	jobs store.JobStore,
 	settings store.SettingsStore, //nolint:unparam // wired in a later task
 	ebayRunner func(jobID, triggeredBy string, itemIDs ...string),
-	igdbClient *igdb.Client,
+	igdbRunner *igdb.Runner,
 	staticDir string,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -28,13 +28,16 @@ func NewRouter(
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Content-Type"},
+		AllowedHeaders: []string{"Accept", "Content-Type", "Authorization", "X-API-Key"},
 	}))
 
 	ih := handlers.NewItemsHandler(items, prices)
 	ph := handlers.NewPricesHandler(prices)
 	sh := handlers.NewScrapeHandler(jobs, ebayRunner)
-	gh := handlers.NewIGDBHandler(items, jobs, igdbClient)
+	gh := handlers.NewIGDBHandler(igdbRunner)
+	ch := handlers.NewConsolesHandler(items)
+	ah := handlers.NewAccessoriesHandler(items)
+	lh := handlers.NewLoginHandler()
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -56,20 +59,38 @@ func NewRouter(
 	}
 
 	r.Route("/api/v1", func(r chi.Router) {
-		// Items
-		r.Post("/items", ih.UpsertItem)
-		r.Get("/items", ih.ListItems)
-		r.Post("/items/sync-igdb", gh.SyncIGDB)
-		r.Get("/items/{id}", ih.GetItem)
-		r.Get("/items/{id}/prices", ih.GetItemPrices)
+		// Public
+		r.Post("/login", lh.Login)
 
-		// Prices
-		r.Get("/prices/latest", ph.GetLatestPrices)
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(AuthMiddleware)
 
-		// Scrape jobs
-		r.Post("/scrape", sh.TriggerScrape)
-		r.Get("/scrape", sh.ListJobs)
-		r.Get("/scrape/{id}", sh.GetJob)
+			// Items
+			r.Post("/items", ih.UpsertItem)
+			r.Get("/items", ih.ListItems)
+			r.Post("/items/sync-igdb", gh.SyncIGDB)
+			r.Get("/items/{id}", ih.GetItem)
+			r.Get("/items/{id}/prices", ih.GetItemPrices)
+			r.Put("/items/{id}/cover", ih.UpdateCover)
+
+			// Consoles
+			r.Get("/consoles", ch.ListConsoles)
+			r.Get("/consoles/{id}", ch.GetConsole)
+			r.Get("/consoles/{id}/games", ch.GetConsoleGames)
+
+			// Accessories
+			r.Get("/accessories", ah.ListAccessories)
+			r.Get("/accessories/{id}", ah.GetAccessory)
+
+			// Prices
+			r.Get("/prices/latest", ph.GetLatestPrices)
+
+			// Scrape jobs
+			r.Post("/scrape", sh.TriggerScrape)
+			r.Get("/scrape", sh.ListJobs)
+			r.Get("/scrape/{id}", sh.GetJob)
+		})
 	})
 
 	return r

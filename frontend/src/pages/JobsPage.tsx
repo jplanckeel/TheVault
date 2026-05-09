@@ -91,6 +91,9 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedError, setSelectedError] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [scraping, setScraping] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
 
   function loadJobs() {
     return api.scrape.list()
@@ -103,6 +106,34 @@ export default function JobsPage() {
     const interval = setInterval(loadJobs, 5000)
     return () => clearInterval(interval)
   }, [])
+
+  async function triggerSyncIGDB() {
+    setSyncing(true)
+    setMsg(null)
+    try {
+      const res = await api.items.syncIGDB()
+      setMsg(res.message)
+      loadJobs()
+    } catch (e) {
+      setMsg(`Erreur: ${String(e)}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  async function triggerScrape() {
+    setScraping(true)
+    setMsg(null)
+    try {
+      const job = await api.scrape.trigger('user')
+      setMsg(`Job démarré (ID: ${job.id})`)
+      loadJobs()
+    } catch (e) {
+      setMsg(`Erreur: ${String(e)}`)
+    } finally {
+      setScraping(false)
+    }
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -122,12 +153,37 @@ export default function JobsPage() {
         <ErrorModal error={selectedError} onClose={() => setSelectedError(null)} />
       )}
 
-      <div className="mb-8">
-        <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-2">
-          Backoffice
-        </p>
-        <h1 className="text-2xl font-semibold text-vault-on-surface">Scrape Jobs</h1>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <p className="text-xs font-medium tracking-widest text-vault-on-surface-variant uppercase mb-2">
+            Backoffice
+          </p>
+          <h1 className="text-2xl font-semibold text-vault-on-surface">Scrape Jobs</h1>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={triggerSyncIGDB}
+            disabled={syncing}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-vault-on-surface border border-vault-outline-variant disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:border-vault-primary"
+          >
+            {syncing ? 'Sync IGDB…' : 'Sync IGDB'}
+          </button>
+          <button
+            onClick={triggerScrape}
+            disabled={scraping}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+            style={{ background: 'linear-gradient(135deg, #8455EF, #EC63FF)' }}
+          >
+            {scraping ? 'Scraping…' : 'Trigger Scrape'}
+          </button>
+        </div>
       </div>
+
+      {msg && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-vault-surface border border-vault-outline-variant">
+          <p className="text-sm text-vault-primary">{msg}</p>
+        </div>
+      )}
 
       {jobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-center">

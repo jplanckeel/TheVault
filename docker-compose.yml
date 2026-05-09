@@ -1,0 +1,52 @@
+services:
+  app:
+    image: jplanckeel/thevaultbo:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/thevaultbo?sslmode=disable
+      PORT: "8080"
+      STATIC_DIR: /app/static
+      EBAY_CLIENT_ID: ${EBAY_CLIENT_ID}
+      EBAY_CLIENT_SECRET: ${EBAY_CLIENT_SECRET}
+      EBAY_CRON: ${EBAY_CRON:-0 * * * *}
+      IGDB_CLIENT_ID: ${IGDB_CLIENT_ID}
+      IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET}
+      IGDB_CRON: ${IGDB_CRON:-0 3 * * *}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dokploy-network
+      - internal
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.thevaultbo.rule=Host(`${APP_DOMAIN}`)
+      - traefik.http.routers.thevaultbo.entrypoints=websecure
+      - traefik.http.routers.thevaultbo.tls.certresolver=letsencrypt
+      - traefik.http.services.thevaultbo.loadbalancer.server.port=8080
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: thevaultbo
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:
+
+networks:
+  dokploy-network:
+    external: true
+  internal:
+    driver: bridge

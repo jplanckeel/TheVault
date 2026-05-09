@@ -89,3 +89,23 @@ func (h *ItemsHandler) GetItemPrices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(snaps)
 }
+
+// UpdateCover handles PUT /api/v1/items/{id}/cover — manual cover URL update.
+func (h *ItemsHandler) UpdateCover(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var body struct {
+		CoverURL string `json:"cover_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.CoverURL == "" {
+		http.Error(w, "cover_url is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.items.UpdateCoverURL(r.Context(), id, body.CoverURL); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"cover_url": body.CoverURL})
+}

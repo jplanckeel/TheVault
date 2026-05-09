@@ -39,7 +39,7 @@ func main() {
 	jobs := store.NewJobStore(pool)
 	settings := store.NewSettingsStore(pool)
 
-	// Build runner
+	// Build eBay runner
 	ebayClientID := getenv("EBAY_CLIENT_ID", "")
 	ebayClientSecret := getenv("EBAY_CLIENT_SECRET", "")
 	ebayBaseURL := getenv("EBAY_BASE_URL", "")
@@ -47,23 +47,30 @@ func main() {
 	if ebayBaseURL != "" {
 		opts = append(opts, scraper.WithBaseURL(ebayBaseURL))
 	}
-	runner := scraper.NewEbayRunner(items, prices, jobs, settings, opts...)
+	ebayRunner := scraper.NewEbayRunner(items, prices, jobs, settings, opts...)
+
+	// Build IGDB client and runner
+	igdbClientID := getenv("IGDB_CLIENT_ID", "")
+	igdbClientSecret := getenv("IGDB_CLIENT_SECRET", "")
+	igdbClient := igdb.New(igdbClientID, igdbClientSecret)
+	igdbRunner := igdb.NewRunner(items, jobs, igdbClient)
 
 	// Start scheduler
-	sched := scheduler.New(jobs, runner)
+	ebayCron := getenv("EBAY_CRON", "0 * * * *")  // default: every hour
+	igdbCron := getenv("IGDB_CRON", "0 3 * * *")  // default: daily at 03:00
+	schedOpts := []scheduler.Option{
+		scheduler.WithEbaySchedule(ebayCron),
+		scheduler.WithIGDB(igdbRunner, igdbCron),
+	}
+	sched := scheduler.New(jobs, ebayRunner, schedOpts...)
 	if err := sched.Start(); err != nil {
 		log.Fatalf("scheduler: %v", err)
 	}
 	defer sched.Stop()
 
-	// Build IGDB client
-	igdbClientID := getenv("IGDB_CLIENT_ID", "")
-	igdbClientSecret := getenv("IGDB_CLIENT_SECRET", "")
-	igdbClient := igdb.New(igdbClientID, igdbClientSecret)
-
 	// Build router
 	staticDir := getenv("STATIC_DIR", "")
-	router := api.NewRouter(items, prices, jobs, settings, runner, igdbClient, staticDir)
+	router := api.NewRouter(items, prices, jobs, settings, ebayRunner, igdbRunner, staticDir)
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("listening on %s", addr)

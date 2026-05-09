@@ -95,9 +95,9 @@ func (s *PostgresItemStore) GetByID(ctx context.Context, id string) (domain.Item
 	return i, nil
 }
 
-// ListWithoutIGDB returns game items that have not yet been enriched from IGDB.
+// ListWithoutIGDB returns items that have not yet been enriched from IGDB.
 func (s *PostgresItemStore) ListWithoutIGDB(ctx context.Context) ([]domain.Item, error) {
-	q := `SELECT ` + itemCols + ` FROM items WHERE type = 'game' AND igdb_id = '' ORDER BY title ASC`
+	q := `SELECT ` + itemCols + ` FROM items WHERE (type = 'game' AND igdb_id = '') OR ((type = 'console' OR type = 'accessory') AND cover_url = '') ORDER BY type, title ASC`
 	rows, err := s.pool.Query(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("items without igdb: %w", err)
@@ -135,6 +135,15 @@ func (s *PostgresItemStore) UpdateIGDB(ctx context.Context, id string, data doma
 	)
 	if err != nil {
 		return fmt.Errorf("item update igdb: %w", err)
+	}
+	return nil
+}
+
+// UpdateCoverURL sets the cover_url for an item (manual fallback).
+func (s *PostgresItemStore) UpdateCoverURL(ctx context.Context, id string, coverURL string) error {
+	_, err := s.pool.Exec(ctx, `UPDATE items SET cover_url = $2, updated_at = NOW() WHERE id = $1`, id, coverURL)
+	if err != nil {
+		return fmt.Errorf("item update cover: %w", err)
 	}
 	return nil
 }

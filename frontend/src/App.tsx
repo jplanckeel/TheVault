@@ -1,10 +1,17 @@
-import { BrowserRouter, NavLink, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, NavLink, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { AuthProvider, useAuth } from './AuthContext'
+import AccessoriesPage from './pages/AccessoriesPage'
+import AccessoryDetailPage from './pages/AccessoryDetailPage'
 import CataloguePage from './pages/CataloguePage'
+import ConsolesPage from './pages/ConsolesPage'
+import ConsoleDetailPage from './pages/ConsoleDetailPage'
 import HomePage from './pages/HomePage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import JobsPage from './pages/JobsPage'
+import LoginPage from './pages/LoginPage'
 
 function Sidebar() {
+  const { isAdmin, logout } = useAuth()
   return (
     <aside className="fixed top-0 left-0 h-screen w-64 flex flex-col bg-vault-surface-low border-r border-vault-outline-variant z-10">
       <div className="px-6 py-6 border-b border-vault-outline-variant">
@@ -13,14 +20,15 @@ function Sidebar() {
       </div>
       <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
         {[
-          { to: '/',          end: true,  icon: '🎮', label: 'Collection'  },
-          { to: '/catalogue', end: false, icon: '📦', label: 'Catalogue'   },
-          { to: '/jobs',      end: false, icon: '⚙️', label: 'Jobs'        },
-        ].map(({ to, end, icon, label }) => (
+          { to: '/',            icon: '🎮', label: 'Collection'  },
+          { to: '/catalogue',   icon: '📦', label: 'Catalogue'   },
+          { to: '/consoles',    icon: '🕹️', label: 'Consoles'    },
+          { to: '/accessories', icon: '🎧', label: 'Accessoires' },
+          { to: '/jobs',        icon: '⚙️', label: 'Jobs'        },
+        ].map(({ to, icon, label }) => (
           <NavLink
             key={to}
             to={to}
-            end={end}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
@@ -35,7 +43,15 @@ function Sidebar() {
         ))}
       </nav>
       <div className="px-6 py-4 border-t border-vault-outline-variant">
-        <p className="text-xs text-vault-on-surface-variant">The Vault — Admin</p>
+        {isAdmin ? (
+          <button onClick={logout} className="text-xs text-vault-on-surface-variant hover:text-vault-error transition-colors">
+            Déconnexion
+          </button>
+        ) : (
+          <NavLink to="/login" className="text-xs text-vault-on-surface-variant hover:text-vault-primary transition-colors">
+            Connexion admin
+          </NavLink>
+        )}
       </div>
     </aside>
   )
@@ -52,6 +68,12 @@ function Layout() {
   )
 }
 
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { isAdmin } = useAuth()
+  if (!isAdmin) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
 function NotFound() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -62,16 +84,23 @@ function NotFound() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="catalogue" element={<CataloguePage />} />
-          <Route path="items/:id" element={<ItemDetailPage />} />
-          <Route path="jobs" element={<JobsPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
+            <Route index element={<HomePage />} />
+            <Route path="catalogue" element={<CataloguePage />} />
+            <Route path="consoles" element={<ConsolesPage />} />
+            <Route path="consoles/:id" element={<ConsoleDetailPage />} />
+            <Route path="accessories" element={<AccessoriesPage />} />
+            <Route path="accessories/:id" element={<AccessoryDetailPage />} />
+            <Route path="items/:id" element={<ItemDetailPage />} />
+            <Route path="jobs" element={<JobsPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }

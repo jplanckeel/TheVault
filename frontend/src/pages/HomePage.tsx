@@ -99,29 +99,47 @@ const PLATFORM_CONTROLLER: Record<string, string> = {
   'google stadia':      'stadia',
 }
 
-function controllerFor(platform: string): string | null {
-  return PLATFORM_CONTROLLER[platform.toLowerCase()] ?? null
+const BRAND_PREFIXES = ['microsoft ', 'nintendo ', 'sony ', 'sega ', 'google ', 'atari ']
+
+function stripBrand(platform: string): string {
+  const lower = platform.toLowerCase()
+  for (const brand of BRAND_PREFIXES) {
+    if (lower.startsWith(brand)) return platform.slice(brand.length)
+  }
+  return platform
 }
 
-// ─── Platform ordering (most popular first) ──────────────────────────────────
+function controllerFor(platform: string): string | null {
+  const lower = platform.toLowerCase()
+  if (PLATFORM_CONTROLLER[lower]) return PLATFORM_CONTROLLER[lower]
+  return PLATFORM_CONTROLLER[stripBrand(platform).toLowerCase()] ?? null
+}
 
-const PLATFORM_ORDER = [
-  'PlayStation 2', 'PlayStation', 'PlayStation 3', 'PlayStation 4', 'PlayStation 5',
-  'GameCube', 'Nintendo 64', 'SNES', 'NES', 'Wii', 'Wii U', 'Nintendo Switch',
-  'Game Boy Advance', 'Game Boy Color', 'Game Boy', 'Nintendo DS', 'Nintendo 3DS',
-  'Dreamcast', 'Sega Saturn', 'Mega Drive', 'Sega Mega Drive', 'Master System',
-  'Xbox', 'Xbox 360', 'Xbox One', 'Xbox Series X',
-  'Atari 2600', 'Atari Jaguar', 'Virtual Boy',
-]
+// ─── Platform sorting: alphabetical by brand group, then by console name ──────
+
+const BRAND_ORDER = ['Atari', 'Microsoft', 'Nintendo', 'Sega', 'Sony']
+
+function extractBrand(platform: string): string {
+  const lower = platform.toLowerCase()
+  for (const brand of BRAND_PREFIXES) {
+    if (lower.startsWith(brand)) return platform.slice(0, brand.length - 1) // e.g. "Microsoft"
+  }
+  return 'Other'
+}
 
 function sortPlatforms(platforms: string[]): string[] {
   return [...platforms].sort((a, b) => {
-    const ia = PLATFORM_ORDER.indexOf(a)
-    const ib = PLATFORM_ORDER.indexOf(b)
-    if (ia === -1 && ib === -1) return a.localeCompare(b)
-    if (ia === -1) return 1
-    if (ib === -1) return -1
-    return ia - ib
+    const brandA = extractBrand(a)
+    const brandB = extractBrand(b)
+    const ia = BRAND_ORDER.indexOf(brandA)
+    const ib = BRAND_ORDER.indexOf(brandB)
+    const brandSort =
+      ia === -1 && ib === -1 ? brandA.localeCompare(brandB)
+      : ia === -1 ? 1
+      : ib === -1 ? -1
+      : ia - ib
+    if (brandSort !== 0) return brandSort
+    return stripBrand(a).localeCompare(stripBrand(b))
   })
 }
 
