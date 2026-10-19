@@ -7,14 +7,15 @@ import CataloguePage from './pages/CataloguePage'
 import ConsoleDetailPage from './pages/ConsoleDetailPage'
 import AccessoryDetailPage from './pages/AccessoryDetailPage'
 import ItemDetailPage from './pages/ItemDetailPage'
-import JobsPage from './pages/JobsPage'
+import AdminDataPage from './pages/admin/AdminDataPage'
+import AdminSyncPage from './pages/admin/AdminSyncPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import CollectionPage from './pages/CollectionPage'
 import WishlistPage from './pages/WishlistPage'
 import AddItemPage from './pages/AddItemPage'
-import AdminLoginPage from './pages/AdminLoginPage'
+import { EmptyState } from './components/ui'
 
 function RequireAuth({ children, fallback = '/login' }: { children: ReactNode; fallback?: string }) {
   const { user } = useAuth()
@@ -22,8 +23,18 @@ function RequireAuth({ children, fallback = '/login' }: { children: ReactNode; f
 }
 
 function RequireAdmin({ children }: { children: ReactNode }) {
-  const { isAdmin } = useAuth()
-  return isAdmin ? <>{children}</> : <Navigate to="/admin" replace />
+  const { user, isAdmin } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (!isAdmin) {
+    return (
+      <EmptyState
+        icon="shield_lock"
+        title="Accès réservé aux administrateurs"
+        description="Votre compte n'a pas le rôle admin. Il est attribué via la variable ADMIN_EMAILS du backend."
+      />
+    )
+  }
+  return <>{children}</>
 }
 
 function NotFound() {
@@ -43,7 +54,6 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/admin" element={<AdminLoginPage />} />
             <Route path="/" element={<AppLayout />}>
               <Route index element={<RequireAuth fallback="/catalogue"><DashboardPage /></RequireAuth>} />
               <Route path="collection" element={<RequireAuth><CollectionPage /></RequireAuth>} />
@@ -56,7 +66,10 @@ export default function App() {
               <Route path="accessories" element={<Navigate to="/catalogue?type=accessory" replace />} />
               <Route path="accessories/:id" element={<AccessoryDetailPage />} />
               <Route path="items/:id" element={<ItemDetailPage />} />
-              <Route path="jobs" element={<RequireAdmin><JobsPage /></RequireAdmin>} />
+              <Route path="admin" element={<Navigate to="/admin/data" replace />} />
+              <Route path="admin/data" element={<RequireAdmin><AdminDataPage /></RequireAdmin>} />
+              <Route path="admin/sync" element={<RequireAdmin><AdminSyncPage /></RequireAdmin>} />
+              <Route path="jobs" element={<Navigate to="/admin/sync" replace />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

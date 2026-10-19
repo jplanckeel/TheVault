@@ -1,9 +1,11 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
-interface User {
+export interface User {
   id: string
   email: string
   name: string
+  /** Back-office access, granted on the backend through ADMIN_EMAILS. */
+  is_admin: boolean
 }
 
 interface AuthContextType {
@@ -13,7 +15,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>
   register: (email: string, password: string, name: string) => Promise<string | null>
   logout: () => void
-  adminLogin: (password: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,25 +24,54 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => false,
   register: async () => null,
   logout: () => {},
-  adminLogin: async () => false,
 })
+
+function readStoredUser(): User | null {
+  try {
+    const raw = localStorage.getItem('user')
+    return raw ? (JSON.parse(raw) as User) : null
+  } catch {
+    return null
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
-  const [user, setUser] = useState<User | null>(() => {
-    const u = localStorage.getItem('user')
-    return u ? JSON.parse(u) : null
-  })
-  const [isAdmin, setIsAdmin] = useState(() => !!sessionStorage.getItem('admin_token'))
+  const [user, setUser] = useState<User | null>(readStoredUser)
 
+  function saveSession(data: { token: string; user: User }) {
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(data.user))
+    setToken(data.token)
+    setUser(data.user)
+  }
+
+  function logout() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setToken(null)
+    setUser(null)
+  }
+
+  // Refresh the profile on load so a role granted or revoked server-side is picked up.
   useEffect(() => {
-    if (token && !user) {
-      fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data) { setUser(data); localStorage.setItem('user', JSON.stringify(data)) } })
-        .catch(() => {})
-    }
-  }, [token, user])
+    if (!token) return
+    fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => {
+        if (r.status === 401) {
+          logout()
+          return null
+        }
+        return r.ok ? (r.json() as Promise<User>) : null
+      })
+      .then((data) => {
+        if (data) {
+          setUser(data)
+          localStorage.setItem('user', JSON.stringify(data))
+        }
+      })
+      .catch(() => {})
+  }, [token])
 
   async function login(email: string, password: string): Promise<boolean> {
     const res = await fetch('/api/v1/auth/login', {
@@ -50,11 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     })
     if (!res.ok) return false
-    const data = await res.json()
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
-    setToken(data.token)
-    setUser(data.user)
+    saveSession(await res.json())
     return true
   }
 
@@ -64,47 +90,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name }),
     })
-    if (!res.ok) {
-      const text = await res.text()
-      return text || 'Registration failed'
-    }
-    const data = await res.json()
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
-    setToken(data.token)
-    setUser(data.user)
+    if (!res.ok) return (await res.text()) || "L'inscription a échoué"
+    saveSession(await res.json())
     return null
   }
 
-  async function adminLogin(password: string): Promise<boolean> {
-    const res = await fetch('/api/v1/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
-    if (!res.ok) return false
-    const data = await res.json()
-    sessionStorage.setItem('admin_token', data.token)
-    setIsAdmin(true)
-    return true
-  }
-
-  function logout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    sessionStorage.removeItem('admin_token')
-    setToken(null)
-    setUser(null)
-    setIsAdmin(false)
-  }
-
   return (
-    <AuthContext.Provider value={{ user, token, isAdmin, login, register, logout, adminLogin }}>
+    <AuthContext.Provider value={{ user, token, isAdmin: user?.is_admin === true, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext)
 }

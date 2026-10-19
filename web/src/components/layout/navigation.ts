@@ -17,4 +17,7 @@ export const USER_LINKS: NavItem[] = [
 export const EXPLORE_LINKS: NavItem[] = [{ to: '/catalogue', icon: 'travel_explore', label: 'Catalogue' }]
 
 /** Back-office, visible to admins only. */
-export const ADMIN_LINKS: NavItem[] = [{ to: '/jobs', icon: 'sync', label: 'Synchronisations' }]
+export const ADMIN_LINKS: NavItem[] = [
+  { to: '/admin/data', icon: 'database', label: 'Données' },
+  { to: '/admin/sync', icon: 'sync', label: 'Synchronisations' },
+]

@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes } from 'react'
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 import MaterialIcon from './MaterialIcon'
 
 interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -26,7 +26,8 @@ const Input = forwardRef<HTMLInputElement, Props>(function Input(
   { leftIcon, rightAdornment, label, error, size = 'md', glass, className = '', id, ...rest },
   ref,
 ) {
-  const inputId = id || rest.name
+  const generatedId = useId()
+  const inputId = id || rest.name || generatedId
   return (
     <div className="w-full">
       {label && (

@@ -1,5 +1,5 @@
 import type { SelectHTMLAttributes } from 'react'
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 
 interface Option {
   value: string
@@ -21,7 +21,8 @@ const Select = forwardRef<HTMLSelectElement, Props>(function Select(
   { options, label, size = 'md', className = '', id, ...rest },
   ref,
 ) {
-  const selectId = id || rest.name
+  const generatedId = useId()
+  const selectId = id || rest.name || generatedId
   return (
     <div className="w-full">
       {label && (

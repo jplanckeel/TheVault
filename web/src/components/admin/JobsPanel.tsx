@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api'
-import type { JobStatus, ScrapeJob } from '../types'
-import { Button, Card, Chip, EmptyState, Skeleton, useToast } from '../components/ui'
-import { formatRelative } from '../lib/format'
+import { createPortal } from 'react-dom'
+import { api } from '../../api'
+import type { JobStatus, ScrapeJob } from '../../types'
+import { Button, Card, Chip, EmptyState, Skeleton, useToast } from '../ui'
+import { formatRelative } from '../../lib/format'
 
 const REFRESH_MS = 5000
 
@@ -36,7 +37,7 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
 }
 
 function ErrorDialog({ error, onClose }: { error: string; onClose: () => void }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onClick={onClose} role="dialog" aria-modal>
       <Card padding="lg" radius="2xl" className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
@@ -49,12 +50,13 @@ function ErrorDialog({ error, onClose }: { error: string; onClose: () => void })
           {error}
         </pre>
       </Card>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
-/** Back-office — eBay price scraping and IGDB enrichment runs. */
-export default function JobsPage() {
+/** eBay price scraping and IGDB enrichment runs, with manual triggers. */
+export default function JobsPanel() {
   const toast = useToast()
   const [jobs, setJobs] = useState<ScrapeJob[]>([])
   const [loading, setLoading] = useState(true)
@@ -97,15 +99,11 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-4">
       {selectedError && <ErrorDialog error={selectedError} onClose={() => setSelectedError(null)} />}
 
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <p className="text-label-bold text-vault-primary">Back-office</p>
-          <h1 className="text-display-lg text-vault-on-surface">Synchronisations</h1>
-          <p className="mt-1 text-vault-on-surface-variant">Actualisation automatique toutes les 5 secondes.</p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="text-sm text-vault-on-surface-variant">Actualisation automatique toutes les 5 secondes.</p>
         <div className="flex gap-2 flex-wrap">
           <Button variant="ghost" leftIcon="auto_awesome" disabled={busy !== null} onClick={() => run('igdb')}>
             {busy === 'igdb' ? 'Synchronisation…' : 'Enrichir via IGDB'}
@@ -114,7 +112,7 @@ export default function JobsPage() {
             {busy === 'ebay' ? 'Démarrage…' : 'Scraper les prix eBay'}
           </Button>
         </div>
-      </header>
+      </div>
 
       {loading ? (
         <Skeleton variant="card" className="h-64" />

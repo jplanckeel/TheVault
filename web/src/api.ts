@@ -1,4 +1,4 @@
-import type { Item, PriceSnapshot, ScrapeJob, TopMover } from './types'
+import type { AdminItem, Item, ItemPatch, PriceSnapshot, ScrapeJob, SyncEvent, SyncSummary, TopMover } from './types'
 
 export interface IGDBSearchResult {
   id: string
@@ -14,68 +14,37 @@ export interface IGDBSearchResult {
 
 const BASE = '/api/v1'
 
-function userHeaders(): Record<string, string> {
+/** Session token; admin routes use the same token, the backend checks the role. */
+function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-function adminHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem('admin_token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-async function get<T>(path: string, auth: 'none' | 'user' | 'admin' = 'none'): Promise<T> {
-  const headers = auth === 'admin' ? adminHeaders() : auth === 'user' ? userHeaders() : {}
-  const res = await fetch(`${BASE}${path}`, { headers })
-  if (!res.ok) throw new Error(`GET ${path}: ${res.status}`)
-  return res.json() as Promise<T>
-}
-
-async function post<T>(path: string, body: unknown, auth: 'user' | 'admin' = 'admin'): Promise<T> {
-  const headers = auth === 'admin' ? adminHeaders() : userHeaders()
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const isForm = body instanceof FormData
   const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify(body),
+    method,
+    headers: { ...(body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}), ...authHeaders() },
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   })
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
-    throw new Error(`POST ${path}: ${res.status}${detail ? ` — ${detail.trim()}` : ''}`)
+    throw new Error(`${method} ${path}: ${res.status}${detail ? ` — ${detail.trim()}` : ''}`)
   }
-  // Backend may return 204 No Content for write operations.
-  if (res.status === 204 || res.headers.get('content-length') === '0') {
-    return undefined as T
-  }
-  const text = await res.text()
-  if (!text) return undefined as T
-  return JSON.parse(text) as T
+  const text = res.status === 204 ? '' : await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
-async function put<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...adminHeaders() },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '')
-    throw new Error(`PUT ${path}: ${res.status}${detail ? ` — ${detail.trim()}` : ''}`)
-  }
-  if (res.status === 204) return undefined as T
-  const text = await res.text()
-  if (!text) return undefined as T
-  return JSON.parse(text) as T
-}
+const get = <T,>(path: string) => request<T>('GET', path)
+const post = <T,>(path: string, body: unknown = {}) => request<T>('POST', path, body)
+const put = <T,>(path: string, body: unknown) => request<T>('PUT', path, body)
+const del = (path: string) => request<void>('DELETE', path)
 
-async function del(path: string): Promise<void> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'DELETE',
-    headers: userHeaders(),
-  })
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '')
-    throw new Error(`DELETE ${path}: ${res.status}${detail ? ` — ${detail.trim()}` : ''}`)
-  }
+function query(params: Record<string, string | number | undefined>): string {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') q.set(k, String(v))
+  const s = q.toString()
+  return s ? `?${s}` : ''
 }
 
 export const api = {
@@ -83,55 +52,56 @@ export const api = {
     list: () => get<Item[]>('/items'),
     get: (id: string) => get<Item>(`/items/${id}`),
     prices: (id: string) => get<PriceSnapshot[]>(`/items/${id}/prices`),
-    syncIGDB: () => post<{ message: string; total: number }>('/items/sync-igdb', {}, 'admin'),
-    updateCover: (id: string, coverURL: string) =>
-      put<{ cover_url: string }>(`/items/${id}/cover`, { cover_url: coverURL }),
-    uploadCover: (id: string, file: File): Promise<{ cover_url: string }> => {
+    syncIGDB: () => post<{ message: string; total: number }>('/items/sync-igdb'),
+    updateCover: (id: string, coverURL: string) => put<{ cover_url: string }>(`/items/${id}/cover`, { cover_url: coverURL }),
+    uploadCover: (id: string, file: File) => {
       const form = new FormData()
       form.append('cover', file)
-      const token = sessionStorage.getItem('admin_token')
-      return fetch(`${BASE}/items/${id}/cover/upload`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: form,
-      }).then((res) => {
-        if (!res.ok) throw new Error(`upload cover: ${res.status}`)
-        return res.json()
-      })
+      return post<{ cover_url: string }>(`/items/${id}/cover/upload`, form)
     },
     /** Upsert an item in the shared catalogue. Any logged-in user can contribute. */
-    upsert: (item: Partial<Item> & { external_id: string; title: string; platform: string }) =>
-      post<Item>('/items', item, 'user'),
+    upsert: (item: Partial<Item> & { external_id: string; title: string; platform: string }) => post<Item>('/items', item),
   },
   prices: {
     latest: () => get<PriceSnapshot[]>('/prices/latest'),
     /** Largest price increases over the last `days` days, across the whole catalogue. */
-    topMovers: (days = 30, limit = 5) => get<TopMover[]>(`/prices/top-movers?days=${days}&limit=${limit}`),
+    topMovers: (days = 30, limit = 5) => get<TopMover[]>(`/prices/top-movers${query({ days, limit })}`),
   },
   scrape: {
-    trigger: (triggeredBy: string, itemIds?: string[]) =>
-      post<ScrapeJob>('/scrape', { triggered_by: triggeredBy, item_ids: itemIds }, 'admin'),
-    list: () => get<ScrapeJob[]>('/scrape', 'admin'),
-    get: (id: string) => get<ScrapeJob>(`/scrape/${id}`, 'admin'),
+    trigger: (triggeredBy: string, itemIds?: string[]) => post<ScrapeJob>('/scrape', { triggered_by: triggeredBy, item_ids: itemIds }),
+    list: () => get<ScrapeJob[]>('/scrape'),
+    get: (id: string) => get<ScrapeJob>(`/scrape/${id}`),
   },
   collection: {
-    list: () => get<Item[]>('/collection', 'user'),
-    add: (itemId: string) => post<void>('/collection', { item_id: itemId, status: 'owned' }, 'user'),
+    list: () => get<Item[]>('/collection'),
+    add: (itemId: string) => post<void>('/collection', { item_id: itemId, status: 'owned' }),
     remove: (itemId: string) => del(`/collection/${itemId}`),
   },
   wishlist: {
-    list: () => get<Item[]>('/wishlist', 'user'),
-    add: (itemId: string) => post<void>('/collection', { item_id: itemId, status: 'wishlist' }, 'user'),
+    list: () => get<Item[]>('/wishlist'),
+    add: (itemId: string) => post<void>('/collection', { item_id: itemId, status: 'wishlist' }),
     remove: (itemId: string) => del(`/collection/${itemId}`),
   },
   search: {
     /** IGDB search — accessible to any logged-in user. Returns [] on error. */
     igdb: async (q: string): Promise<IGDBSearchResult[]> => {
       try {
-        return await get<IGDBSearchResult[]>(`/search?q=${encodeURIComponent(q)}`, 'user')
+        return await get<IGDBSearchResult[]>(`/search${query({ q })}`)
       } catch {
         return []
       }
     },
+  },
+  /** Back-office — requires an account with the admin role. */
+  admin: {
+    items: () => get<AdminItem[]>('/admin/items'),
+    update: (id: string, patch: ItemPatch) => put<Item>(`/admin/items/${id}`, patch),
+    remove: (id: string) => del(`/admin/items/${id}`),
+    merge: (sourceId: string, targetId: string) => post<Item>(`/admin/items/${sourceId}/merge`, { target_id: targetId }),
+    refreshIGDB: (id: string) => post<ScrapeJob>(`/admin/items/${id}/igdb`),
+    refreshPrice: (id: string) => post<ScrapeJob>('/scrape', { triggered_by: 'admin', item_ids: [id] }),
+    syncEvents: (filter: { source?: string; action?: string; item_id?: string; limit?: number } = {}) =>
+      get<SyncEvent[]>(`/admin/sync-events${query(filter)}`),
+    syncSummary: (hours = 24) => get<SyncSummary>(`/admin/sync-summary${query({ hours })}`),
   },
 }

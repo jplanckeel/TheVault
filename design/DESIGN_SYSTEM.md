@@ -193,6 +193,20 @@ Même architecture d'information sur les deux plateformes :
 | loose | `LOOSE` | neutral, solid |
 | mint | `MINT` | success, solid |
 
+### Back-office
+
+- Pages `Données` et `Synchronisations` : même en-tête que les autres pages, précédé d'un sur-titre `label-bold` « Back-office » en `primary`.
+- Tableaux : conteneur `surface-low` rayon 2xl, en-têtes `label-bold`, lignes séparées par `outline-variant` 15 %, survol `surface-high` 40 %. Sous 768 px, les lignes deviennent des cartes.
+- Édition : panneau latéral droit (max 672 px, plein écran sur mobile), sections en cartes, zone dangereuse bordée `error` 30 %, suppression confirmée en deux temps (jamais de `window.confirm`).
+
+| Problème de donnée | Libellé | Ton |
+|---|---|---|
+| duplicate | Doublon | error |
+| missing_platform | Sans plateforme | warning |
+| missing_cover | Sans jaquette | warning |
+| missing_igdb | Sans IGDB | info |
+| missing_price | Sans prix | neutral |
+
 ### Statuts de synchro (back-office)
 
 | Statut | Libellé | Ton |

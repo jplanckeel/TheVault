@@ -69,6 +69,16 @@ func (s *PostgresItemStore) Delete(ctx context.Context, id, deletedBy string) (d
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	// Aliases (items merged into this one) are removed by ON DELETE CASCADE: tombstone them
+	// first, otherwise a sync of a merged external_id would recreate the item.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO item_tombstones (external_id, title, deleted_by)
+		SELECT a.external_id, i.title, $2 FROM item_aliases a JOIN items i ON i.id = a.item_id
+		WHERE a.item_id = $1
+		ON CONFLICT (external_id) DO NOTHING`, id, deletedBy); err != nil {
+		return domain.Item{}, fmt.Errorf("item tombstone aliases: %w", err)
+	}
+
 	var out domain.Item
 	err = scanItem(tx.QueryRow(ctx, `DELETE FROM items WHERE id = $1 RETURNING `+itemCols, id), &out)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -77,7 +87,6 @@ func (s *PostgresItemStore) Delete(ctx context.Context, id, deletedBy string) (d
 	if err != nil {
 		return domain.Item{}, fmt.Errorf("item delete: %w", err)
 	}
-	// Aliases pointing to this item disappear with it (ON DELETE CASCADE): tombstone them too.
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO item_tombstones (external_id, title, deleted_by)
 		VALUES ($1, $2, $3)

@@ -6,7 +6,7 @@ import { EXPLORE_LINKS, USER_LINKS, type NavItem } from './navigation'
 
 /** Compact top bar below 768 px. */
 export function MobileTopBar() {
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   return (
     <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-vault-bg/95 border-b border-vault-outline-variant/20">
       <div className="flex items-center gap-2">
@@ -14,9 +14,16 @@ export function MobileTopBar() {
         <span className="font-display font-extrabold text-vault-on-surface">TheVault</span>
       </div>
       {user ? (
-        <button onClick={logout} aria-label="Se déconnecter" className="p-2 rounded-lg text-vault-on-surface-variant focus-ring">
-          <MaterialIcon name="logout" size={20} />
-        </button>
+        <div className="flex items-center gap-1">
+          {isAdmin && (
+            <NavLink to="/admin/data" aria-label="Back-office" className="p-2 rounded-lg text-vault-primary focus-ring">
+              <MaterialIcon name="shield_person" size={20} />
+            </NavLink>
+          )}
+          <button onClick={logout} aria-label="Se déconnecter" className="p-2 rounded-lg text-vault-on-surface-variant focus-ring">
+            <MaterialIcon name="logout" size={20} />
+          </button>
+        </div>
       ) : (
         <NavLink to="/login" className="text-sm font-semibold text-vault-primary focus-ring rounded px-2 py-1">
           Se connecter

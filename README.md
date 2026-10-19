@@ -27,6 +27,15 @@ thevault.api.key=<API_KEY du backend>
 thevault.api.baseUrl=http://10.0.2.2:8080/api/v1
 ```
 
+## Back-office (admin)
+
+Le back-office est dans l'app web, section **Back-office** de la sidebar (visible uniquement des admins) :
+
+- **Données** (`/admin/data`) : catalogue partagé avec détection des problèmes (doublons, sans plateforme, sans jaquette, sans IGDB, sans prix), édition des jeux / consoles / accessoires, fusion des doublons, suppression, relance IGDB ou du prix d'un objet.
+- **Synchronisations** (`/admin/sync`) : journal des envois de l'app mobile et du web, des corrections admin, et tâches eBay / IGDB.
+
+Le rôle admin est porté par le compte utilisateur : listez les e-mails dans `ADMIN_EMAILS` (séparés par des virgules) côté backend, puis connectez-vous normalement. Les corrections sont durables : un objet corrigé n'est plus écrasé par les synchros, un objet fusionné est redirigé vers celui conservé, et un objet supprimé est refusé (HTTP 410) s'il revient d'une synchro.
+
 ## Documentation Agent
 
 Ce projet utilise des fichiers de configuration agent pour guider le développement assisté par IA :

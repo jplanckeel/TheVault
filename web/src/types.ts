@@ -54,3 +54,42 @@ export interface TopMover {
   delta_abs: number
   delta_pct: number
 }
+
+/** Data quality issues computed by the backend (GET /admin/items). */
+export type ItemIssue = 'missing_cover' | 'missing_igdb' | 'missing_platform' | 'missing_price' | 'duplicate'
+
+/** Catalogue item with back-office information. */
+export interface AdminItem extends Item {
+  admin_edited: boolean
+  issues: ItemIssue[]
+  duplicate_ids: string[]
+  owners: number
+  has_price: boolean
+}
+
+/** Editable catalogue fields; omitted fields are left untouched. */
+export type ItemPatch = Partial<
+  Pick<Item, 'type' | 'title' | 'platform' | 'region' | 'condition' | 'cover_url' | 'igdb_id' | 'summary' | 'genres' | 'developer' | 'publisher' | 'release_year'>
+>
+
+export type SyncSource = 'mobile' | 'web' | 'admin'
+export type SyncAction = 'created' | 'updated' | 'rejected' | 'edited' | 'deleted' | 'merged'
+
+/** One write to the shared catalogue (sync or admin correction). */
+export interface SyncEvent {
+  id: string
+  source: SyncSource
+  action: SyncAction
+  item_id: string | null
+  external_id: string
+  title: string
+  actor: string
+  detail: string
+  created_at: string
+}
+
+/** Event counts per source and action since `since`. */
+export interface SyncSummary {
+  since: string
+  counts: Partial<Record<SyncSource, Partial<Record<SyncAction, number>>>>
+}

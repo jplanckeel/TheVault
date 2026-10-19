@@ -73,15 +73,6 @@ export default function Sidebar() {
       <div className="px-3 pb-4 pt-3 border-t border-vault-outline-variant/20">
         {user ? (
           <>
-            {!isAdmin && (
-              <NavLink
-                to="/admin"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-vault-on-surface-variant hover:bg-vault-surface-low hover:text-vault-on-surface transition-colors focus-ring"
-              >
-                <MaterialIcon name="shield_lock" size={20} />
-                <span>Accès admin</span>
-              </NavLink>
-            )}
             <button
               onClick={logout}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-vault-on-surface-variant hover:bg-vault-error/10 hover:text-vault-error transition-colors focus-ring"
