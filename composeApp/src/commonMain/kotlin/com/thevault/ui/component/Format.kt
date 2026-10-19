@@ -31,6 +31,12 @@ fun formatEuro(
     return "$sign$grouped$fraction${NARROW_NBSP}€"
 }
 
+/** Game count with French agreement: "1 jeu", "3 jeux". */
+fun gameCount(count: Int): String = "$count ${gameNoun(count)}"
+
+/** "jeu" or "jeux" depending on [count]. */
+fun gameNoun(count: Int): String = if (count > 1) "jeux" else "jeu"
+
 /** Formats an optional amount, returning an em dash when unknown. */
 fun formatEuroOrDash(
     amount: Double?,
@@ -39,3 +45,9 @@ fun formatEuroOrDash(
 
 /** Formats a signed amount with an explicit `+` for positive values. */
 fun formatSignedEuro(amount: Double): String = if (amount > 0) "+${formatEuro(amount)}" else formatEuro(amount)
+
+private val frenchMonths =
+    listOf("janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc.")
+
+/** French date, e.g. "24 mars 2021". */
+fun formatDate(date: kotlinx.datetime.LocalDate): String = "${date.day} ${frenchMonths[date.month.ordinal]} ${date.year}"

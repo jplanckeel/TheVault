@@ -2,10 +2,7 @@ package com.thevault.ui.screen.collection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.thevault.domain.model.ItemStatus
-import com.thevault.domain.usecase.ObserveAccessoriesUseCase
-import com.thevault.domain.usecase.ObserveConsolesUseCase
-import com.thevault.domain.usecase.ObserveGamesUseCase
+import com.thevault.ui.component.Manufacturer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,74 +11,118 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 /**
- * UI state shared by the Collection and Wishlist screens.
+ * Accessory filter of the collection.
+ *
+ * @property label Chip label.
+ */
+enum class AccessoryFilter(
+    val label: String,
+) {
+    /** Every accessory. */
+    All("Tous"),
+
+    /** Controllers. */
+    Controllers("Manettes"),
+
+    /** Everything else. */
+    Others("Autres"),
+}
+
+/**
+ * Filters of the collection screen.
+ *
+ * @property kind Selected category.
+ * @property query Search among games.
+ * @property consoleMaker Console manufacturer filter, or null for all.
+ * @property accessoryFilter Accessory filter.
+ */
+data class CollectionFilters(
+    val kind: ItemKind = ItemKind.Game,
+    val query: String = "",
+    val consoleMaker: Manufacturer? = null,
+    val accessoryFilter: AccessoryFilter = AccessoryFilter.All,
+)
+
+/**
+ * UI state of the collection screen.
  *
  * @property filters Current filters.
- * @property view Filtered and sorted entries.
+ * @property totals Count and value per category.
+ * @property groups Game platforms grouped by manufacturer.
+ * @property platformCount Number of game platforms.
+ * @property gameResults Games matching the search (empty without query).
+ * @property consoles Consoles matching the filter, most valuable first.
+ * @property consoleMakers Manufacturers present among consoles.
+ * @property accessories Accessories matching the filter, most valuable first.
  * @property isLoading Whether data is still loading.
  */
 data class CollectionUiState(
     val filters: CollectionFilters = CollectionFilters(),
-    val view: CollectionView = CollectionView(),
+    val totals: Map<ItemKind, KindTotal> = emptyMap(),
+    val groups: List<ManufacturerGroup> = emptyList(),
+    val platformCount: Int = 0,
+    val gameResults: List<CollectionEntry> = emptyList(),
+    val consoles: List<CollectionEntry> = emptyList(),
+    val consoleMakers: List<Manufacturer> = emptyList(),
+    val accessories: List<CollectionEntry> = emptyList(),
     val isLoading: Boolean = false,
 )
 
-/**
- * Combines games, consoles and accessories into a filterable grid.
- *
- * @param observeGames Games source.
- * @param observeConsoles Consoles source.
- * @param observeAccessories Accessories source.
- * @param includeStatus Keeps only the entries whose status matches.
- */
-abstract class BaseCollectionViewModel(
-    observeGames: ObserveGamesUseCase,
-    observeConsoles: ObserveConsolesUseCase,
-    observeAccessories: ObserveAccessoriesUseCase,
-    includeStatus: (ItemStatus) -> Boolean,
+/** ViewModel of the collection screen (games by platform, consoles, accessories). */
+class CollectionViewModel(
+    source: VaultEntriesSource,
 ) : ViewModel() {
     private val filters = MutableStateFlow(CollectionFilters())
 
     /** Observable UI state. */
     val uiState: StateFlow<CollectionUiState> =
-        combine(observeGames(), observeConsoles(), observeAccessories(), filters) { games, consoles, accessories, f ->
-            val entries =
-                (games.map { it.toEntry() } + consoles.map { it.toEntry() } + accessories.map { it.toEntry() })
-                    .filter { includeStatus(it.status) }
-            CollectionUiState(filters = f, view = buildCollectionView(entries, f))
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-            initialValue = CollectionUiState(isLoading = true),
-        )
+        combine(source.entries(), filters) { all, f -> buildCollectionState(all.owned(), f) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CollectionUiState(isLoading = true))
 
-    /** Selects a category and resets the platform filter. */
-    fun onKindSelected(kind: ItemKind) = filters.update { it.copy(kind = kind, platform = null) }
+    /** Selects a category. */
+    fun onKindSelected(kind: ItemKind) = filters.update { it.copy(kind = kind) }
 
-    /** Updates the free-text search. */
+    /** Updates the game search. */
     fun onQueryChanged(query: String) = filters.update { it.copy(query = query) }
 
-    /** Selects a platform chip, or null for all platforms. */
-    fun onPlatformSelected(platform: String?) = filters.update { it.copy(platform = platform) }
+    /** Filters consoles by manufacturer (null = all). */
+    fun onConsoleMakerSelected(maker: Manufacturer?) = filters.update { it.copy(consoleMaker = maker) }
 
-    /** Changes the sort order. */
-    fun onSortSelected(sort: CollectionSort) = filters.update { it.copy(sort = sort) }
+    /** Filters accessories. */
+    fun onAccessoryFilterSelected(filter: AccessoryFilter) = filters.update { it.copy(accessoryFilter = filter) }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }
 
-/** Owned items (everything except the wishlist). */
-class CollectionViewModel(
-    observeGames: ObserveGamesUseCase,
-    observeConsoles: ObserveConsolesUseCase,
-    observeAccessories: ObserveAccessoriesUseCase,
-) : BaseCollectionViewModel(observeGames, observeConsoles, observeAccessories, { it != ItemStatus.WISHLIST })
+/** Builds the collection state from owned entries. Pure function, unit-tested. */
+fun buildCollectionState(
+    owned: List<CollectionEntry>,
+    filters: CollectionFilters,
+): CollectionUiState {
+    val games = owned.filter { it.kind == ItemKind.Game }
+    val consoles = owned.filter { it.kind == ItemKind.Console }
+    val accessories = owned.filter { it.kind == ItemKind.Accessory }
+    val byValue = sortComparator(GameSort.Value)
+    return CollectionUiState(
+        filters = filters,
+        totals = kindTotals(owned),
+        groups = manufacturerGroups(games),
+        platformCount = platformSummaries(games).size,
+        gameResults = if (filters.query.isBlank()) emptyList() else filterGames(games, GameFilters(query = filters.query)),
+        consoles = consoles.filter { filters.consoleMaker == null || it.manufacturer == filters.consoleMaker }.sortedWith(byValue),
+        consoleMakers = consoles.map { it.manufacturer }.distinct().sortedBy { it.order },
+        accessories =
+            accessories
+                .filter { it.matches(filters.accessoryFilter) }
+                .sortedWith(byValue),
+    )
+}
 
-/** Wishlist items only. */
-class WishlistViewModel(
-    observeGames: ObserveGamesUseCase,
-    observeConsoles: ObserveConsolesUseCase,
-    observeAccessories: ObserveAccessoriesUseCase,
-) : BaseCollectionViewModel(observeGames, observeConsoles, observeAccessories, { it == ItemStatus.WISHLIST })
+private fun CollectionEntry.matches(filter: AccessoryFilter): Boolean =
+    when (filter) {
+        AccessoryFilter.All -> true
+        AccessoryFilter.Controllers -> isController()
+        AccessoryFilter.Others -> !isController()
+    }

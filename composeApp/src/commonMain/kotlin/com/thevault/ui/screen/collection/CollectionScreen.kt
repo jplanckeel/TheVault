@@ -2,179 +2,107 @@ package com.thevault.ui.screen.collection
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.thevault.ui.component.EmptyState
-import com.thevault.ui.component.ItemCard
+import com.thevault.ui.component.ItemTile
 import com.thevault.ui.component.ScreenHeader
-import com.thevault.ui.component.VaultFilterChip
-import com.thevault.ui.component.VaultSearchField
+import com.thevault.ui.component.SegmentedControl
 import com.thevault.ui.component.formatEuro
-import com.thevault.ui.component.toBadge
 import com.thevault.ui.theme.Primary
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Owned items screen. */
+/** Columns of the collection grid: platform tiles span 3 (2 per row), item tiles span 2 (3 per row). */
+internal const val GRID_COLUMNS = 6
+internal const val PLATFORM_SPAN = 3
+internal const val ITEM_SPAN = 2
+
+/**
+ * Callbacks of the collection screen.
+ *
+ * @property onEntryClick Opens an item detail.
+ * @property onOpenPlatform Opens the games of a platform (null = every game).
+ * @property onAdd Opens the add screen.
+ */
+data class CollectionNavigation(
+    val onEntryClick: (CollectionEntry) -> Unit = {},
+    val onOpenPlatform: (String?) -> Unit = {},
+    val onAdd: () -> Unit = {},
+)
+
+/** Collection screen: games by platform, consoles and accessories. */
 @Composable
 fun CollectionScreen(
-    onEntryClick: (CollectionEntry) -> Unit,
-    onAddItem: () -> Unit,
+    navigation: CollectionNavigation,
     viewModel: CollectionViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
-    CollectionGridContent(
-        title = "Ma collection",
-        emptyIcon = Icons.Default.Inventory2,
-        emptyTitle = "Votre vault est vide",
-        state = state,
-        actions = viewModel.actions(onEntryClick, onAddItem),
-    )
+    CollectionContent(state, viewModel, navigation)
 }
-
-/** Wishlist screen — same layout, wishlist items only. */
-@Composable
-fun WishlistScreen(
-    onEntryClick: (CollectionEntry) -> Unit,
-    onAddItem: () -> Unit,
-    viewModel: WishlistViewModel = koinViewModel(),
-) {
-    val state by viewModel.uiState.collectAsState()
-    CollectionGridContent(
-        title = "Wishlist",
-        emptyIcon = Icons.Default.FavoriteBorder,
-        emptyTitle = "Aucun objet convoité",
-        state = state,
-        actions = viewModel.actions(onEntryClick, onAddItem),
-    )
-}
-
-private fun BaseCollectionViewModel.actions(
-    onEntryClick: (CollectionEntry) -> Unit,
-    onAddItem: () -> Unit,
-) = CollectionActions(::onKindSelected, ::onQueryChanged, ::onPlatformSelected, ::onSortSelected, onEntryClick, onAddItem)
 
 /**
- * Stateless collection grid: header, category selector, search, platform chips and cards.
+ * Collection content.
  *
- * @param title Screen title.
- * @param emptyIcon Icon of the empty state.
- * @param emptyTitle Title of the empty state.
  * @param state UI state.
- * @param actions User callbacks.
+ * @param viewModel Receives the filter changes.
+ * @param navigation Navigation callbacks.
  */
 @Composable
-fun CollectionGridContent(
-    title: String,
-    emptyIcon: ImageVector,
-    emptyTitle: String,
+fun CollectionContent(
     state: CollectionUiState,
-    actions: CollectionActions,
+    viewModel: CollectionViewModel,
+    navigation: CollectionNavigation,
 ) {
-    val view = state.view
+    val kind = state.filters.kind
+    val total = state.totals[kind] ?: KindTotal()
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 150.dp),
+        columns = GridCells.Fixed(GRID_COLUMNS),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 120.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 32.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         fullWidth {
-            ScreenHeader(
-                title = title,
-                subtitle = "${view.totalCount} objets · ${formatEuro(view.totalValue)} estimés",
-            )
+            ScreenHeader("Collection", summary = "${total.count} ${kind.label.lowercase()} · ${formatEuro(total.value)}")
         }
-        fullWidth { CollectionFiltersBar(state, actions) }
+        fullWidth {
+            SegmentedControl(ItemKind.entries, kind, { it.label }, viewModel::onKindSelected, Modifier.padding(top = 4.dp))
+        }
         when {
             state.isLoading -> fullWidth { LoadingBox() }
-            view.entries.isEmpty() -> fullWidth { CollectionEmptyState(state.filters, emptyIcon, emptyTitle, actions.onAddItem) }
-            else ->
-                items(view.entries, key = { "${it.kind}_${it.id}" }) { entry ->
-                    ItemCard(
-                        title = entry.title,
-                        platform = entry.platform,
-                        coverUrl = entry.coverUrl,
-                        badge = entry.condition.toBadge(),
-                        price = entry.value,
-                        onClick = { actions.onEntryClick(entry) },
-                    )
-                }
+            kind == ItemKind.Game -> gamesSection(state, viewModel, navigation)
+            kind == ItemKind.Console -> consolesSection(state, viewModel, navigation)
+            else -> accessoriesSection(state, viewModel, navigation)
         }
     }
 }
 
-@Composable
-private fun CollectionFiltersBar(
-    state: CollectionUiState,
-    actions: CollectionActions,
+/** 3-column item tiles. */
+internal fun LazyGridScope.itemTiles(
+    entries: List<CollectionEntry>,
+    square: Boolean,
+    onClick: (CollectionEntry) -> Unit,
 ) {
-    val filters = state.filters
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(ItemKind.entries) { kind ->
-                val count = state.view.countByKind[kind] ?: 0
-                VaultFilterChip("${kind.label} · $count", filters.kind == kind, { actions.onKindSelected(kind) })
-            }
-        }
-        VaultSearchField(
-            query = filters.query,
-            onQueryChange = actions.onQueryChanged,
-            placeholder = "Rechercher dans ${filters.kind.label.lowercase()}…",
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (state.view.platforms.size > 1) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { VaultFilterChip("Toutes", filters.platform == null, { actions.onPlatformSelected(null) }) }
-                items(state.view.platforms) { platform ->
-                    VaultFilterChip(platform, filters.platform == platform, { actions.onPlatformSelected(platform) })
-                }
-            }
-        }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(CollectionSort.entries) { sort ->
-                VaultFilterChip(sort.label, filters.sort == sort, { actions.onSortSelected(sort) })
-            }
-        }
+    items(entries, key = { "${it.kind}_${it.id}" }, span = { GridItemSpan(ITEM_SPAN) }) { entry ->
+        ItemTile(entry.tile, { onClick(entry) }, square = square)
     }
 }
 
-@Composable
-private fun CollectionEmptyState(
-    filters: CollectionFilters,
-    icon: ImageVector,
-    title: String,
-    onAddItem: () -> Unit,
-) {
-    val filtered = filters.query.isNotBlank() || filters.platform != null
-    EmptyState(
-        icon = icon,
-        title = if (filtered) "Aucun résultat" else title,
-        message = if (filtered) "Essayez une autre recherche ou plateforme." else "Ajoutez votre premier objet.",
-        actionLabel = if (filtered) null else "Ajouter un objet",
-        onAction = onAddItem,
-    )
-}
+/** Grid item spanning every column. */
+internal fun LazyGridScope.fullWidth(content: @Composable () -> Unit) = item(span = { GridItemSpan(maxLineSpan) }) { content() }
 
 @Composable
 private fun LoadingBox() {
@@ -182,6 +110,3 @@ private fun LoadingBox() {
         CircularProgressIndicator(color = Primary)
     }
 }
-
-/** Grid item spanning every column (headers, empty states). */
-private fun LazyGridScope.fullWidth(content: @Composable () -> Unit) = item(span = { GridItemSpan(maxLineSpan) }) { content() }

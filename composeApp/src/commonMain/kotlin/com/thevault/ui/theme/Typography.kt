@@ -9,60 +9,47 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
 import thevault.composeapp.generated.resources.Res
-import thevault.composeapp.generated.resources.inter_bold
-import thevault.composeapp.generated.resources.inter_medium
-import thevault.composeapp.generated.resources.inter_regular
-import thevault.composeapp.generated.resources.inter_semibold
-import thevault.composeapp.generated.resources.montserrat_bold
-import thevault.composeapp.generated.resources.montserrat_extrabold
-import thevault.composeapp.generated.resources.montserrat_semibold
+import thevault.composeapp.generated.resources.plusjakartasans_bold
+import thevault.composeapp.generated.resources.plusjakartasans_extrabold
+import thevault.composeapp.generated.resources.plusjakartasans_medium
+import thevault.composeapp.generated.resources.plusjakartasans_regular
+import thevault.composeapp.generated.resources.plusjakartasans_semibold
 
-/** Montserrat — titles and key figures. */
+/** Plus Jakarta Sans — the only typeface of the app. */
 @Composable
-fun montserratFamily(): FontFamily =
+fun plusJakartaSans(): FontFamily =
     FontFamily(
-        Font(Res.font.montserrat_semibold, FontWeight.SemiBold),
-        Font(Res.font.montserrat_bold, FontWeight.Bold),
-        Font(Res.font.montserrat_extrabold, FontWeight.ExtraBold),
-    )
-
-/** Inter — body text and labels. */
-@Composable
-fun interFamily(): FontFamily =
-    FontFamily(
-        Font(Res.font.inter_regular, FontWeight.Normal),
-        Font(Res.font.inter_medium, FontWeight.Medium),
-        Font(Res.font.inter_semibold, FontWeight.SemiBold),
-        Font(Res.font.inter_bold, FontWeight.Bold),
+        Font(Res.font.plusjakartasans_regular, FontWeight.Normal),
+        Font(Res.font.plusjakartasans_medium, FontWeight.Medium),
+        Font(Res.font.plusjakartasans_semibold, FontWeight.SemiBold),
+        Font(Res.font.plusjakartasans_bold, FontWeight.Bold),
+        Font(Res.font.plusjakartasans_extrabold, FontWeight.ExtraBold),
     )
 
 /**
- * Vault typography scale — see design/DESIGN_SYSTEM.md §3.
- *
- * - display / headline: Montserrat
- * - title / body / label: Inter
- * - labelMedium / labelSmall are meant to be rendered UPPERCASE.
+ * Typography scale — design/DESIGN_SYSTEM.md §3:
+ * Montant 40/800, Titre 26/800, Section 18/800, Corps 15/700, Légende 12/500, Repère 11/700.
+ * labelSmall (« Repère ») is meant to be rendered UPPERCASE.
  */
 @Composable
 fun vaultTypography(): Typography {
-    val display = montserratFamily()
-    val text = interFamily()
+    val f = plusJakartaSans()
     return Typography(
-        displayLarge = style(display, FontWeight.ExtraBold, 32, 40, -0.02),
-        displayMedium = style(display, FontWeight.ExtraBold, 28, 36, -0.02),
-        displaySmall = style(display, FontWeight.ExtraBold, 26, 32, -0.01),
-        headlineLarge = style(display, FontWeight.Bold, 28, 36),
-        headlineMedium = style(display, FontWeight.Bold, 24, 32),
-        headlineSmall = style(display, FontWeight.SemiBold, 20, 28),
-        titleLarge = style(text, FontWeight.SemiBold, 18, 26),
-        titleMedium = style(text, FontWeight.SemiBold, 16, 24),
-        titleSmall = style(text, FontWeight.SemiBold, 14, 20),
-        bodyLarge = style(text, FontWeight.Normal, 16, 24),
-        bodyMedium = style(text, FontWeight.Normal, 14, 20),
-        bodySmall = style(text, FontWeight.Normal, 12, 16),
-        labelLarge = style(text, FontWeight.SemiBold, 14, 20),
-        labelMedium = style(text, FontWeight.Bold, 12, 16, 0.05),
-        labelSmall = style(text, FontWeight.Bold, 10, 14, 0.1),
+        displayLarge = style(f, FontWeight.ExtraBold, 40, 46, -0.03),
+        displayMedium = style(f, FontWeight.ExtraBold, 32, 38, -0.03),
+        displaySmall = style(f, FontWeight.ExtraBold, 22, 28, -0.02),
+        headlineLarge = style(f, FontWeight.ExtraBold, 26, 32, -0.02),
+        headlineMedium = style(f, FontWeight.ExtraBold, 22, 28, -0.02),
+        headlineSmall = style(f, FontWeight.ExtraBold, 18, 24),
+        titleLarge = style(f, FontWeight.Bold, 18, 24),
+        titleMedium = style(f, FontWeight.Bold, 15, 20),
+        titleSmall = style(f, FontWeight.Bold, 13, 17),
+        bodyLarge = style(f, FontWeight.Medium, 15, 22),
+        bodyMedium = style(f, FontWeight.Medium, 14, 20),
+        bodySmall = style(f, FontWeight.Medium, 12, 16),
+        labelLarge = style(f, FontWeight.Bold, 15, 20),
+        labelMedium = style(f, FontWeight.SemiBold, 13, 18),
+        labelSmall = style(f, FontWeight.Bold, 11, 14, 0.08),
     )
 }
 
@@ -79,7 +66,8 @@ private fun style(
     fontSize = size.sp,
     lineHeight = lineHeight.sp,
     letterSpacing = trackingEm.em,
+    fontFeatureSettings = "tnum",
 )
 
-/** Tabular figures for amounts and counters. */
+/** Tabular figures for amounts and counters (already enabled on every style). */
 val TabularNumbers = TextStyle(fontFeatureSettings = "tnum")

@@ -82,14 +82,17 @@ shared/commonMain
 
 ## Design System
 
-The theme is **"Premium Security"** — dark mode only, **shared by the mobile app and the web app**. The single source of truth is `design/DESIGN_SYSTEM.md` (tokens, typography, components, navigation); visual references are the Stitch mockups in `design/stitch/*/screen.png`.
+Two themes, both dark mode only:
 
-Tokens are implemented twice and must stay in sync: `web/src/index.css` (`vault-*`) and `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/`. Core rules:
-- No `#FFFFFF` text → use `OnSurface` / `vault-on-surface` (`#e4e1e6`)
-- Single accent: lavender `Primary` (`#d8b9ff`), filled CTAs — no violet→magenta gradient
-- No corners < 8dp except pills; cards use `surface-low` + `outline-variant` border at 30 %
-- Fonts: Montserrat (titles, figures) + Inter (text), bundled in `composeResources/font/`
-- Reuse the shared components (`ui/component/` ↔ `web/src/components/ui/`) instead of styling screens ad hoc
+- **Mobile — « Nuit profonde, un seul violet »**: source of truth `design/nuit-profonde/README.md`, visual reference `design/nuit-profonde/refonte-mobile.html`. Tokens in `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/` (`Color.kt`, `Badges.kt`, `Typography.kt`, `VaultRadius.kt`).
+- **Web — « Premium Security »**: `design/DESIGN_SYSTEM.md`, tokens in `web/src/index.css` (`vault-*`). Not yet ported to « Nuit profonde ».
+
+Mobile rules:
+- No `#FFFFFF` text → use `OnSurface` (`#dee5ff`)
+- Single accent: violet `Primary` (`#BA9EFF`) with `OnPrimary` text; badges are tinted per manufacturer / format (`Badges.kt`)
+- Cards: `SurfaceContainerLow` + 1dp `CardBorderColor`, radius 18; buttons 52dp, radius 14
+- Font: Plus Jakarta Sans only, bundled in `composeResources/font/`, tabular figures
+- Reuse the shared components (`ui/component/`) instead of styling screens ad hoc
 - Never display invented figures: unknown values render as `—`
 
 ## Dependency Management

@@ -56,6 +56,8 @@ val sharedModule =
         factory { com.thevault.domain.usecase.GetConsoleByIdUseCase(get()) }
         factory { com.thevault.domain.usecase.ObserveAccessoriesUseCase(get()) }
         factory { com.thevault.domain.usecase.GetAccessoryByIdUseCase(get()) }
+        factory { com.thevault.domain.usecase.SaveConsoleUseCase(get()) }
+        factory { com.thevault.domain.usecase.SaveAccessoryUseCase(get()) }
         factory { com.thevault.domain.usecase.CsvService(get(), get(), get()) }
         factory { com.thevault.domain.usecase.SyncVaultWithIgdbUseCase(get(), get()) }
 

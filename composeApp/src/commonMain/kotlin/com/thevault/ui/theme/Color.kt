@@ -2,157 +2,150 @@ package com.thevault.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Design system « Premium Security » — source : design/DESIGN_SYSTEM.md
-// Toute valeur modifiée ici doit l'être aussi dans web/src/index.css.
+// Design « Nuit profonde, un seul violet » — source : design/DESIGN_SYSTEM.md
+// (maquettes : « TheVault — Refonte mobile.html »).
 
 // ─── Surfaces ───────────────────────────────────────────────────────────────
 
-/** Page background (`vault-bg`). */
-val Background = Color(0xFF0F0F12)
+/** Page background (« Fond »). */
+val Background = Color(0xFF060E20)
 
 /** Alias of [Background] for Material `surface`. */
 val Surface = Background
 
-/** Sunken areas, sidebar (`vault-surface-lowest`). */
-val SurfaceContainerLowest = Color(0xFF0E0E11)
+/** Bottom navigation bar and pressed rows. */
+val SurfaceContainerLowest = Color(0xFF0B1530)
 
-/** Default card surface (`vault-surface-low`). */
-val SurfaceContainerLow = Color(0xFF1B1B1E)
+/** Cards, tiles, inputs (« Carte »). */
+val SurfaceContainerLow = Color(0xFF0D1730)
 
-/** Grouped content inside cards (`vault-surface`). */
-val SurfaceContainer = Color(0xFF1F1F22)
+/** Alias kept for Material `surfaceContainer`. */
+val SurfaceContainer = SurfaceContainerLow
 
-/** Inputs and interactive elements (`vault-surface-high`). */
-val SurfaceContainerHigh = Color(0xFF2A2A2D)
+/** Nested blocks inside cards (« Carte haute »). */
+val SurfaceContainerHigh = Color(0xFF141F38)
 
-/** Pop-overs, neutral chips (`vault-surface-highest`). */
-val SurfaceContainerHighest = Color(0xFF353438)
+/** Progress tracks, neutral badges, row separators. */
+val SurfaceContainerHighest = Color(0xFF1A2547)
 
-/** Glass navigation bar base (`vault-bright`), used at 60 % opacity. */
-val SurfaceBright = Color(0xFF39393C)
+/** Selected segment of a segmented control. */
+val SurfaceBright = Color(0xFF22305A)
 
 /** Alias kept for Material `surfaceVariant`. */
 val SurfaceVariant = SurfaceContainerHighest
 
-// ─── Accent ─────────────────────────────────────────────────────────────────
+// ─── Action (the single violet) ─────────────────────────────────────────────
 
-/** Lavender accent — the single brand color (`vault-primary`). */
-val Primary = Color(0xFFD8B9FF)
+/** Action color: primary buttons, active tab, links (« Action »). */
+val Primary = Color(0xFFBA9EFF)
 
-/** Hover / pressed primary (`vault-primary-dim`). */
-val PrimaryDim = Color(0xFFAE72FF)
+/** Pressed / hover action color. */
+val PrimaryDim = Color(0xFFCBB6FF)
 
-/** Deep primary used for avatar gradients (`vault-primary-deep`). */
-val PrimaryDeep = Color(0xFF7E28DF)
+/** Content on [Primary] (« Texte sur action »). */
+val OnPrimary = Color(0xFF1C0A47)
 
-/** Content on a [Primary] background. */
-val OnPrimary = Color(0xFF450086)
-
-/** Material `primaryContainer`, mapped to [PrimaryDim]. */
-val PrimaryContainer = PrimaryDim
+/** Material `primaryContainer`: selected value tiles. */
+val PrimaryContainer = Color(0xFF2A2152)
 
 /** Content on [PrimaryContainer]. */
-val OnPrimaryContainer = Color(0xFF3C0076)
+val OnPrimaryContainer = Color(0xFFCDBBFF)
 
-/** Material `inversePrimary`, mapped to [PrimaryDeep]. */
-val InversePrimary = PrimaryDeep
+/** Material `inversePrimary`. */
+val InversePrimary = Color(0xFF6A3FE0)
 
-/** Secondary accent (`vault-secondary`). */
-val Secondary = Color(0xFFE2B5FF)
+/** Highlight banner background (missing purchase prices…). */
+val HighlightContainer = Color(0xFF1B1840)
+
+/** Highlight banner border. */
+val HighlightBorder = Color(0xFF3A2F7A)
+
+/** Highlight banner secondary text. */
+val OnHighlightVariant = Color(0xFFB9B2E0)
+
+/** Material `secondary`. */
+val Secondary = Color(0xFFCDBBFF)
 
 /** Content on [Secondary]. */
-val OnSecondary = Color(0xFF451D61)
+val OnSecondary = OnPrimary
 
-/** Secondary chips background (`vault-secondary-container`). */
-val SecondaryContainer = Color(0xFF60377C)
+/** Material `secondaryContainer`. */
+val SecondaryContainer = PrimaryContainer
 
 /** Content on [SecondaryContainer]. */
-val OnSecondaryContainer = Color(0xFFD5A6F4)
+val OnSecondaryContainer = OnPrimaryContainer
 
-/** Tertiary accent (`vault-tertiary`). */
-val Tertiary = Color(0xFFCFC0E5)
+/** Material `tertiary`. */
+val Tertiary = Color(0xFF7FE8CB)
 
 /** Content on [Tertiary]. */
-val OnTertiary = Color(0xFF362B48)
+val OnTertiary = Color(0xFF0B2B25)
 
 /** Material `tertiaryContainer`. */
-val TertiaryContainer = Color(0xFF988BAD)
+val TertiaryContainer = Color(0xFF123B36)
 
 /** Content on [TertiaryContainer]. */
-val OnTertiaryContainer = Color(0xFF2F2541)
+val OnTertiaryContainer = Tertiary
 
 // ─── Text & outlines ────────────────────────────────────────────────────────
 
-/** Main text color — never use pure white. */
-val OnSurface = Color(0xFFE4E1E6)
+/** Main text (« Texte ») — never pure white. */
+val OnSurface = Color(0xFFDEE5FF)
 
 /** Content on [Background]. */
 val OnBackground = OnSurface
 
-/** Secondary text and metadata. */
-val OnSurfaceVariant = Color(0xFFCEC2D7)
+/** Secondary text (« Texte doux »). */
+val OnSurfaceVariant = Color(0xFF9AA3C2)
+
+/** Eyebrows, tab labels, field keys. */
+val OnSurfaceMuted = Color(0xFF8E97B8)
+
+/** Text on neutral badges and covers. */
+val OnSurfaceLight = Color(0xFFC9D1F0)
 
 /** Material `inverseSurface`. */
 val InverseSurface = OnSurface
 
 /** Content on [InverseSurface]. */
-val InverseOnSurface = Color(0xFF303033)
+val InverseOnSurface = Background
 
-/** Strong outline (`vault-outline`). */
-val Outline = Color(0xFF978DA0)
+/** Outline of chips, covers and inputs. */
+val Outline = Color(0xFF26335E)
 
-/** Discreet borders, applied at 30 % opacity. */
-val OutlineVariant = Color(0xFF4C4355)
+/** Card border (« Bordure »). */
+val OutlineVariant = Color(0xFF1E2A4D)
+
+/** Border of outlined (secondary) buttons. */
+val OutlineStrong = Color(0xFF2E3B66)
 
 // ─── Semantic ───────────────────────────────────────────────────────────────
 
-/** Positive values and states (`vault-success`). */
-val Success = Color(0xFF34D399)
+/** Gain over the purchase price (« Plus-value »). */
+val Success = Color(0xFF6FE3C1)
 
-/** Warnings (`vault-warning`). */
-val Warning = Color(0xFFFBBF24)
+/** Loss against the purchase price (« Moins-value »). */
+val Error = Color(0xFFFF9F7F)
 
-/** Informational accents (`vault-info`). */
-val Info = Color(0xFF60A5FA)
+/** Warnings. */
+val Warning = Color(0xFFFFC58F)
 
-/** Errors and destructive actions (`vault-error`). */
-val Error = Color(0xFFFFB4AB)
+/** Informational accents. */
+val Info = Color(0xFFB5CBFF)
 
 /** Content on [Error]. */
-val OnError = Color(0xFF690005)
+val OnError = Color(0xFF3A1208)
 
-/** Error container (`vault-error-container`). */
-val ErrorContainer = Color(0xFF93000A)
+/** Destructive container. */
+val ErrorContainer = Color(0xFF3A1820)
 
 /** Content on [ErrorContainer]. */
-val OnErrorContainer = Color(0xFFFFDAD6)
-
-// ─── Price per condition ────────────────────────────────────────────────────
-
-/** Price curve color for loose items. */
-val PriceLoose = Info
-
-/** Price curve color for complete-in-box items. */
-val PriceCib = Primary
-
-/** Price curve color for new / sealed items. */
-val PriceNew = Success
-
-// ─── Brand placeholders ─────────────────────────────────────────────────────
-
-/** Xbox placeholder background. */
-val BrandXbox = Color(0xFF107C10)
-
-/** Nintendo placeholder background. */
-val BrandNintendo = Color(0xFFE60012)
-
-/** PlayStation placeholder background. */
-val BrandPlayStation = Color(0xFF0070CC)
+val OnErrorContainer = Color(0xFFFFB3B7)
 
 // ─── Composite ──────────────────────────────────────────────────────────────
 
-/** Default card border (`outline-variant` at 30 %). */
-val CardBorderColor = OutlineVariant.copy(alpha = 0.3f)
+/** Default card border. */
+val CardBorderColor = OutlineVariant
 
-/** Bottom overlay on covers (black 85 % → transparent). */
-val CoverScrimColor = Color.Black.copy(alpha = 0.85f)
+/** Bottom overlay on covers. */
+val CoverScrimColor = Color.Black.copy(alpha = 0.55f)

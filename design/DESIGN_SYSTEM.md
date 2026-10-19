@@ -1,6 +1,8 @@
 # TheVault — Design System « Premium Security »
 
-Source unique du design pour **le web (`web/`) et le mobile (`composeApp/`)**.
+> **Web uniquement.** L'application mobile utilise désormais « Nuit profonde, un seul violet » : voir [`nuit-profonde/README.md`](nuit-profonde/README.md).
+
+Source unique du design du **web (`web/`)**.
 Référence visuelle : maquettes Stitch dans `design/stitch/*/screen.png`.
 Dark mode uniquement.
 

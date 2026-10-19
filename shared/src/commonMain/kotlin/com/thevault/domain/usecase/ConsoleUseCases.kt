@@ -15,3 +15,15 @@ class GetConsoleByIdUseCase(
 ) {
     suspend operator fun invoke(id: String): Console? = repository.getById(id)
 }
+
+/**
+ * Saves (inserts or updates) a console.
+ *
+ * @property repository Console repository.
+ */
+class SaveConsoleUseCase(
+    private val repository: ConsoleRepository,
+) {
+    /** Persists [console]. */
+    suspend operator fun invoke(console: Console) = repository.save(console)
+}

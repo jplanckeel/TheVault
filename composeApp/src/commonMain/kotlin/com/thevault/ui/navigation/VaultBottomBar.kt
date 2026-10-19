@@ -5,10 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,18 +26,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.thevault.ui.theme.CardBorderColor
 import com.thevault.ui.theme.OnPrimary
-import com.thevault.ui.theme.OnSurfaceVariant
+import com.thevault.ui.theme.OnSurfaceMuted
 import com.thevault.ui.theme.Primary
 import com.thevault.ui.theme.SurfaceContainerLowest
 import com.thevault.ui.theme.VaultRadius
 
+private val BarPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 10.dp)
+
 /**
- * Bottom navigation: four tabs and a central round "Add" button.
- * See design/DESIGN_SYSTEM.md §5.
+ * Opaque bottom bar: four tabs and the central « + » button (52dp, radius 16).
  *
  * @param currentRoute Route of the current destination.
  * @param onTabSelected Called when a tab is tapped.
- * @param onAdd Called when the central button is tapped.
+ * @param onAdd Called when « + » is tapped.
  */
 @Composable
 fun VaultBottomBar(
@@ -45,24 +46,23 @@ fun VaultBottomBar(
     onTabSelected: (VaultTab) -> Unit,
     onAdd: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().background(SurfaceContainerLowest.copy(alpha = 0.96f))) {
+    Column(Modifier.fillMaxWidth().background(SurfaceContainerLowest)) {
         HorizontalDivider(color = CardBorderColor)
         Row(
             Modifier
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .height(68.dp)
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(BarPadding),
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
             val tabs = VaultTab.entries
             tabs.take(2).forEach { TabItem(it, currentRoute == it.route, onTabSelected, Modifier.weight(1f)) }
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
                 Box(
                     Modifier
                         .size(52.dp)
-                        .clip(VaultRadius.full)
+                        .clip(VaultRadius.xl)
                         .background(Primary)
                         .clickable(onClick = onAdd),
                     contentAlignment = Alignment.Center,
@@ -82,13 +82,18 @@ private fun TabItem(
     onTabSelected: (VaultTab) -> Unit,
     modifier: Modifier,
 ) {
-    val color = if (selected) Primary else OnSurfaceVariant
+    val color = if (selected) Primary else OnSurfaceMuted
     Column(
-        modifier.clip(VaultRadius.lg).clickable { onTabSelected(tab) }.padding(vertical = 6.dp),
+        modifier.clip(VaultRadius.lg).clickable { onTabSelected(tab) }.padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
-        Text(tab.label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
+        Icon(tab.icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        Text(
+            tab.label,
+            style = MaterialTheme.typography.labelMedium.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize),
+            color = color,
+            maxLines = 1,
+        )
     }
 }

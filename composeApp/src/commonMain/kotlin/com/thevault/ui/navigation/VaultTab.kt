@@ -1,39 +1,33 @@
 package com.thevault.ui.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * Root tab of the bottom bar.
+ * Root tab of the bottom bar (« une seule barre opaque à 5 entrées »).
  *
  * @property route Navigation route.
  * @property label Tab label.
- * @property icon Unselected icon.
- * @property selectedIcon Selected icon.
+ * @property icon Line icon.
  */
 enum class VaultTab(
     val route: String,
     val label: String,
     val icon: ImageVector,
-    val selectedIcon: ImageVector,
 ) {
-    /** Collection overview. */
-    Dashboard(Routes.DASHBOARD, "Dashboard", Icons.Outlined.Dashboard, Icons.Filled.Dashboard),
+    /** Home. */
+    Home(Routes.HOME, "Accueil", Icons.Outlined.Home),
 
-    /** Owned items. */
-    Collection(Routes.COLLECTION, "Collection", Icons.Outlined.Inventory2, Icons.Filled.Inventory2),
+    /** Collection. */
+    Collection(Routes.COLLECTION, "Collection", Icons.Outlined.GridView),
 
-    /** Wanted items. */
-    Wishlist(Routes.WISHLIST, "Wishlist", Icons.Outlined.FavoriteBorder, Icons.Filled.Favorite),
+    /** Wishlist. */
+    Wishlist(Routes.WISHLIST, "Wishlist", Icons.Outlined.StarOutline),
 
-    /** Import / export and sync. */
-    Settings(Routes.SETTINGS, "Réglages", Icons.Outlined.Settings, Icons.Filled.Settings),
+    /** Stats. */
+    Stats(Routes.STATS, "Stats", Icons.Outlined.BarChart),
 }

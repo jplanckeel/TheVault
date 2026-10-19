@@ -15,3 +15,15 @@ class GetAccessoryByIdUseCase(
 ) {
     suspend operator fun invoke(id: String): Accessory? = repository.getById(id)
 }
+
+/**
+ * Saves (inserts or updates) an accessory.
+ *
+ * @property repository Accessory repository.
+ */
+class SaveAccessoryUseCase(
+    private val repository: AccessoryRepository,
+) {
+    /** Persists [accessory]. */
+    suspend operator fun invoke(accessory: Accessory) = repository.save(accessory)
+}

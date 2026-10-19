@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Sync
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.thevault.ui.component.IconSquareButton
 import com.thevault.ui.component.ScreenHeader
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.VaultButtonVariant
@@ -44,14 +46,23 @@ private const val MESSAGE_DURATION_MS = 5_000L
 
 /** Settings screen: data import / export and synchronisation. */
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsState()
+    LaunchedEffect(state.message) {
+        if (state.message != null) {
+            delay(MESSAGE_DURATION_MS)
+            viewModel.clearMessage()
+        }
+    }
     SettingsContent(
         state = state,
+        onBack = onBack,
         onImportCsv = viewModel::importCsv,
         exportCsv = viewModel::exportCsv,
         onSyncIgdb = viewModel::syncIgdb,
-        onMessageShown = viewModel::clearMessage,
     )
 }
 
@@ -59,33 +70,30 @@ fun SettingsScreen(viewModel: SettingsViewModel = koinViewModel()) {
  * Stateless settings content.
  *
  * @param state UI state.
+ * @param onBack Back navigation.
  * @param onImportCsv Called with the picked CSV content.
  * @param exportCsv Produces the CSV export.
  * @param onSyncIgdb Starts the IGDB enrichment.
- * @param onMessageShown Called once the feedback message has been displayed long enough.
  */
 @Composable
 fun SettingsContent(
     state: SettingsUiState,
+    onBack: () -> Unit,
     onImportCsv: (String) -> Unit,
     exportCsv: suspend () -> String?,
     onSyncIgdb: () -> Unit,
-    onMessageShown: () -> Unit,
 ) {
-    LaunchedEffect(state.message) {
-        if (state.message != null) {
-            delay(MESSAGE_DURATION_MS)
-            onMessageShown()
-        }
-    }
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 120.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ScreenHeader(title = "Réglages", subtitle = "Données et synchronisation")
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            IconSquareButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", onBack)
+            ScreenHeader(title = "Réglages", eyebrow = "Données et synchronisation")
+        }
         state.message?.let { FeedbackBanner(it) }
         SettingsSection(
             icon = Icons.Default.Description,
