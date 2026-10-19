@@ -6,7 +6,7 @@ interface Props {
   action?: ReactNode
   /** Description under the title */
   description?: ReactNode
-  /** Use Montserrat headline-md (24px). Default true. */
+  /** Use Montserrat headline-sm (20px), as the mobile SectionHeader. Default true. */
   headline?: boolean
   children: ReactNode
   className?: string
@@ -31,7 +31,7 @@ export default function Section({
           <h2
             className={
               headline
-                ? 'text-headline-md text-vault-on-surface'
+                ? 'text-headline-sm text-vault-on-surface'
                 : 'text-label-bold text-vault-on-surface-variant'
             }
           >

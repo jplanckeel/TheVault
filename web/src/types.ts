@@ -44,3 +44,13 @@ export interface ScrapeJob {
   started_at: string
   finished_at?: string
 }
+
+/** Price evolution of an item over a period (GET /prices/top-movers). */
+export interface TopMover {
+  item_id: string
+  condition: string
+  price_old: number
+  price_new: number
+  delta_abs: number
+  delta_pct: number
+}

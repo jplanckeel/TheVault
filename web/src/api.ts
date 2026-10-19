@@ -1,4 +1,4 @@
-import type { Item, PriceSnapshot, ScrapeJob } from './types'
+import type { Item, PriceSnapshot, ScrapeJob, TopMover } from './types'
 
 export interface IGDBSearchResult {
   id: string
@@ -105,6 +105,8 @@ export const api = {
   },
   prices: {
     latest: () => get<PriceSnapshot[]>('/prices/latest'),
+    /** Largest price increases over the last `days` days, across the whole catalogue. */
+    topMovers: (days = 30, limit = 5) => get<TopMover[]>(`/prices/top-movers?days=${days}&limit=${limit}`),
   },
   scrape: {
     trigger: (triggeredBy: string, itemIds?: string[]) =>

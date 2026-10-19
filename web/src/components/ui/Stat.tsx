@@ -19,11 +19,13 @@ interface Props {
   accent?: boolean
   /** Card glow */
   glow?: boolean
+  /** Makes the card clickable (e.g. opens the matching collection filter). */
+  onClick?: () => void
 }
 
 /**
- * KPI / Stat card. Used on the dashboard (Total Collection Value, Vault Health,
- * Total Items) and on the item detail page (Lowest Ask, Average Sale, ATH).
+ * KPI / Stat card — mirrors `StatCard` in the mobile app. Used on the dashboard
+ * counters and on the item detail page (prices per condition).
  */
 export default function Stat({
   label,
@@ -34,9 +36,22 @@ export default function Stat({
   className = '',
   accent,
   glow,
+  onClick,
 }: Props) {
+  const interactive = onClick
+    ? 'cursor-pointer transition-colors hover:border-vault-primary/60 focus-ring'
+    : ''
   return (
-    <Card padding="md" radius="2xl" glow={glow} className={className}>
+    <Card
+      padding="md"
+      radius="2xl"
+      glow={glow}
+      className={`${interactive} ${className}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2 min-w-0">
           {icon && (

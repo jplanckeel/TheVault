@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Item } from '../../types'
 import Chip from './Chip'
 import MaterialIcon from './MaterialIcon'
@@ -40,6 +41,7 @@ interface Props {
  * Used in Collection, Wishlist, Catalogue, Latest Additions.
  */
 export default function GameCard({ item, price, trend, badge, onClick, wishlist, className = '' }: Props) {
+  const [coverFailed, setCoverFailed] = useState(false)
   const finalBadge = badge ?? conditionBadge(item.condition)
   const platform = item.platform?.toUpperCase() || item.type?.toUpperCase()
 
@@ -57,11 +59,12 @@ export default function GameCard({ item, price, trend, badge, onClick, wishlist,
     >
       {/* Cover */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-vault-surface-high">
-        {item.cover_url ? (
+        {item.cover_url && !coverFailed ? (
           <img
             src={item.cover_url}
             alt={item.title}
             loading="lazy"
+            onError={() => setCoverFailed(true)}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

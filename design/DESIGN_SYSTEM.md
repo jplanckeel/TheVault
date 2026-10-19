@@ -146,11 +146,12 @@ Même architecture d'information sur les deux plateformes :
 | Collection (Jeux · Consoles · Accessoires) | sidebar | onglet 2, puces de catégorie en haut |
 | Ajouter | bouton CTA de la sidebar | bouton rond central de la barre d'onglets |
 | Wishlist | sidebar | onglet 4 |
-| Réglages (import / export CSV, synchro IGDB) | icône de l'en-tête | onglet 5 |
-| Explorer (catalogue partagé) | sidebar, section « Explorer » | — |
+| Réglages (import / export CSV, synchro IGDB) | import CSV dans « Ma collection », synchros dans le back-office | onglet 5 |
+| Explorer › Catalogue (catalogue partagé, mêmes filtres que la collection) | sidebar, section « Explorer » | — |
 | Back-office (admin) | sidebar, section « Admin », visible si `is_admin` | — (web uniquement) |
 
-- **Web** : sidebar fixe de 256 px (logo, sections, CTA « Ajouter », pied de page compte) + en-tête collant (recherche, avatar). En dessous de 768 px : barre supérieure compacte.
+- **Web** : sidebar fixe de 256 px (logo, sections, CTA « Ajouter », pied de page compte) + en-tête collant (recherche, avatar). En dessous de 768 px : barre supérieure compacte et barre d'onglets identique à l'app mobile (Dashboard · Collection · + · Wishlist · Catalogue).
+- **Grilles Collection / Wishlist / Catalogue** : même composant et mêmes règles de filtre sur les deux plateformes (`web/src/lib/collectionView.ts` ↔ `CollectionModels.kt`) — type (`?type=` sur le web), recherche, plateforme, tri Récents / Valeur / A → Z.
 - **Mobile** : barre d'onglets `surface-lowest` à 96 % avec un séparateur `outline-variant` 30 % (Compose n'a pas de flou d'arrière-plan natif), 4 onglets + bouton « Ajouter » central rond `primary`. Elle est masquée sur les écrans de détail et le formulaire. Chaque écran racine a un en-tête : titre `display-lg`, sous-titre de comptage en `body-md`.
 
 ---|---|---|
