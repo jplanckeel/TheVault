@@ -44,13 +44,21 @@ class GetGameByIdUseCase(
  */
 class SaveGameUseCase(
     private val repository: GameRepository,
+    private val syncDataSource: com.thevault.data.remote.ItemSyncRemoteDataSource,
 ) {
     /**
      * Executes the use case.
      *
      * @param game The [Game] to save.
      */
-    suspend operator fun invoke(game: Game): Unit = repository.save(game)
+    suspend operator fun invoke(game: Game) {
+        repository.save(game)
+        try {
+            syncDataSource.syncItem(game)
+        } catch (_: Exception) {
+            // Sync failure should not block local save
+        }
+    }
 }
 
 /**

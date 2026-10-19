@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -8,6 +9,48 @@ plugins {
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.ksp)
 }
+
+// ─── API config (secrets read from local.properties or env, never committed) ──
+val localProperties =
+    Properties().apply {
+        val file = rootProject.file("local.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
+
+fun configValue(
+    key: String,
+    env: String,
+    default: String,
+): String = localProperties.getProperty(key) ?: System.getenv(env) ?: default
+
+val apiBaseUrl = configValue("thevault.api.baseUrl", "THEVAULT_API_BASE_URL", "https://thevault.bananaops.cloud/api/v1")
+val apiKey = configValue("thevault.api.key", "THEVAULT_API_KEY", "")
+
+val generateApiConfig =
+    tasks.register("generateApiConfig") {
+        val outputDir = layout.buildDirectory.dir("generated/apiConfig/commonMain/kotlin")
+        val baseUrlValue = apiBaseUrl
+        val apiKeyValue = apiKey
+        inputs.property("apiBaseUrl", baseUrlValue)
+        inputs.property("apiKey", apiKeyValue)
+        outputs.dir(outputDir)
+        doLast {
+            val file = outputDir.get().file("com/thevault/config/ApiConfig.kt").asFile
+            file.parentFile.mkdirs()
+            file.writeText(
+                """
+                |package com.thevault.config
+                |
+                |/** Generated from local.properties / environment. Do not edit. */
+                |internal object ApiConfig {
+                |    const val BASE_URL: String = "$baseUrlValue"
+                |    const val API_KEY: String = "$apiKeyValue"
+                |}
+                |
+                """.trimMargin(),
+            )
+        }
+    }
 
 kotlin {
     androidTarget {
@@ -29,6 +72,10 @@ kotlin {
     }
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir(generateApiConfig.map { it.outputs.files.singleFile })
+        }
+
         commonMain.dependencies {
             // Coroutines
             implementation(libs.kotlinx.coroutines.core)

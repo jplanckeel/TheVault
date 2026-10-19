@@ -1,5 +1,6 @@
 package com.thevault.di
 
+import com.thevault.config.ApiConfig
 import com.thevault.domain.usecase.DeleteGameUseCase
 import com.thevault.domain.usecase.GetGameByIdUseCase
 import com.thevault.domain.usecase.ObserveGamesUseCase
@@ -28,19 +29,25 @@ val sharedModule =
         }
 
         single<com.thevault.data.remote.GameRemoteDataSource> {
-            val rawgFallback = com.thevault.data.remote.RawgRemoteDataSource(get())
-            com.thevault.data.remote.IgdbRemoteDataSource(
+            com.thevault.data.remote.TheVaultBoRemoteDataSource(
                 httpClient = get(),
-                fallbackDataSource = rawgFallback,
-                clientId = "lt0oga4m3242i4zbv981lqplfpm6u8",
-                clientSecret = "48pek7ag0j71bjz37p5dnpyjbyj45r"
+                baseUrl = ApiConfig.BASE_URL,
+                apiKey = ApiConfig.API_KEY,
+            )
+        }
+
+        single<com.thevault.data.remote.ItemSyncRemoteDataSource> {
+            com.thevault.data.remote.TheVaultBoSyncDataSource(
+                httpClient = get(),
+                baseUrl = ApiConfig.BASE_URL,
+                apiKey = ApiConfig.API_KEY,
             )
         }
 
         // ─── Use Cases ────────────────────────────────────────────────────────────
         factory { ObserveGamesUseCase(get()) }
         factory { GetGameByIdUseCase(get()) }
-        factory { SaveGameUseCase(get()) }
+        factory { SaveGameUseCase(get(), get()) }
         factory { DeleteGameUseCase(get()) }
         factory { ObserveVaultStatsUseCase(get()) }
         factory { SearchGamesUseCase(get()) }
