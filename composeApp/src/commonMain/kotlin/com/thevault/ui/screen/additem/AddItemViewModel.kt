@@ -156,8 +156,8 @@ class AddItemViewModel(
                 condition = state.condition,
                 status = state.status,
                 coverUrl = state.coverUrl,
-                purchasePrice = state.purchasePrice.toDoubleOrNull(),
-                currentValue = state.currentValue.toDoubleOrNull(),
+                purchasePrice = state.purchasePrice.toAmount(),
+                currentValue = state.currentValue.toAmount(),
                 rating = state.rating,
                 developer = state.developer.ifBlank { null },
                 publisher = state.publisher.ifBlank { null },
@@ -172,3 +172,6 @@ class AddItemViewModel(
         }
     }
 }
+
+/** Parses an amount typed with either a comma or a dot as decimal separator. */
+internal fun String.toAmount(): Double? = trim().replace(',', '.').replace(" ", "").toDoubleOrNull()

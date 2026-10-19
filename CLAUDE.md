@@ -80,15 +80,15 @@ shared/commonMain
 
 ## Design System
 
-The theme is **"The Radiant Obsidian Vault"** — dark mode only, defined in Stitch (Project ID `10534585831624995760`).
+The theme is **"Premium Security"** — dark mode only, **shared by the mobile app and the web app**. The single source of truth is `design/DESIGN_SYSTEM.md` (tokens, typography, components, navigation); visual references are the Stitch mockups in `design/stitch/*/screen.png`.
 
-**Before implementing any screen**, call the `mcp_StitchMCP_get_screen` tool with the screen ID from `.agent/AGENTS.md`.
-
-Design tokens live in `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/`. Core rules:
-- No `#FFFFFF` text → use `on_surface` (`#dee5ff`)
-- No corners < 8dp, no 1px solid borders (use tonal surface elevation instead)
-- Primary gradient CTAs: `#8455EF → #EC63FF` at 135°, corner 12dp
-- NavBar glassmorphism: `surface_bright` at 60% opacity + 24dp blur
+Tokens are implemented twice and must stay in sync: `web/src/index.css` (`vault-*`) and `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/`. Core rules:
+- No `#FFFFFF` text → use `OnSurface` / `vault-on-surface` (`#e4e1e6`)
+- Single accent: lavender `Primary` (`#d8b9ff`), filled CTAs — no violet→magenta gradient
+- No corners < 8dp except pills; cards use `surface-low` + `outline-variant` border at 30 %
+- Fonts: Montserrat (titles, figures) + Inter (text), bundled in `composeResources/font/`
+- Reuse the shared components (`ui/component/` ↔ `web/src/components/ui/`) instead of styling screens ad hoc
+- Never display invented figures: unknown values render as `—`
 
 ## Dependency Management
 

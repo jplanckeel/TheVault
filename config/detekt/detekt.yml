@@ -53,6 +53,8 @@ complexity:
     active: true
     functionThreshold: 6
     constructorThreshold: 7
+    # Composables take many optional parameters (modifier, colors…) with defaults.
+    ignoreDefaultParameters: true
   LargeClass:
     active: true
     threshold: 300

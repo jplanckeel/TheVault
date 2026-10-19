@@ -5,27 +5,44 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Vault shape system.
- * RULE: No corners below 8dp anywhere in the app. No 90° corners.
+ * Vault radius scale — mirrors `--radius-*` in web/src/index.css.
+ * RULE: no corner below 8dp, except pills.
  */
+object VaultRadius {
+    /** 8dp — square chips, small icon buttons. */
+    val md = RoundedCornerShape(8.dp)
+
+    /** 12dp — buttons, inputs, list rows. */
+    val lg = RoundedCornerShape(12.dp)
+
+    /** 16dp — standard cards. */
+    val xl = RoundedCornerShape(16.dp)
+
+    /** 24dp — cover cards, KPI cards, sections. */
+    val xxl = RoundedCornerShape(24.dp)
+
+    /** Pill — chips, avatars. */
+    val full = RoundedCornerShape(50)
+}
+
+/** Material shapes mapped onto [VaultRadius]. */
 val VaultShapes =
     Shapes(
-        // Minimum 8dp — "DEFAULT" in the design system
-        extraSmall = RoundedCornerShape(8.dp),
-        small = RoundedCornerShape(8.dp),
-        medium = RoundedCornerShape(12.dp), // CTAs
-        large = RoundedCornerShape(16.dp),
-        extraLarge = RoundedCornerShape(28.dp),
+        extraSmall = VaultRadius.md,
+        small = VaultRadius.md,
+        medium = VaultRadius.lg,
+        large = VaultRadius.xl,
+        extraLarge = VaultRadius.xxl,
     )
 
-/** Pill shape — used exclusively for Vault Status Chips */
-val PillShape = RoundedCornerShape(50)
+/** Pill shape — chips and avatars. */
+val PillShape = VaultRadius.full
 
-/** Default card shape — 8dp corners */
-val CardShape = RoundedCornerShape(8.dp)
+/** Default card shape. */
+val CardShape = VaultRadius.xl
 
-/** CTA button shape — 12dp corners (md) */
-val CtaButtonShape = RoundedCornerShape(12.dp)
+/** Button shape. */
+val CtaButtonShape = VaultRadius.lg
 
-/** Modal / bottom sheet shape */
+/** Modal / bottom sheet shape. */
 val ModalShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)

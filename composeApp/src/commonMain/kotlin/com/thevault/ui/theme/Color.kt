@@ -2,112 +2,157 @@ package com.thevault.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Design system « Premium Security » — source : design/DESIGN_SYSTEM.md
+// Toute valeur modifiée ici doit l'être aussi dans web/src/index.css.
+
 // ─── Surfaces ───────────────────────────────────────────────────────────────
 
-/** Level 0 — Base background of the Vault */
-val Surface = Color(0xFF060E20)
+/** Page background (`vault-bg`). */
+val Background = Color(0xFF0F0F12)
 
-/** Darkest surface, used for sunken input fields */
-val SurfaceContainerLowest = Color(0xFF000000)
+/** Alias of [Background] for Material `surface`. */
+val Surface = Background
 
-/** Level 1 — Major content sections */
-val SurfaceContainerLow = Color(0xFF091328)
+/** Sunken areas, sidebar (`vault-surface-lowest`). */
+val SurfaceContainerLowest = Color(0xFF0E0E11)
 
-/** Level 2 — Interactive cards and modules */
-val SurfaceContainer = Color(0xFF0F1930)
+/** Default card surface (`vault-surface-low`). */
+val SurfaceContainerLow = Color(0xFF1B1B1E)
 
-/** Level 2+ — Elevated cards */
-val SurfaceContainerHigh = Color(0xFF141F38)
+/** Grouped content inside cards (`vault-surface`). */
+val SurfaceContainer = Color(0xFF1F1F22)
 
-/** Level 3 — Floating pop-overs and dialogs */
-val SurfaceContainerHighest = Color(0xFF192540)
+/** Inputs and interactive elements (`vault-surface-high`). */
+val SurfaceContainerHigh = Color(0xFF2A2A2D)
 
-/** Glassmorphic navigation bar background */
-val SurfaceBright = Color(0xFF1F2B49)
+/** Pop-overs, neutral chips (`vault-surface-highest`). */
+val SurfaceContainerHighest = Color(0xFF353438)
 
-val SurfaceDim = Color(0xFF060E20)
-val SurfaceVariant = Color(0xFF192540)
+/** Glass navigation bar base (`vault-bright`), used at 60 % opacity. */
+val SurfaceBright = Color(0xFF39393C)
 
-/** Radial aura glow tint behind featured game titles */
-val SurfaceTint = Color(0xFFBA9EFF)
+/** Alias kept for Material `surfaceVariant`. */
+val SurfaceVariant = SurfaceContainerHighest
 
-// ─── Background ─────────────────────────────────────────────────────────────
-val Background = Color(0xFF060E20)
-val OnBackground = Color(0xFFDEE5FF)
+// ─── Accent ─────────────────────────────────────────────────────────────────
 
-// ─── Primary ────────────────────────────────────────────────────────────────
-/** Violet accent — main brand color */
-val Primary = Color(0xFFBA9EFF)
-val PrimaryContainer = Color(0xFFAE8DFF)
+/** Lavender accent — the single brand color (`vault-primary`). */
+val Primary = Color(0xFFD8B9FF)
 
-/** Start color of the CTA gradient */
-val PrimaryDim = Color(0xFF8455EF)
-val PrimaryFixed = Color(0xFFAE8DFF)
-val PrimaryFixedDim = Color(0xFFA27CFF)
-val OnPrimary = Color(0xFF39008C)
-val OnPrimaryContainer = Color(0xFF2B006E)
-val OnPrimaryFixed = Color(0xFF000000)
-val OnPrimaryFixedVariant = Color(0xFF370086)
-val InversePrimary = Color(0xFF6E3BD7)
+/** Hover / pressed primary (`vault-primary-dim`). */
+val PrimaryDim = Color(0xFFAE72FF)
 
-// ─── Secondary ──────────────────────────────────────────────────────────────
-val Secondary = Color(0xFFC7C3FE)
+/** Deep primary used for avatar gradients (`vault-primary-deep`). */
+val PrimaryDeep = Color(0xFF7E28DF)
 
-/** Background of Vault status chips */
-val SecondaryContainer = Color(0xFF444173)
-val SecondaryDim = Color(0xFFB9B6EF)
-val SecondaryFixed = Color(0xFFD0CCFF)
-val SecondaryFixedDim = Color(0xFFC2BEF8)
-val OnSecondary = Color(0xFF3F3C6E)
+/** Content on a [Primary] background. */
+val OnPrimary = Color(0xFF450086)
 
-/** Text on Vault status chips */
-val OnSecondaryContainer = Color(0xFFCFCBFF)
-val OnSecondaryFixed = Color(0xFF312E5F)
-val OnSecondaryFixedVariant = Color(0xFF4E4B7D)
+/** Material `primaryContainer`, mapped to [PrimaryDim]. */
+val PrimaryContainer = PrimaryDim
 
-// ─── Tertiary ───────────────────────────────────────────────────────────────
-/** End color of the CTA gradient — used sparingly on critical heat nodes */
-val Tertiary = Color(0xFFEC63FF)
-val TertiaryContainer = Color(0xFFDE4BF4)
-val TertiaryDim = Color(0xFFEC63FF)
-val TertiaryFixed = Color(0xFFF487FF)
-val TertiaryFixedDim = Color(0xFFEF6EFF)
-val OnTertiary = Color(0xFF3D0047)
-val OnTertiaryContainer = Color(0xFF19001E)
-val OnTertiaryFixed = Color(0xFF300038)
-val OnTertiaryFixedVariant = Color(0xFF660075)
+/** Content on [PrimaryContainer]. */
+val OnPrimaryContainer = Color(0xFF3C0076)
 
-// ─── On Surface ─────────────────────────────────────────────────────────────
-/** Main text color — NEVER use pure white (#FFFFFF) */
-val OnSurface = Color(0xFFDEE5FF)
+/** Material `inversePrimary`, mapped to [PrimaryDeep]. */
+val InversePrimary = PrimaryDeep
 
-/** Secondary metadata text */
-val OnSurfaceVariant = Color(0xFFA3AAC4)
-val InverseOnSurface = Color(0xFF4D556B)
-val InverseSurface = Color(0xFFFAF8FF)
+/** Secondary accent (`vault-secondary`). */
+val Secondary = Color(0xFFE2B5FF)
 
-// ─── Outlines ────────────────────────────────────────────────────────────────
-val Outline = Color(0xFF6D758C)
+/** Content on [Secondary]. */
+val OnSecondary = Color(0xFF451D61)
 
-/** Used for ghost borders at 15% opacity */
-val OutlineVariant = Color(0xFF40485D)
+/** Secondary chips background (`vault-secondary-container`). */
+val SecondaryContainer = Color(0xFF60377C)
 
-// ─── Error ───────────────────────────────────────────────────────────────────
-val Error = Color(0xFFFF6E84)
-val ErrorContainer = Color(0xFFA70138)
-val ErrorDim = Color(0xFFD73357)
-val OnError = Color(0xFF490013)
-val OnErrorContainer = Color(0xFFFFB2B9)
+/** Content on [SecondaryContainer]. */
+val OnSecondaryContainer = Color(0xFFD5A6F4)
 
-// ─── Composite / Semantic ────────────────────────────────────────────────────
-/** CTA gradient colors (135°): primary_dim → tertiary */
-val CtaGradientColors = listOf(PrimaryDim, Tertiary)
+/** Tertiary accent (`vault-tertiary`). */
+val Tertiary = Color(0xFFCFC0E5)
 
-/** Neon wash shadow for floating modals */
-val NeonWashShadowColor = Color(0xFF8B5CF6).copy(alpha = 0.08f)
+/** Content on [Tertiary]. */
+val OnTertiary = Color(0xFF362B48)
 
-/** Aura glow effect behind featured game titles */
-val AuraGlowColor = SurfaceTint.copy(alpha = 0.30f)
+/** Material `tertiaryContainer`. */
+val TertiaryContainer = Color(0xFF988BAD)
 
-/** Ghost border color (apply at 15% opacity) */
-val GhostBorderColor = OutlineVariant.copy(alpha = 0.15f)
+/** Content on [TertiaryContainer]. */
+val OnTertiaryContainer = Color(0xFF2F2541)
+
+// ─── Text & outlines ────────────────────────────────────────────────────────
+
+/** Main text color — never use pure white. */
+val OnSurface = Color(0xFFE4E1E6)
+
+/** Content on [Background]. */
+val OnBackground = OnSurface
+
+/** Secondary text and metadata. */
+val OnSurfaceVariant = Color(0xFFCEC2D7)
+
+/** Material `inverseSurface`. */
+val InverseSurface = OnSurface
+
+/** Content on [InverseSurface]. */
+val InverseOnSurface = Color(0xFF303033)
+
+/** Strong outline (`vault-outline`). */
+val Outline = Color(0xFF978DA0)
+
+/** Discreet borders, applied at 30 % opacity. */
+val OutlineVariant = Color(0xFF4C4355)
+
+// ─── Semantic ───────────────────────────────────────────────────────────────
+
+/** Positive values and states (`vault-success`). */
+val Success = Color(0xFF34D399)
+
+/** Warnings (`vault-warning`). */
+val Warning = Color(0xFFFBBF24)
+
+/** Informational accents (`vault-info`). */
+val Info = Color(0xFF60A5FA)
+
+/** Errors and destructive actions (`vault-error`). */
+val Error = Color(0xFFFFB4AB)
+
+/** Content on [Error]. */
+val OnError = Color(0xFF690005)
+
+/** Error container (`vault-error-container`). */
+val ErrorContainer = Color(0xFF93000A)
+
+/** Content on [ErrorContainer]. */
+val OnErrorContainer = Color(0xFFFFDAD6)
+
+// ─── Price per condition ────────────────────────────────────────────────────
+
+/** Price curve color for loose items. */
+val PriceLoose = Info
+
+/** Price curve color for complete-in-box items. */
+val PriceCib = Primary
+
+/** Price curve color for new / sealed items. */
+val PriceNew = Success
+
+// ─── Brand placeholders ─────────────────────────────────────────────────────
+
+/** Xbox placeholder background. */
+val BrandXbox = Color(0xFF107C10)
+
+/** Nintendo placeholder background. */
+val BrandNintendo = Color(0xFFE60012)
+
+/** PlayStation placeholder background. */
+val BrandPlayStation = Color(0xFF0070CC)
+
+// ─── Composite ──────────────────────────────────────────────────────────────
+
+/** Default card border (`outline-variant` at 30 %). */
+val CardBorderColor = OutlineVariant.copy(alpha = 0.3f)
+
+/** Bottom overlay on covers (black 85 % → transparent). */
+val CoverScrimColor = Color.Black.copy(alpha = 0.85f)

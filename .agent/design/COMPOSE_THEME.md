@@ -1,3 +1,5 @@
+> ⚠️ **Obsolète** — le thème « Radiant Obsidian Vault » n'est plus utilisé. La référence est `design/DESIGN_SYSTEM.md` (thème « Premium Security », commun au web et au mobile).
+
 # TheVault — Compose Theme Reference
 > Ce fichier décrit la structure des fichiers de thème à créer dans
 > `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/`

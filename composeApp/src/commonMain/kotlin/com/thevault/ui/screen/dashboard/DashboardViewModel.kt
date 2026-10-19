@@ -3,106 +3,108 @@ package com.thevault.ui.screen.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thevault.domain.model.Game
+import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.VaultStats
+import com.thevault.domain.usecase.ObserveAccessoriesUseCase
+import com.thevault.domain.usecase.ObserveConsolesUseCase
 import com.thevault.domain.usecase.ObserveGamesUseCase
 import com.thevault.domain.usecase.ObserveVaultStatsUseCase
+import com.thevault.ui.screen.collection.CollectionEntry
+import com.thevault.ui.screen.collection.toEntry
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+
+/**
+ * Share of the collection owned on one platform.
+ *
+ * @property platform Platform name.
+ * @property count Number of owned games.
+ * @property fraction Share of all owned games, between 0 and 1.
+ */
+data class PlatformShare(
+    val platform: String,
+    val count: Int,
+    val fraction: Float,
+)
 
 /**
  * State of the Dashboard screen.
  *
- * @property stats Use case provided vault statistics.
- * @property latestGames List of the most recently added games.
- * @property topRatedGames List of the highest rated games.
- * @property isLoading Whether the data is being loaded.
+ * @property stats Vault statistics.
+ * @property latest Most recently acquired items, all kinds.
+ * @property platforms Top platforms by number of owned games.
+ * @property topRated Highest rated games.
+ * @property isLoading Whether data is still loading.
  */
 data class DashboardUiState(
     val stats: VaultStats = VaultStats(0, 0, 0, 0, 0.0, 0.0),
-    val latestGames: List<Game> = emptyList(),
-    val topRatedGames: List<Game> = emptyList(),
+    val latest: List<CollectionEntry> = emptyList(),
+    val platforms: List<PlatformShare> = emptyList(),
+    val topRated: List<Game> = emptyList(),
     val isLoading: Boolean = false,
-    val message: String? = null,
 )
 
 /**
- * ViewModel for the Dashboard screen.
- * Observes the vault statistics and maps them to the UI state.
- *
- * @property observeVaultStatsUseCase The use case to observe vault stats.
+ * ViewModel of the Dashboard screen.
  */
 class DashboardViewModel(
-    private val observeVaultStatsUseCase: ObserveVaultStatsUseCase,
-    private val observeGamesUseCase: ObserveGamesUseCase,
-    private val csvService: com.thevault.domain.usecase.CsvService,
-    private val syncVaultWithIgdbUseCase: com.thevault.domain.usecase.SyncVaultWithIgdbUseCase,
+    observeVaultStats: ObserveVaultStatsUseCase,
+    observeGames: ObserveGamesUseCase,
+    observeConsoles: ObserveConsolesUseCase,
+    observeAccessories: ObserveAccessoriesUseCase,
 ) : ViewModel() {
-
-    private val _message = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
-
-    val uiState: StateFlow<DashboardUiState> = kotlinx.coroutines.flow.combine(
-        observeVaultStatsUseCase(),
-        observeGamesUseCase(),
-        _message
-    ) { stats, games, message ->
-        val latest = games.sortedByDescending { it.acquiredAt }.take(3)
-        val topRated = games.filter { it.rating != null && it.rating!! > 0 }
-            .sortedByDescending { it.rating }
-            .take(3)
-        
-        DashboardUiState(
-            stats = stats,
-            latestGames = latest,
-            topRatedGames = topRated,
-            isLoading = false,
-            message = message
+    /** Observable UI state. */
+    val uiState: StateFlow<DashboardUiState> =
+        combine(observeVaultStats(), observeGames(), observeConsoles(), observeAccessories()) { stats, games, consoles, accessories ->
+            val ownedGames = games.filter { it.status != ItemStatus.WISHLIST }
+            val owned =
+                (ownedGames.map { it.toEntry() } + consoles.map { it.toEntry() } + accessories.map { it.toEntry() })
+                    .filter { it.status != ItemStatus.WISHLIST }
+            DashboardUiState(
+                stats = stats,
+                latest = latestEntries(owned),
+                platforms = platformShares(ownedGames),
+                topRated = topRatedGames(ownedGames),
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            initialValue = DashboardUiState(isLoading = true),
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = DashboardUiState(isLoading = true),
-    )
 
-    fun importCsv(content: String) {
-        _message.value = "Importation en cours..."
-        viewModelScope.launch {
-            val result = csvService.importCsv(content)
-            if (result.isSuccess) {
-                _message.value = "Importation réussie !"
-            } else {
-                _message.value = "Erreur lors de l'importation."
-            }
-        }
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
     }
+}
 
-    fun exportCsv(onExported: (String) -> Unit) {
-        viewModelScope.launch {
-            val result = csvService.exportCsv()
-            result.onSuccess {
-                onExported(it)
-                _message.value = "Exportation prête !"
-            }.onFailure {
-                _message.value = "Erreur lors de l'exportation."
-            }
-        }
-    }
+private const val LATEST_COUNT = 10
+private const val TOP_RATED_COUNT = 3
+private const val PLATFORM_COUNT = 5
 
-    fun syncIgdb() {
-        _message.value = "Synchronisation IGDB en cours... (Cela peut prendre un peu de temps)"
-        viewModelScope.launch {
-            val result = syncVaultWithIgdbUseCase()
-            if (result.isSuccess) {
-                val count = result.getOrDefault(0)
-                _message.value = "Synchronisation terminée ! $count jeu(x) mis à jour."
-            } else {
-                _message.value = "Erreur de synchronisation avec IGDB."
-            }
-        }
-    }
+/** Most recent acquisitions first; items without date come last. */
+internal fun latestEntries(entries: List<CollectionEntry>): List<CollectionEntry> =
+    entries
+        .sortedWith(compareByDescending<CollectionEntry, LocalDate?>(nullsFirst()) { it.acquiredAt })
+        .take(LATEST_COUNT)
 
-    fun clearMessage() {
-        _message.value = null
-    }
+/** Highest rated games first, unrated games excluded. */
+internal fun topRatedGames(games: List<Game>): List<Game> {
+    val rated = games.filter { game -> game.rating?.let { it > 0 } == true }
+    return rated.sortedByDescending { it.rating }.take(TOP_RATED_COUNT)
+}
+
+/** Top platforms by number of games, with their share of the total. */
+internal fun platformShares(games: List<Game>): List<PlatformShare> {
+    if (games.isEmpty()) return emptyList()
+    return games
+        .groupingBy { it.platform }
+        .eachCount()
+        .filterKeys { it.isNotBlank() }
+        .entries
+        .sortedByDescending { it.value }
+        .take(PLATFORM_COUNT)
+        .map { PlatformShare(it.key, it.value, it.value.toFloat() / games.size) }
 }
