@@ -10,6 +10,9 @@ import (
 // ErrNotFound is returned when an update or delete targets a row that does not exist.
 var ErrNotFound = errors.New("not found")
 
+// ErrTombstoned is returned when a sync targets an item deleted by an admin.
+var ErrTombstoned = errors.New("item deleted by an admin")
+
 // ItemStore defines persistence operations for items.
 type ItemStore interface {
 	Upsert(ctx context.Context, item domain.Item) (domain.Item, error)

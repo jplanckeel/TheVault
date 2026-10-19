@@ -51,9 +51,7 @@ func (s *PostgresUserCollectionStore) Remove(ctx context.Context, userID, itemID
 
 func (s *PostgresUserCollectionStore) ListByUser(ctx context.Context, userID, status string) ([]domain.Item, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT i.id, i.external_id, i.type, i.title, i.platform, i.region, i.condition, i.status,
-		        i.cover_url, i.igdb_id, i.summary, i.genres, i.developer, i.publisher, i.release_year,
-		        i.created_at, i.updated_at
+		`SELECT `+prefixedItemCols("i")+`
 		 FROM user_collections uc
 		 JOIN items i ON i.id = uc.item_id
 		 WHERE uc.user_id = $1 AND uc.status = $2

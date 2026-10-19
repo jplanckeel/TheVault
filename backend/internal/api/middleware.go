@@ -8,6 +8,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
+	"github.com/jplanckeel/thevaultbo/internal/domain"
+	"github.com/jplanckeel/thevaultbo/internal/store"
 )
 
 func jwtSecret() []byte {
@@ -18,98 +20,81 @@ func jwtSecret() []byte {
 	return secret
 }
 
-// AuthMiddleware rejects requests that don't carry a valid JWT or API key (admin routes).
-func AuthMiddleware(next http.Handler) http.Handler {
-	secret := jwtSecret()
-	apiKey := os.Getenv("API_KEY")
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if key := r.Header.Get("X-API-Key"); key != "" && apiKey != "" && key == apiKey {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		auth := r.Header.Get("Authorization")
-		if strings.HasPrefix(auth, "Bearer ") {
-			tokenStr := strings.TrimPrefix(auth, "Bearer ")
-			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-				return secret, nil
-			}, jwt.WithValidMethods([]string{"HS256"}))
-			if err == nil && token.Valid {
-				next.ServeHTTP(w, r)
-				return
-			}
-		}
-
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-	})
+// bearerSubject returns the subject of a valid HS256 bearer token, or "".
+func bearerSubject(r *http.Request, secret []byte) string {
+	auth := r.Header.Get("Authorization")
+	if !strings.HasPrefix(auth, "Bearer ") {
+		return ""
+	}
+	token, err := jwt.Parse(strings.TrimPrefix(auth, "Bearer "), func(t *jwt.Token) (interface{}, error) {
+		return secret, nil
+	}, jwt.WithValidMethods([]string{"HS256"}))
+	if err != nil || !token.Valid {
+		return ""
+	}
+	sub, _ := token.Claims.GetSubject()
+	return sub
 }
 
 // UserAuthMiddleware extracts user_id from JWT and injects it into context.
 func UserAuthMiddleware(next http.Handler) http.Handler {
 	secret := jwtSecret()
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		if !strings.HasPrefix(auth, "Bearer ") {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		tokenStr := strings.TrimPrefix(auth, "Bearer ")
-		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-			return secret, nil
-		}, jwt.WithValidMethods([]string{"HS256"}))
-		if err != nil || !token.Valid {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		sub, _ := claims.GetSubject()
+		sub := bearerSubject(r, secret)
 		if sub == "" {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-
 		ctx := context.WithValue(r.Context(), handlers.UserIDKey, sub)
+		ctx = handlers.WithCaller(ctx, handlers.Caller{Source: domain.SourceWeb, UserID: sub, Actor: sub})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// AnyAuthMiddleware accepts any authenticated caller: X-API-Key (mobile),
-// admin JWT (web admin), or user JWT (web user). It does NOT inject a user_id
-// into context, so it should only be used for routes that don't depend on
-// the caller's identity (e.g. shared catalogue mutations).
+// AnyAuthMiddleware accepts the mobile app (X-API-Key) or any logged-in user (JWT),
+// and records which one in the request context for the sync audit log.
 func AnyAuthMiddleware(next http.Handler) http.Handler {
 	secret := jwtSecret()
 	apiKey := os.Getenv("API_KEY")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 1) X-API-Key (mobile app)
 		if key := r.Header.Get("X-API-Key"); key != "" && apiKey != "" && key == apiKey {
-			next.ServeHTTP(w, r)
+			ctx := handlers.WithCaller(r.Context(), handlers.Caller{Source: domain.SourceMobile, Actor: "api-key"})
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
-
-		// 2) Bearer JWT — admin or user, both valid
-		auth := r.Header.Get("Authorization")
-		if strings.HasPrefix(auth, "Bearer ") {
-			tokenStr := strings.TrimPrefix(auth, "Bearer ")
-			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-				return secret, nil
-			}, jwt.WithValidMethods([]string{"HS256"}))
-			if err == nil && token.Valid {
-				next.ServeHTTP(w, r)
-				return
-			}
+		if sub := bearerSubject(r, secret); sub != "" {
+			ctx := handlers.WithCaller(r.Context(), handlers.Caller{Source: domain.SourceWeb, UserID: sub, Actor: sub})
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
 		}
-
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	})
+}
+
+// AdminMiddleware only lets through users whose account has the admin role.
+// The role is read from the database on every request so revoking it is immediate.
+func AdminMiddleware(users store.UserStore) func(http.Handler) http.Handler {
+	secret := jwtSecret()
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			sub := bearerSubject(r, secret)
+			if sub == "" {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			user, err := users.GetByID(r.Context(), sub)
+			if err != nil {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			if !user.IsAdmin {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			ctx := context.WithValue(r.Context(), handlers.UserIDKey, user.ID)
+			ctx = handlers.WithCaller(ctx, handlers.Caller{Source: domain.SourceAdmin, UserID: user.ID, Actor: user.Email})
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

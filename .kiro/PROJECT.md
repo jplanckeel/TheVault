@@ -33,7 +33,7 @@ Authentication:
 - **Admin auth** (`AuthMiddleware`): JWT or `X-API-Key` header. Used for admin operations (trigger scrape, edit covers, sync IGDB) and the mobile app.
 - **User auth** (`UserAuthMiddleware`): JWT only, extracts `user_id` (sub) into `r.Context()` via the `handlers.UserIDKey` key. Used for user collection / wishlist operations.
 
-Key environment variables: `DATABASE_URL`, `PORT`, `JWT_SECRET`, `ADMIN_PASSWORD`, `API_KEY`, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `EBAY_CRON`, `IGDB_CRON`, `STATIC_DIR`.
+Key environment variables: `DATABASE_URL`, `PORT`, `JWT_SECRET`, `ADMIN_EMAILS`, `API_KEY`, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `EBAY_CRON`, `IGDB_CRON`, `STATIC_DIR`.
 
 ### 2. Frontend (`web/`) — React + Vite + TypeScript
 Single-page app served by the Go backend in production (`STATIC_DIR=./web/dist`).

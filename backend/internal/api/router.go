@@ -19,6 +19,9 @@ func NewRouter(
 	settings store.SettingsStore,
 	users store.UserStore,
 	collections store.UserCollectionStore,
+	adminItems store.AdminItemStore,
+	events store.SyncEventStore,
+	adminEmails []string,
 	ebayRunner func(jobID, triggeredBy string, itemIDs ...string),
 	igdbRunner *igdb.Runner,
 	igdbClient *igdb.Client,
@@ -35,15 +38,19 @@ func NewRouter(
 		AllowedHeaders: []string{"Accept", "Content-Type", "Authorization", "X-API-Key"},
 	}))
 
-	ih := handlers.NewItemsHandler(items, prices, uploadDir)
+	ih := handlers.NewItemsHandler(items, prices, uploadDir).WithSyncEvents(events)
 	ph := handlers.NewPricesHandler(prices)
 	sh := handlers.NewScrapeHandler(jobs, ebayRunner)
 	gh := handlers.NewIGDBHandler(igdbRunner)
 	ch := handlers.NewConsolesHandler(items)
 	ah := handlers.NewAccessoriesHandler(items)
-	lh := handlers.NewLoginHandler()
 	srch := handlers.NewSearchHandler(igdbClient)
-	uah := handlers.NewUserAuthHandler(users)
+	uah := handlers.NewUserAuthHandler(users, adminEmails...)
+	var igdbSyncer handlers.IGDBSyncer
+	if igdbRunner != nil {
+		igdbSyncer = igdbRunner
+	}
+	adm := handlers.NewAdminHandler(items, adminItems, events, jobs, igdbSyncer)
 	uch := handlers.NewUserCollectionHandler(collections)
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +75,6 @@ func NewRouter(
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Public routes (consultation)
-		r.Post("/login", lh.Login)
 		r.Post("/auth/register", uah.Register)
 		r.Post("/auth/login", uah.Login)
 		r.Get("/items", ih.ListItems)
@@ -100,15 +106,25 @@ func NewRouter(
 			r.Get("/search", srch.Search)
 		})
 
-		// Admin-protected routes
+		// Admin-only routes: the caller's account must have the admin role.
 		r.Group(func(r chi.Router) {
-			r.Use(AuthMiddleware)
+			r.Use(AdminMiddleware(users))
 			r.Post("/items/sync-igdb", gh.SyncIGDB)
 			r.Put("/items/{id}/cover", ih.UpdateCover)
 			r.Post("/items/{id}/cover/upload", ih.UploadCover)
 			r.Post("/scrape", sh.TriggerScrape)
 			r.Get("/scrape", sh.ListJobs)
 			r.Get("/scrape/{id}", sh.GetJob)
+
+			r.Route("/admin", func(r chi.Router) {
+				r.Get("/items", adm.ListItems)
+				r.Put("/items/{id}", adm.UpdateItem)
+				r.Delete("/items/{id}", adm.DeleteItem)
+				r.Post("/items/{id}/merge", adm.MergeItem)
+				r.Post("/items/{id}/igdb", adm.RefreshIGDB)
+				r.Get("/sync-events", adm.ListSyncEvents)
+				r.Get("/sync-summary", adm.SyncSummary)
+			})
 		})
 	})
 

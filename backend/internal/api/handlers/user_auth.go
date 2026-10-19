@@ -14,16 +14,38 @@ import (
 
 // UserAuthHandler handles user registration, login, and profile.
 type UserAuthHandler struct {
-	users  store.UserStore
-	secret []byte
+	users       store.UserStore
+	secret      []byte
+	adminEmails []string
 }
 
-func NewUserAuthHandler(users store.UserStore) *UserAuthHandler {
+// NewUserAuthHandler creates the handler. adminEmails (lower-case) get the admin role
+// when they register or log in — see ADMIN_EMAILS.
+func NewUserAuthHandler(users store.UserStore, adminEmails ...string) *UserAuthHandler {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		secret = "thevaultbo-default-secret"
 	}
-	return &UserAuthHandler{users: users, secret: []byte(secret)}
+	return &UserAuthHandler{users: users, secret: []byte(secret), adminEmails: adminEmails}
+}
+
+// promoteIfListed grants the admin role when the user's e-mail is in ADMIN_EMAILS.
+func (h *UserAuthHandler) promoteIfListed(r *http.Request, user *store.User) {
+	if user.IsAdmin {
+		return
+	}
+	for _, e := range h.adminEmails {
+		if strings.EqualFold(e, user.Email) {
+			if n, err := h.users.PromoteAdmins(r.Context(), []string{strings.ToLower(user.Email)}); err == nil && n > 0 {
+				user.IsAdmin = true
+			}
+			return
+		}
+	}
+}
+
+func userJSON(u store.User) map[string]any {
+	return map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "is_admin": u.IsAdmin}
 }
 
 func (h *UserAuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -57,13 +79,11 @@ func (h *UserAuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.promoteIfListed(r, &user)
 	token, _ := h.signToken(user.ID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]any{
-		"token": token,
-		"user":  map[string]any{"id": user.ID, "email": user.Email, "name": user.Name},
-	})
+	json.NewEncoder(w).Encode(map[string]any{"token": token, "user": userJSON(user)})
 }
 
 func (h *UserAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -87,12 +107,10 @@ func (h *UserAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.promoteIfListed(r, &user)
 	token, _ := h.signToken(user.ID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
-		"token": token,
-		"user":  map[string]any{"id": user.ID, "email": user.Email, "name": user.Name},
-	})
+	json.NewEncoder(w).Encode(map[string]any{"token": token, "user": userJSON(user)})
 }
 
 func (h *UserAuthHandler) Me(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +121,7 @@ func (h *UserAuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"id": user.ID, "email": user.Email, "name": user.Name})
+	json.NewEncoder(w).Encode(userJSON(user))
 }
 
 func (h *UserAuthHandler) signToken(userID string) (string, error) {

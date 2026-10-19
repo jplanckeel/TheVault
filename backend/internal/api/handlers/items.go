@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,7 +20,32 @@ import (
 type ItemsHandler struct {
 	items     store.ItemStore
 	prices    store.PriceStore
-	uploadDir string // absolute path where uploaded covers are stored
+	events    store.SyncEventStore // optional: audit log of syncs
+	uploadDir string               // absolute path where uploaded covers are stored
+}
+
+// WithSyncEvents enables the sync audit log on UpsertItem.
+func (h *ItemsHandler) WithSyncEvents(events store.SyncEventStore) *ItemsHandler {
+	h.events = events
+	return h
+}
+
+// recordSync logs a catalogue write; failures are logged but never fail the request.
+func (h *ItemsHandler) recordSync(r *http.Request, action string, item domain.Item, detail string) {
+	if h.events == nil {
+		return
+	}
+	caller := CallerFrom(r.Context())
+	e := domain.SyncEvent{
+		Source: caller.Source, Action: action, ExternalID: item.ExternalID,
+		Title: item.Title, Actor: caller.Actor, Detail: detail,
+	}
+	if item.ID != "" {
+		e.ItemID = &item.ID
+	}
+	if err := h.events.Record(r.Context(), e); err != nil {
+		log.Printf("sync event: %v", err)
+	}
 }
 
 // NewItemsHandler creates a new ItemsHandler.
@@ -44,10 +70,20 @@ func (h *ItemsHandler) UpsertItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	saved, err := h.items.Upsert(r.Context(), item)
+	if errors.Is(err, store.ErrTombstoned) {
+		h.recordSync(r, domain.ActionRejected, item, "item supprimé par un admin")
+		http.Error(w, "item deleted by an admin", http.StatusGone)
+		return
+	}
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+	action := domain.ActionUpdated
+	if saved.CreatedAt.Equal(saved.UpdatedAt) {
+		action = domain.ActionCreated
+	}
+	h.recordSync(r, action, saved, "")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/jplanckeel/thevaultbo/internal/api"
 	"github.com/jplanckeel/thevaultbo/internal/igdb"
@@ -40,6 +41,15 @@ func main() {
 	settings := store.NewSettingsStore(pool)
 	users := store.NewUserStore(pool)
 	collections := store.NewUserCollectionStore(pool)
+	events := store.NewSyncEventStore(pool)
+
+	// Admin role bootstrap: accounts listed in ADMIN_EMAILS become admins.
+	adminEmails := parseEmails(getenv("ADMIN_EMAILS", ""))
+	if n, err := users.PromoteAdmins(ctx, adminEmails); err != nil {
+		log.Printf("admin bootstrap: %v", err)
+	} else if n > 0 {
+		log.Printf("admin bootstrap: %d account(s) promoted", n)
+	}
 
 	// Build eBay runner
 	ebayClientID := getenv("EBAY_CLIENT_ID", "")
@@ -76,7 +86,8 @@ func main() {
 	if uploadDir == "" {
 		uploadDir = "./uploads"
 	}
-	router := api.NewRouter(items, prices, jobs, settings, users, collections, ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir)
+	router := api.NewRouter(items, prices, jobs, settings, users, collections, items, events, adminEmails,
+		ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir)
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("listening on %s", addr)
@@ -90,4 +101,15 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// parseEmails splits a comma-separated list into trimmed, lower-case e-mails.
+func parseEmails(raw string) []string {
+	var out []string
+	for _, e := range strings.Split(raw, ",") {
+		if e = strings.ToLower(strings.TrimSpace(e)); e != "" {
+			out = append(out, e)
+		}
+	}
+	return out
 }
