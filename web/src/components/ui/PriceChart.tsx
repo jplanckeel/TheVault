@@ -67,7 +67,7 @@ export default function PriceChart({
   multiData,
 }: Props) {
   const isMulti = series && multiData && multiData.length > 0
-  const chartData = isMulti ? multiData : data
+  const chartData: MultiSeriesPoint[] = isMulti ? multiData : data.map((p) => ({ ...p }))
 
   return (
     <div className={className} style={{ height }}>

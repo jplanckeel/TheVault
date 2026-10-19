@@ -153,7 +153,6 @@ export default function ItemDetailPage() {
   const [range, setRange] = useState<RangeKey>('6M')
   const [adding, setAdding] = useState(false)
   const [inCollection, setInCollection] = useState(false)
-  const [editingCover, setEditingCover] = useState(false)
   const [savingCover, setSavingCover] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
 
@@ -255,7 +254,6 @@ export default function ItemDetailPage() {
     try {
       const { cover_url } = await api.items.uploadCover(item.id, file)
       setItem({ ...item, cover_url })
-      setEditingCover(false)
       toast.push('Cover mise à jour', 'success')
     } catch (e) {
       toast.push(`Erreur : ${String(e)}`, 'error')
@@ -342,7 +340,7 @@ export default function ItemDetailPage() {
             )}
             {isAdmin && (
               <button
-                onClick={() => { setEditingCover(true); coverInputRef.current?.click() }}
+                onClick={() => coverInputRef.current?.click()}
                 className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium"
               >
                 ✏️
@@ -400,7 +398,7 @@ export default function ItemDetailPage() {
                 icon="edit"
                 variant="subtle"
                 aria-label="Modifier la cover"
-                onClick={() => { setEditingCover(true); coverInputRef.current?.click() }}
+                onClick={() => coverInputRef.current?.click()}
               />
             )}
           </div>
