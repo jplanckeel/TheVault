@@ -148,8 +148,11 @@ export default function AddItemPage() {
   const toast = useToast()
 
   const [allItems, setAllItems] = useState<Item[]>([])
-  const [igdbResults, setIgdbResults] = useState<IGDBSearchResult[]>([])
+  const [rawIgdbResults, setIgdbResults] = useState<IGDBSearchResult[]>([])
   const [query, setQuery] = useState('')
+  // Stale results are hidden as soon as the query is cleared.
+  const hasQuery = query.trim() !== '' && user !== null
+  const igdbResults = useMemo(() => (hasQuery ? rawIgdbResults : []), [hasQuery, rawIgdbResults])
   const [searching, setSearching] = useState(false)
   const [loadingItems, setLoadingItems] = useState(true)
   const [addingId, setAddingId] = useState<string | null>(null)
@@ -169,10 +172,7 @@ export default function AddItemPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!query.trim() || !user) {
-      setIgdbResults([])
-      return
-    }
+    if (!query.trim() || !user) return
     debounceRef.current = setTimeout(async () => {
       setSearching(true)
       try {

@@ -71,6 +71,7 @@ function ToastItem({ toast, onDone }: { toast: Toast; onDone: () => void }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook colocated with its provider
 export function useToast(): Ctx {
   const ctx = useContext(ToastCtx)
   if (!ctx) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../api'
 import type { Item } from '../types'
@@ -39,8 +39,10 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
   const [report, setReport] = useState<ImportReport | null>(null)
   const [dragOver, setDragOver] = useState(false)
 
-  // Reset on re-open.
-  useEffect(() => {
+  // Reset when the modal closes (adjusting state during render, not in an effect).
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
     if (!open) {
       setPhase('idle')
       setRows([])
@@ -49,7 +51,7 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
       setReport(null)
       setCreateMissing(false)
     }
-  }, [open])
+  }
 
   const wishlistCount = useMemo(() => rows.filter((r) => r.status === 'wishlist').length, [rows])
 

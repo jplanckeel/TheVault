@@ -151,14 +151,22 @@ export default function ItemDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState<RangeKey>('6M')
+  // Reference time for the range filter, captured once (render must stay pure).
+  const [now] = useState(() => Date.now())
   const [adding, setAdding] = useState(false)
   const [inCollection, setInCollection] = useState(false)
   const [savingCover, setSavingCover] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
 
+  // Show the loader again when navigating to another item (adjusting state during render).
+  const [loadedFor, setLoadedFor] = useState(id)
+  if (loadedFor !== id) {
+    setLoadedFor(id)
+    setLoading(true)
+  }
+
   useEffect(() => {
     if (!id) return
-    setLoading(true)
     Promise.all([api.items.get(id), api.items.prices(id)])
       .then(([i, p]) => {
         setItem(i)
@@ -216,7 +224,7 @@ export default function ItemDetailPage() {
   const multiChartData: MultiSeriesPoint[] = useMemo(() => {
     if (prices.length === 0) return []
     const days = RANGES.find((r) => r.key === range)?.days ?? Number.POSITIVE_INFINITY
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+    const cutoff = now - days * 24 * 60 * 60 * 1000
     const byDay = new Map<string, MultiSeriesPoint>()
     for (const p of prices) {
       const ts = new Date(p.scraped_at).getTime()
@@ -229,7 +237,7 @@ export default function ItemDetailPage() {
     return Array.from(byDay.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([, b]) => b)
-  }, [prices, range])
+  }, [prices, range, now])
 
   // Keep chartData for backward compat (unused but type-safe)
   const chartData: ChartPoint[] = []

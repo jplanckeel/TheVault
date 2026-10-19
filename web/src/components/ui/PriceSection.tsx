@@ -67,6 +67,8 @@ interface Props {
 
 export default function PriceSection({ prices, searchQuery }: Props) {
   const [range, setRange] = useState<RangeKey>('6M')
+  // Reference time for the range filter, captured once (render must stay pure).
+  const [now] = useState(() => Date.now())
 
   const cibSnaps = useMemo(() => prices.filter((p) => p.condition === 'cib'), [prices])
   const looseSnaps = useMemo(() => prices.filter((p) => p.condition === 'loose'), [prices])
@@ -96,7 +98,7 @@ export default function PriceSection({ prices, searchQuery }: Props) {
   const multiChartData: MultiSeriesPoint[] = useMemo(() => {
     if (prices.length === 0) return []
     const days = RANGES.find((r) => r.key === range)?.days ?? Number.POSITIVE_INFINITY
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+    const cutoff = now - days * 24 * 60 * 60 * 1000
     const byDay = new Map<string, MultiSeriesPoint>()
     for (const p of prices) {
       const ts = new Date(p.scraped_at).getTime()
@@ -107,7 +109,7 @@ export default function PriceSection({ prices, searchQuery }: Props) {
       byDay.set(day, b)
     }
     return Array.from(byDay.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, b]) => b)
-  }, [prices, range])
+  }, [prices, range, now])
 
   const marketListings = useMemo(() => {
     const bySource = new Map<string, PriceSnapshot>()

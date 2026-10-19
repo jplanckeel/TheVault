@@ -28,7 +28,7 @@ const BRAND_MAP: { test: (p: string) => boolean; brand: BrandInfo }[] = [
   },
 ]
 
-export function getBrand(platform: string): BrandInfo | null {
+function getBrand(platform: string): BrandInfo | null {
   return BRAND_MAP.find(({ test }) => test(platform))?.brand ?? null
 }
 

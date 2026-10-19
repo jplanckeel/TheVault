@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Area, AreaChart, ResponsiveContainer } from 'recharts'
 
 interface Props {
@@ -21,7 +22,7 @@ const TONES = {
 export default function Sparkline({ data, height = 60, tone = 'primary', className = '' }: Props) {
   const series = data.map((v, i) => ({ i, v }))
   const { stroke, fill } = TONES[tone]
-  const gradId = `spark-${tone}-${Math.random().toString(36).slice(2, 7)}`
+  const gradId = `spark-${tone}-${useId().replace(/:/g, '')}`
   return (
     <div className={className} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
