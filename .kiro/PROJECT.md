@@ -35,21 +35,21 @@ Authentication:
 
 Key environment variables: `DATABASE_URL`, `PORT`, `JWT_SECRET`, `ADMIN_PASSWORD`, `API_KEY`, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `EBAY_CRON`, `IGDB_CRON`, `STATIC_DIR`.
 
-### 2. Frontend (`frontend/`) — React + Vite + TypeScript
-Single-page app served by the Go backend in production (`STATIC_DIR=./frontend/dist`).
+### 2. Frontend (`web/`) — React + Vite + TypeScript
+Single-page app served by the Go backend in production (`STATIC_DIR=./web/dist`).
 
 Stack:
 - React 18 + TypeScript + Vite 8
 - React Router 7
-- Tailwind CSS 4 (theme defined directly in `frontend/src/index.css` via `@theme`)
+- Tailwind CSS 4 (theme defined directly in `web/src/index.css` via `@theme`)
 - Recharts for price history visualization
 
 Key files:
-- `frontend/src/App.tsx` — routes, layout, sidebar, search bar
-- `frontend/src/AuthContext.tsx` — user + admin auth state, `login` / `register` / `adminLogin` / `logout`
-- `frontend/src/api.ts` — typed API client (`api.items`, `api.collection`, `api.wishlist`, `api.scrape`, etc.)
-- `frontend/src/types.ts` — shared TS types (`Item`, `PriceSnapshot`, `ScrapeJob`)
-- `frontend/src/pages/` — route components
+- `web/src/App.tsx` — routes, layout, sidebar, search bar
+- `web/src/AuthContext.tsx` — user + admin auth state, `login` / `register` / `adminLogin` / `logout`
+- `web/src/api.ts` — typed API client (`api.items`, `api.collection`, `api.wishlist`, `api.scrape`, etc.)
+- `web/src/types.ts` — shared TS types (`Item`, `PriceSnapshot`, `ScrapeJob`)
+- `web/src/pages/` — route components
 
 Design system:
 - Theme tokens: `vault-bg`, `vault-surface*`, `vault-primary` (purple `#BA9EFF`), `vault-tertiary` (`#EC63FF`), `vault-on-surface*`, `vault-error`, `vault-success`
@@ -57,7 +57,7 @@ Design system:
 - Navigation: sidebar with "Mon espace" (Dashboard, Collection, Wishlist), "Explorer" (Catalogue, Consoles, Accessoires), "Admin" (Jobs)
 
 ### 3. Mobile app (separate repo)
-A companion mobile app exists in a separate repository. It pushes the user's collection to the backend through `POST /api/v1/items` with the `X-API-Key` header. The mobile app and the web frontend share the same backend.
+The Kotlin Multiplatform mobile app lives in the same repository (`composeApp/`, `shared/`). It pushes the user's collection to the backend through `POST /api/v1/items` with the `X-API-Key` header. The mobile app and the web frontend share the same backend.
 
 ## Data Model
 
@@ -100,7 +100,7 @@ Mounted under `/api/v1`.
 
 ## Tooling & Conventions
 
-- **Build**: `cd backend && go build ./...` and `cd frontend && npm run build`
+- **Build**: `cd backend && go build ./...` and `cd web && npm run build`
 - **Tests**: `cd backend && go test ./...` (Go testing). No frontend test runner configured.
 - **Migrations**: golang-migrate, embedded via `migrations/embed.go`. Run automatically on server startup. New migrations follow `NNNNNN_name.up.sql` / `NNNNNN_name.down.sql`.
 - **Task runner**: `Taskfile.yml` for common operations.
@@ -111,7 +111,7 @@ Mounted under `/api/v1`.
 ## Common Tasks
 
 When working on this project:
-1. **New API endpoint**: add handler in `backend/internal/api/handlers/`, wire it in `backend/internal/api/router.go`, then expose it in `frontend/src/api.ts`.
-2. **New DB column**: create matching `up`/`down` migration files, update the domain model in `backend/internal/domain/models.go`, update the store's scan/upsert SQL, update the TS type in `frontend/src/types.ts`.
-3. **New page**: create component in `frontend/src/pages/`, add a `<Route>` in `frontend/src/App.tsx`. Use existing `vault-*` theme tokens for styling.
+1. **New API endpoint**: add handler in `backend/internal/api/handlers/`, wire it in `backend/internal/api/router.go`, then expose it in `web/src/api.ts`.
+2. **New DB column**: create matching `up`/`down` migration files, update the domain model in `backend/internal/domain/models.go`, update the store's scan/upsert SQL, update the TS type in `web/src/types.ts`.
+3. **New page**: create component in `web/src/pages/`, add a `<Route>` in `web/src/App.tsx`. Use existing `vault-*` theme tokens for styling.
 4. **Verify after changes**: always run `go build ./...` (backend) and `npm run build` (frontend) before declaring done.

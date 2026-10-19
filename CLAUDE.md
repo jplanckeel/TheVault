@@ -28,6 +28,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew assembleDebug
 ```
 
+## Monorepo layout
+
+- **Mobile app** — Gradle project at the root (`composeApp/`, `shared/`, `android/`). Everything below in this section applies to it.
+- **`backend/`** — Go API (module `github.com/jplanckeel/thevaultbo`), PostgreSQL migrations in `backend/migrations/`. Commands: `task dev:backend`, `task test`, `task lint`.
+- **`web/`** — React + Vite + Tailwind back-office, served by the backend via `STATIC_DIR` in production. Commands: `task dev:web`, `cd web && npm run build`. See `web/DESIGN.md` and `.kiro/PROJECT.md`.
+- **`Dockerfile` / `docker-compose.yml`** build and deploy backend + web only (image `thevaultbo`).
+
+The mobile app talks to the backend through `shared/.../data/remote/TheVaultBo*DataSource.kt`. The API key and base URL come from `local.properties` (`thevault.api.key`, `thevault.api.baseUrl`) via the generated `com.thevault.config.ApiConfig` — never hardcode them.
+
 ## Architecture
 
 This is a **Kotlin Multiplatform** project targeting Android and iOS with two Gradle modules:

@@ -1,6 +1,31 @@
 # TheVault
 
-**Application mobile Kotlin Multiplatform pour gérer une collection de jeux vidéo, consoles et accessoires.**
+**Application mobile Kotlin Multiplatform, backend Go et back-office web pour gérer une collection de jeux vidéo, consoles et accessoires.**
+
+## Structure du monorepo
+
+| Dossier | Contenu |
+|---|---|
+| `composeApp/`, `shared/`, `android/` | Application mobile (Kotlin Multiplatform, Gradle) |
+| `backend/` | API Go (PostgreSQL, scraping eBay, IGDB) — ex-TheVaultBO |
+| `web/` | Back-office web React + Vite, servi par le backend en production |
+| `design/stitch/` | Maquettes Stitch exportées |
+| `docs/`, `scripts/` | Documentation et scripts d'import |
+
+```bash
+./gradlew assembleDebug   # app mobile
+task dev                  # backend (Air) + web (Vite)
+task test                 # tests Go
+task docker:release       # image Docker backend + web
+```
+
+L'app mobile lit la clé API du backend dans `local.properties` (non versionné) :
+
+```properties
+thevault.api.key=<API_KEY du backend>
+# optionnel, par défaut https://thevault.bananaops.cloud/api/v1
+thevault.api.baseUrl=http://10.0.2.2:8080/api/v1
+```
 
 ## Documentation Agent
 

@@ -14,10 +14,10 @@ vars:
 
 tasks:
   dev:
-    desc: Start PostgreSQL, backend (hot-reload), and frontend dev server
+    desc: Start PostgreSQL, backend (hot-reload), and web dev server
     cmds:
       #- task: db
-      - task dev:backend & task dev:frontend; wait
+      - task dev:backend & task dev:web; wait
 
   dev:backend:
     desc: Start backend with Air hot-reload
@@ -25,9 +25,9 @@ tasks:
     cmds:
       - air
 
-  dev:frontend:
-    desc: Start frontend Vite dev server
-    dir: frontend
+  dev:web:
+    desc: Start web Vite dev server
+    dir: web
     cmds:
       - npm run dev
 
@@ -77,12 +77,12 @@ tasks:
       - task: docker:push
 
   build:
-    desc: Build backend binary and frontend bundle
+    desc: Build backend binary and web bundle
     cmds:
       - cmd: go build -o bin/server ./cmd/server
         dir: backend
       - cmd: npm run build
-        dir: frontend
+        dir: web
 
   test:
     desc: Run all Go tests

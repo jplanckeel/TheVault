@@ -1,9 +1,9 @@
-# ─── Stage 1: Build frontend ─────────────────────────────────────────────────
-FROM node:alpine AS frontend-builder
+# ─── Stage 1: Build web app ─────────────────────────────────────────────────
+FROM node:alpine AS web-builder
 WORKDIR /app
-COPY frontend/package*.json ./
+COPY web/package*.json ./
 RUN npm install --prefer-offline
-COPY frontend/ ./
+COPY web/ ./
 RUN npm run build
 
 # ─── Stage 2: Build backend ───────────────────────────────────────────────────
@@ -21,7 +21,7 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 
 COPY --from=backend-builder /app/server .
-COPY --from=frontend-builder /app/dist ./static
+COPY --from=web-builder /app/dist ./static
 
 # Static dir picked up by STATIC_DIR env var
 ENV STATIC_DIR=/app/static

@@ -3,17 +3,38 @@
 .gitignore
 
 # Node
-frontend/node_modules
-frontend/dist
+web/node_modules
+web/dist
 
 # Go build artifacts
 backend/tmp
+backend/bin
+backend/uploads
+
+# Mobile app (Kotlin Multiplatform) — not part of the server image
+android
+composeApp
+shared
+gradle
+config
+build
+.gradle
+.kotlin
+.idea
+*.gradle.kts
+gradlew
+gradle.properties
+local.properties
 
 # Misc
 .env
 *.csv
 controllercons
+design
 docs
+logo
 scripts
 tmp
 .claude
+.agent
+.kiro

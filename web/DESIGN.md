@@ -4,7 +4,7 @@
 
 Quand un item n'a pas de `cover_url`, on affiche le logo du constructeur avec un fond de couleur de marque.
 
-Composant : `frontend/src/components/BrandPlaceholder.tsx`
+Composant : `web/src/components/BrandPlaceholder.tsx`
 
 | Constructeur | Fichier source | Fichier public | Fond |
 |---|---|---|---|
@@ -48,7 +48,7 @@ L'image est sauvegardée dans `{UPLOAD_DIR}/covers/{item-id}.ext` et servie via 
 
 ## Palette de couleurs
 
-Tokens CSS définis dans `frontend/src/index.css` (préfixe `vault-`).
+Tokens CSS définis dans `web/src/index.css` (préfixe `vault-`).
 
 | Token | Usage |
 |---|---|
