@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -17,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.savedstate.read
 import com.thevault.ui.screen.accessory.AccessoryDetailScreen
 import com.thevault.ui.screen.additem.AddItemScreen
 import com.thevault.ui.screen.collection.CollectionEntry
@@ -85,7 +87,7 @@ private fun NavGraphBuilder.tabDestinations(navController: NavHostController) {
     }
     composable(Routes.COLLECTION, arguments = listOf(optionalStringArgument("kind"))) { entry ->
         val viewModel: CollectionViewModel = koinViewModel()
-        val kind = entry.arguments?.getString("kind")?.let { name -> ItemKind.entries.find { it.name == name } }
+        val kind = entry.stringArg("kind")?.let { name -> ItemKind.entries.find { it.name == name } }
         LaunchedEffect(kind) { if (kind != null) viewModel.onKindSelected(kind) }
         CollectionScreen(onEntryClick = openEntry, onAddItem = openAdd, viewModel = viewModel)
     }
@@ -97,21 +99,24 @@ private fun NavGraphBuilder.tabDestinations(navController: NavHostController) {
 private fun NavGraphBuilder.detailDestinations(navController: NavHostController) {
     val back: () -> Unit = { navController.popBackStack() }
     composable(Routes.GAME_DETAIL) { entry ->
-        val id = entry.arguments?.getString("id") ?: return@composable
+        val id = entry.stringArg("id") ?: return@composable
         GameDetailScreen(gameId = id, onEdit = { navController.navigate(Routes.addItem(id)) }, onBack = back)
     }
     composable(Routes.CONSOLE_DETAIL) { entry ->
-        val id = entry.arguments?.getString("id") ?: return@composable
+        val id = entry.stringArg("id") ?: return@composable
         ConsoleDetailScreen(consoleId = id, onBack = back)
     }
     composable(Routes.ACCESSORY_DETAIL) { entry ->
-        val id = entry.arguments?.getString("id") ?: return@composable
+        val id = entry.stringArg("id") ?: return@composable
         AccessoryDetailScreen(accessoryId = id, onBack = back)
     }
     composable(Routes.ADD_ITEM, arguments = listOf(optionalStringArgument("gameId"))) { entry ->
-        AddItemScreen(gameId = entry.arguments?.getString("gameId"), onBack = back)
+        AddItemScreen(gameId = entry.stringArg("gameId"), onBack = back)
     }
 }
+
+/** Reads a string navigation argument (multiplatform: Bundle on Android, SavedState on iOS). */
+private fun NavBackStackEntry.stringArg(name: String): String? = arguments?.read { getStringOrNull(name) }
 
 private fun optionalStringArgument(name: String) =
     navArgument(name) {
