@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.thevault.ui.component.EmptyState
 import com.thevault.ui.component.IconSquareButton
 import com.thevault.ui.component.ScreenHeader
+import com.thevault.ui.component.VaultLogo
 import com.thevault.ui.screen.collection.HomeSummary
 import com.thevault.ui.theme.Primary
 import org.koin.compose.viewmodel.koinViewModel
@@ -77,6 +78,14 @@ fun HomeContent(
 
 @Composable
 private fun HomeHeader(actions: HomeActions) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        VaultLogo(size = 44.dp)
+        HomeTitle(actions)
+    }
+}
+
+@Composable
+private fun HomeTitle(actions: HomeActions) {
     ScreenHeader(
         title = "Ma collection",
         eyebrow = "The Vault",
