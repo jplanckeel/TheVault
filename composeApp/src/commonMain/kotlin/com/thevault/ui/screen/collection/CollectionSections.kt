@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -35,12 +34,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.thevault.ui.component.EmptyState
 import com.thevault.ui.component.Eyebrow
-import com.thevault.ui.component.PlatformBadge
+import com.thevault.ui.component.PlatformLogo
 import com.thevault.ui.component.VaultFilterChip
 import com.thevault.ui.component.VaultSearchField
 import com.thevault.ui.component.formatEuro
 import com.thevault.ui.component.gameCount
-import com.thevault.ui.component.gameNoun
 import com.thevault.ui.component.shortPlatformName
 import com.thevault.ui.theme.CardBorderColor
 import com.thevault.ui.theme.HighlightBorder
@@ -94,7 +92,7 @@ private fun LazyGridScope.manufacturerGroup(
     }
 }
 
-/** Platform tiles of one manufacturer, collapsed after six platforms. */
+/** Platform rows of one manufacturer (full-width, one per line), collapsed after six platforms. */
 @Composable
 private fun PlatformTilesGrid(
     platforms: List<PlatformSummary>,
@@ -103,12 +101,7 @@ private fun PlatformTilesGrid(
     var expanded by rememberSaveable { mutableStateOf(false) }
     val visible = if (expanded) platforms else platforms.take(VISIBLE_PLATFORMS)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        visible.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { PlatformTile(it, { onOpen(it.platform) }, Modifier.weight(1f)) }
-                if (row.size == 1) Column(Modifier.weight(1f)) {}
-            }
-        }
+        visible.forEach { PlatformRow(it) { onOpen(it.platform) } }
         val hidden = platforms.drop(VISIBLE_PLATFORMS)
         if (!expanded && hidden.isNotEmpty()) {
             Text(
@@ -129,31 +122,33 @@ private fun PlatformTilesGrid(
 }
 
 @Composable
-private fun PlatformTile(
+private fun PlatformRow(
     platform: PlatformSummary,
     onClick: () -> Unit,
-    modifier: Modifier,
 ) {
-    Column(
-        modifier
-            .heightIn(min = 92.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
             .clip(VaultRadius.xl)
             .background(SurfaceContainerLow)
             .border(1.dp, CardBorderColor, VaultRadius.xl)
             .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        PlatformBadge(platform.platform)
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${platform.count}", style = MaterialTheme.typography.headlineMedium, color = OnSurface)
-            Text(
-                "${gameNoun(platform.count)} · ${formatEuro(platform.value)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVariant,
-                modifier = Modifier.padding(bottom = 3.dp),
-            )
+        PlatformLogo(platform.platform)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(shortPlatformName(platform.platform), style = MaterialTheme.typography.titleMedium, color = OnSurface, maxLines = 1)
+            Text(gameCount(platform.count), style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
         }
+        Text(formatEuro(platform.value), style = MaterialTheme.typography.titleMedium, color = OnSurface)
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = OnSurfaceVariant,
+            modifier = Modifier.size(22.dp),
+        )
     }
 }
 

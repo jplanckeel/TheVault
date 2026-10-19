@@ -29,6 +29,7 @@ import com.thevault.ui.component.Eyebrow
 import com.thevault.ui.component.FormatBadge
 import com.thevault.ui.component.ItemCover
 import com.thevault.ui.component.PlatformBadge
+import com.thevault.ui.component.PlatformLogo
 import com.thevault.ui.component.ProgressTrack
 import com.thevault.ui.component.SectionHeader
 import com.thevault.ui.component.VaultCard
@@ -177,6 +178,7 @@ internal fun PlatformBreakdown(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        PlatformLogo(p.platform, size = 36.dp)
                         Box(Modifier.weight(1f)) { PlatformBadge(p.platform) }
                         Text(gameCount(p.count), style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
                         Text(
