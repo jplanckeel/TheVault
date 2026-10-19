@@ -40,6 +40,18 @@ func (m *mockItemStore) List(_ context.Context) ([]domain.Item, error) {
 	return result, nil
 }
 func (m *mockItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error) { return nil, nil }
+func (m *mockItemStore) UpdateIGDB(_ context.Context, _ string, _ domain.IGDBData) error { return nil }
+
+func (m *mockItemStore) UpdateCoverURL(_ context.Context, id string, coverURL string) error {
+	for k, v := range m.items {
+		if v.ID == id {
+			v.CoverURL = coverURL
+			m.items[k] = v
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
 
 func (m *mockItemStore) GetByID(_ context.Context, id string) (domain.Item, error) {
 	for _, v := range m.items {

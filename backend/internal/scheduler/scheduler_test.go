@@ -49,7 +49,7 @@ func TestScheduler_FiresRunner(t *testing.T) {
 	js := newMemJobStore()
 
 	// Use "@every 50ms" so the test doesn't have to wait a full hour
-	s := scheduler.New(js, runner, scheduler.WithSchedule("@every 50ms"))
+	s := scheduler.New(js, runner, scheduler.WithEbaySchedule("@every 50ms"))
 	if err := s.Start(); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestScheduler_CreatesJob_BeforeCallingRunner(t *testing.T) {
 	}
 	js := newMemJobStore()
 
-	s := scheduler.New(js, runner, scheduler.WithSchedule("@every 50ms"))
+	s := scheduler.New(js, runner, scheduler.WithEbaySchedule("@every 50ms"))
 	if err := s.Start(); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestScheduler_CreatesJob_BeforeCallingRunner(t *testing.T) {
 
 func TestScheduler_InvalidSchedule_ReturnsError(t *testing.T) {
 	s := scheduler.New(newMemJobStore(), func(string, string, ...string) {},
-		scheduler.WithSchedule("not-a-valid-cron"),
+		scheduler.WithEbaySchedule("not-a-valid-cron"),
 	)
 	if err := s.Start(); err == nil {
 		s.Stop()
@@ -111,7 +111,7 @@ func TestScheduler_CronPath_FiresRunner(t *testing.T) {
 		ranCh <- triggeredBy
 	}
 	// "@every 1s" uses robfig/cron directly (>= 1 second)
-	s := scheduler.New(newMemJobStore(), runner, scheduler.WithSchedule("@every 1s"))
+	s := scheduler.New(newMemJobStore(), runner, scheduler.WithEbaySchedule("@every 1s"))
 	if err := s.Start(); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
