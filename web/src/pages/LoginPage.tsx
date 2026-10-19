@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
-
-const LOGO_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#9333ea"/><stop offset="100%" style="stop-color:#4f46e5"/></linearGradient></defs><path d="M20 30 L50 15 L80 30 L80 70 L50 85 L20 70 Z" fill="none" stroke="url(#g)" stroke-width="6" stroke-linejoin="round"/><path d="M35 45 L50 35 L65 45 L65 60 L50 70 L35 60 Z" fill="url(#g)"/><rect x="47" y="52" width="6" height="10" rx="3" fill="#fff" opacity="0.8"/></svg>`
+import Logo from '../components/layout/Logo'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -26,7 +25,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-vault-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 mb-4" dangerouslySetInnerHTML={{ __html: LOGO_SVG }} />
+          <Logo className="w-16 h-16 mb-4" />
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">TheVault</h1>
           <p className="text-sm text-vault-on-surface-variant mt-1">Connecte-toi à ton compte</p>
         </div>

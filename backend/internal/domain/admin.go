@@ -77,6 +77,21 @@ func (p ItemPatch) Validate() error {
 	if p.ReleaseYear != nil && (*p.ReleaseYear < 0 || *p.ReleaseYear > 2100) {
 		return ErrInvalidPatch("release_year out of range")
 	}
+	if p.CoverURL != nil && !ValidCoverURL(*p.CoverURL) {
+		return ErrInvalidPatch("cover_url must be an http(s) URL or an uploaded cover")
+	}
+	for _, f := range []struct {
+		v   *string
+		max int
+	}{
+		{p.Title, MaxTitleLen}, {p.Platform, MaxShortFieldLen}, {p.Region, MaxShortFieldLen},
+		{p.Condition, MaxShortFieldLen}, {p.IgdbID, MaxShortFieldLen}, {p.Genres, MaxTitleLen},
+		{p.Developer, MaxShortFieldLen}, {p.Publisher, MaxShortFieldLen}, {p.Summary, MaxTextLen},
+	} {
+		if f.v != nil && tooLong(*f.v, f.max) {
+			return ErrInvalidPatch("a field is too long")
+		}
+	}
 	return nil
 }
 

@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -9,6 +10,12 @@ import (
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
 	"github.com/jplanckeel/thevaultbo/internal/igdb"
 	"github.com/jplanckeel/thevaultbo/internal/store"
+)
+
+// Request body limits.
+const (
+	maxJSONBody   = 1 << 20  // 1 MiB
+	maxUploadBody = 10 << 20 // 10 MiB (covers are capped at 8 MiB)
 )
 
 // NewRouter builds and returns the chi router with all routes mounted.
@@ -32,11 +39,18 @@ func NewRouter(
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Content-Type", "Authorization", "X-API-Key"},
-	}))
+	r.Use(SecurityHeaders)
+	if origins := corsOrigins(); len(origins) > 0 {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins: origins,
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{"Accept", "Content-Type", "Authorization", "X-API-Key"},
+		}))
+	}
+
+	authLimit := NewRateLimiter(10, time.Minute)    // login / register: slows brute force
+	searchLimit := NewRateLimiter(60, time.Minute)  // IGDB proxy: protects our IGDB quota
+	writeLimit := NewRateLimiter(1000, time.Minute) // catalogue upserts: allows a full CSV import
 
 	ih := handlers.NewItemsHandler(items, prices, uploadDir).WithSyncEvents(events)
 	ph := handlers.NewPricesHandler(prices)
@@ -58,12 +72,12 @@ func NewRouter(
 		w.Write([]byte("ok"))
 	})
 
-	// Always serve uploaded covers
-	r.Handle("/covers/*", http.StripPrefix("/covers/", http.FileServer(http.Dir(uploadDir+"/covers"))))
+	// Always serve uploaded covers (no directory listing).
+	r.Handle("/covers/*", http.StripPrefix("/covers/", http.FileServer(noListingFS{http.Dir(uploadDir + "/covers")})))
 
 	// Serve frontend SPA (only when a static dir is configured)
 	if staticDir != "" {
-		fs := http.FileServer(http.Dir(staticDir))
+		fs := http.FileServer(noListingFS{http.Dir(staticDir)})
 		r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
 			if _, err := http.Dir(staticDir).Open(req.URL.Path); err != nil {
 				http.ServeFile(w, req, staticDir+"/index.html")
@@ -74,56 +88,61 @@ func NewRouter(
 	}
 
 	r.Route("/api/v1", func(r chi.Router) {
-		// Public routes (consultation)
-		r.Post("/auth/register", uah.Register)
-		r.Post("/auth/login", uah.Login)
-		r.Get("/items", ih.ListItems)
-		r.Get("/items/{id}", ih.GetItem)
-		r.Get("/items/{id}/prices", ih.GetItemPrices)
-		r.Get("/consoles", ch.ListConsoles)
-		r.Get("/consoles/{id}", ch.GetConsole)
-		r.Get("/consoles/{id}/games", ch.GetConsoleGames)
-		r.Get("/accessories", ah.ListAccessories)
-		r.Get("/accessories/{id}", ah.GetAccessory)
-		r.Get("/prices/latest", ph.GetLatestPrices)
-		r.Get("/prices/top-movers", ph.GetTopMovers)
+		// Cover upload is the only route accepting large bodies.
+		r.With(AdminMiddleware(users), MaxBodySize(maxUploadBody)).Post("/items/{id}/cover/upload", ih.UploadCover)
 
-		// User-authenticated routes
 		r.Group(func(r chi.Router) {
-			r.Use(UserAuthMiddleware)
-			r.Get("/auth/me", uah.Me)
-			r.Post("/collection", uch.AddItem)
-			r.Delete("/collection/{itemId}", uch.RemoveItem)
-			r.Get("/collection", uch.ListCollection)
-			r.Get("/wishlist", uch.ListWishlist)
-		})
+			r.Use(MaxBodySize(maxJSONBody))
 
-		// Shared catalogue mutations — any authenticated caller can contribute
-		// (logged-in user, admin, or mobile app via X-API-Key).
-		r.Group(func(r chi.Router) {
-			r.Use(AnyAuthMiddleware)
-			r.Post("/items", ih.UpsertItem)
-			r.Get("/search", srch.Search)
-		})
+			// Public routes (consultation)
+			r.With(authLimit.Middleware).Post("/auth/register", uah.Register)
+			r.With(authLimit.Middleware).Post("/auth/login", uah.Login)
+			r.Get("/items", ih.ListItems)
+			r.Get("/items/{id}", ih.GetItem)
+			r.Get("/items/{id}/prices", ih.GetItemPrices)
+			r.Get("/consoles", ch.ListConsoles)
+			r.Get("/consoles/{id}", ch.GetConsole)
+			r.Get("/consoles/{id}/games", ch.GetConsoleGames)
+			r.Get("/accessories", ah.ListAccessories)
+			r.Get("/accessories/{id}", ah.GetAccessory)
+			r.Get("/prices/latest", ph.GetLatestPrices)
+			r.Get("/prices/top-movers", ph.GetTopMovers)
 
-		// Admin-only routes: the caller's account must have the admin role.
-		r.Group(func(r chi.Router) {
-			r.Use(AdminMiddleware(users))
-			r.Post("/items/sync-igdb", gh.SyncIGDB)
-			r.Put("/items/{id}/cover", ih.UpdateCover)
-			r.Post("/items/{id}/cover/upload", ih.UploadCover)
-			r.Post("/scrape", sh.TriggerScrape)
-			r.Get("/scrape", sh.ListJobs)
-			r.Get("/scrape/{id}", sh.GetJob)
+			// User-authenticated routes
+			r.Group(func(r chi.Router) {
+				r.Use(UserAuthMiddleware)
+				r.Get("/auth/me", uah.Me)
+				r.Post("/collection", uch.AddItem)
+				r.Delete("/collection/{itemId}", uch.RemoveItem)
+				r.Get("/collection", uch.ListCollection)
+				r.Get("/wishlist", uch.ListWishlist)
+			})
 
-			r.Route("/admin", func(r chi.Router) {
-				r.Get("/items", adm.ListItems)
-				r.Put("/items/{id}", adm.UpdateItem)
-				r.Delete("/items/{id}", adm.DeleteItem)
-				r.Post("/items/{id}/merge", adm.MergeItem)
-				r.Post("/items/{id}/igdb", adm.RefreshIGDB)
-				r.Get("/sync-events", adm.ListSyncEvents)
-				r.Get("/sync-summary", adm.SyncSummary)
+			// Shared catalogue mutations — logged-in users and the mobile app (X-API-Key).
+			r.Group(func(r chi.Router) {
+				r.Use(AnyAuthMiddleware)
+				r.With(writeLimit.Middleware).Post("/items", ih.UpsertItem)
+				r.With(searchLimit.Middleware).Get("/search", srch.Search)
+			})
+
+			// Admin-only routes: the caller's account must have the admin role.
+			r.Group(func(r chi.Router) {
+				r.Use(AdminMiddleware(users))
+				r.Post("/items/sync-igdb", gh.SyncIGDB)
+				r.Put("/items/{id}/cover", ih.UpdateCover)
+				r.Post("/scrape", sh.TriggerScrape)
+				r.Get("/scrape", sh.ListJobs)
+				r.Get("/scrape/{id}", sh.GetJob)
+
+				r.Route("/admin", func(r chi.Router) {
+					r.Get("/items", adm.ListItems)
+					r.Put("/items/{id}", adm.UpdateItem)
+					r.Delete("/items/{id}", adm.DeleteItem)
+					r.Post("/items/{id}/merge", adm.MergeItem)
+					r.Post("/items/{id}/igdb", adm.RefreshIGDB)
+					r.Get("/sync-events", adm.ListSyncEvents)
+					r.Get("/sync-summary", adm.SyncSummary)
+				})
 			})
 		})
 	})

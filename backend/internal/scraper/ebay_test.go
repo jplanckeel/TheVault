@@ -20,9 +20,9 @@ func (m *memItemStore) Upsert(_ context.Context, item domain.Item) (domain.Item,
 	m.items = append(m.items, item)
 	return item, nil
 }
-func (m *memItemStore) List(_ context.Context) ([]domain.Item, error) { return m.items, nil }
-func (m *memItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error) { return m.items, nil }
-func (m *memItemStore) UpdateCoverURL(_ context.Context, _ string, _ string) error { return nil }
+func (m *memItemStore) List(_ context.Context) ([]domain.Item, error)                   { return m.items, nil }
+func (m *memItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error)        { return m.items, nil }
+func (m *memItemStore) UpdateCoverURL(_ context.Context, _ string, _ string) error      { return nil }
 func (m *memItemStore) UpdateIGDB(_ context.Context, _ string, _ domain.IGDBData) error { return nil }
 func (m *memItemStore) GetByID(_ context.Context, id string) (domain.Item, error) {
 	for _, it := range m.items {
@@ -114,8 +114,8 @@ func fakeEbay(t *testing.T) *httptest.Server {
 		json.NewEncoder(w).Encode(map[string]any{
 			"itemSummaries": []map[string]any{
 				{
-					"itemId": "v1|123|0",
-					"price":  map[string]any{"value": "25.00", "currency": "EUR"},
+					"itemId":    "v1|123|0",
+					"price":     map[string]any{"value": "25.00", "currency": "EUR"},
 					"condition": "Used",
 				},
 			},

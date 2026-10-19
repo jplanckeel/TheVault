@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
+	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jplanckeel/thevaultbo/internal/store"
@@ -22,11 +24,7 @@ type UserAuthHandler struct {
 // NewUserAuthHandler creates the handler. adminEmails (lower-case) get the admin role
 // when they register or log in — see ADMIN_EMAILS.
 func NewUserAuthHandler(users store.UserStore, adminEmails ...string) *UserAuthHandler {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "thevaultbo-default-secret"
-	}
-	return &UserAuthHandler{users: users, secret: []byte(secret), adminEmails: adminEmails}
+	return &UserAuthHandler{users: users, secret: JWTSecret(), adminEmails: adminEmails}
 }
 
 // promoteIfListed grants the admin role when the user's e-mail is in ADMIN_EMAILS.
@@ -58,8 +56,10 @@ func (h *UserAuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid body", http.StatusBadRequest)
 		return
 	}
-	if body.Email == "" || body.Password == "" {
-		http.Error(w, "email and password required", http.StatusBadRequest)
+	body.Email = strings.TrimSpace(body.Email)
+	body.Name = strings.TrimSpace(body.Name)
+	if msg := validateRegistration(body.Email, body.Password, body.Name); msg != "" {
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
@@ -125,9 +125,11 @@ func (h *UserAuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserAuthHandler) signToken(userID string) (string, error) {
+	now := time.Now()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": userID,
-		"exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
+		"iat": now.Unix(),
+		"exp": now.Add(7 * 24 * time.Hour).Unix(),
 	})
 	return token.SignedString(h.secret)
 }
@@ -136,3 +138,28 @@ func (h *UserAuthHandler) signToken(userID string) (string, error) {
 type contextKey string
 
 const UserIDKey contextKey = "user_id"
+
+// Registration limits. bcrypt ignores (and x/crypto rejects) passwords longer than 72 bytes.
+const (
+	minPasswordLen = 8
+	maxPasswordLen = 72
+	maxEmailLen    = 254
+	maxNameLen     = 100
+)
+
+var emailPattern = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
+
+// validateRegistration returns a user-facing error message, or "" when the input is valid.
+func validateRegistration(email, password, name string) string {
+	switch {
+	case len(email) > maxEmailLen || !emailPattern.MatchString(email):
+		return "adresse e-mail invalide"
+	case len(password) < minPasswordLen:
+		return fmt.Sprintf("le mot de passe doit contenir au moins %d caractères", minPasswordLen)
+	case len(password) > maxPasswordLen:
+		return fmt.Sprintf("le mot de passe ne doit pas dépasser %d octets", maxPasswordLen)
+	case utf8.RuneCountInString(name) > maxNameLen:
+		return fmt.Sprintf("le nom ne doit pas dépasser %d caractères", maxNameLen)
+	}
+	return ""
+}

@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	twitchTokenURL    = "https://id.twitch.tv/oauth2/token"
-	igdbGamesURL      = "https://api.igdb.com/v4/games"
-	igdbPlatformsURL  = "https://api.igdb.com/v4/platforms"
+	twitchTokenURL   = "https://id.twitch.tv/oauth2/token" // #nosec G101 -- public OAuth endpoint, not a credential
+	igdbGamesURL     = "https://api.igdb.com/v4/games"
+	igdbPlatformsURL = "https://api.igdb.com/v4/platforms"
 )
 
 // Client is an IGDB API client backed by Twitch OAuth2.
@@ -46,12 +46,12 @@ type twitchTokenResp struct {
 
 // igdbGame is the raw IGDB game response.
 type igdbGame struct {
-	ID                int64               `json:"id"`
-	FirstReleaseDate  int64               `json:"first_release_date"`
-	Cover             *igdbCover          `json:"cover"`
-	Genres            []igdbNamed         `json:"genres"`
-	Summary           string              `json:"summary"`
-	InvolvedCompanies []igdbInvolvedComp  `json:"involved_companies"`
+	ID                int64              `json:"id"`
+	FirstReleaseDate  int64              `json:"first_release_date"`
+	Cover             *igdbCover         `json:"cover"`
+	Genres            []igdbNamed        `json:"genres"`
+	Summary           string             `json:"summary"`
+	InvolvedCompanies []igdbInvolvedComp `json:"involved_companies"`
 }
 
 type igdbCover struct {
@@ -137,6 +137,7 @@ func (c *Client) search(query string) ([]igdbGame, error) {
 	}
 	return games, nil
 }
+
 // igdbQuery builds an IGDB APIv4 query for the given search term.
 // No version_parent filter so remasters and ports are included.
 func igdbQuery(term string) string {
@@ -339,9 +340,9 @@ func (c *Client) SearchGames(term string) ([]SearchGameResult, error) {
 
 // igdbPlatform is the raw IGDB platform response.
 type igdbPlatform struct {
-	ID             int64      `json:"id"`
-	Name           string     `json:"name"`
-	PlatformLogo   *igdbCover `json:"platform_logo"`
+	ID           int64      `json:"id"`
+	Name         string     `json:"name"`
+	PlatformLogo *igdbCover `json:"platform_logo"`
 }
 
 // SearchPlatform queries IGDB /platforms for a console name and returns its logo URL.

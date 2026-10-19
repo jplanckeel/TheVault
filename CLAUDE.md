@@ -34,6 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`backend/`** — Go API (module `github.com/jplanckeel/thevaultbo`), PostgreSQL migrations in `backend/migrations/`. Commands: `task dev:backend`, `task test`, `task lint`.
 - **`web/`** — React + Vite + Tailwind back-office, served by the backend via `STATIC_DIR` in production. Commands: `task dev:web`, `cd web && npm run build`. See `web/DESIGN.md` and `.kiro/PROJECT.md`.
 - **`Dockerfile` / `docker-compose.yml`** build and deploy backend + web only (image `thevaultbo`).
+- **Security** — `JWT_SECRET` (≥ 32 chars) is mandatory, never add a fallback secret. Validate user input in `internal/domain/validation.go`, keep the rate limits / body limits / security headers of `internal/api/security.go`, and keep `govulncheck`, `gosec` and `npm audit` green.
 - **Back-office** — web only (`web/src/pages/admin/`, API `/api/v1/admin/*`). Access requires `users.is_admin`, granted through the `ADMIN_EMAILS` env var and checked in DB by `AdminMiddleware`. Every catalogue write is logged in `sync_events`; admin edits set `items.admin_edited` (sync no longer overwrites catalogue fields), merges add `item_aliases`, deletes add `item_tombstones` (sync gets 410).
 
 The mobile app talks to the backend through `shared/.../data/remote/TheVaultBo*DataSource.kt`. The API key and base URL come from `local.properties` (`thevault.api.key`, `thevault.api.baseUrl`) via the generated `com.thevault.config.ApiConfig` — never hardcode them.

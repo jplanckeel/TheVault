@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/jplanckeel/thevaultbo/internal/api"
+	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
 	"github.com/jplanckeel/thevaultbo/internal/igdb"
 	"github.com/jplanckeel/thevaultbo/internal/scheduler"
 	"github.com/jplanckeel/thevaultbo/internal/scraper"
@@ -21,6 +23,10 @@ func main() {
 	port := getenv("PORT", "8080")
 
 	ctx := context.Background()
+
+	if err := handlers.CheckSecrets(); err != nil {
+		log.Fatalf("configuration: %v", err)
+	}
 
 	// Run migrations
 	if err := store.RunMigrations(migrations.FS, databaseURL); err != nil {
@@ -68,8 +74,8 @@ func main() {
 	igdbRunner := igdb.NewRunner(items, jobs, igdbClient)
 
 	// Start scheduler
-	ebayCron := getenv("EBAY_CRON", "0 * * * *")  // default: every hour
-	igdbCron := getenv("IGDB_CRON", "0 3 * * *")  // default: daily at 03:00
+	ebayCron := getenv("EBAY_CRON", "0 * * * *") // default: every hour
+	igdbCron := getenv("IGDB_CRON", "0 3 * * *") // default: daily at 03:00
 	schedOpts := []scheduler.Option{
 		scheduler.WithEbaySchedule(ebayCron),
 		scheduler.WithIGDB(igdbRunner, igdbCron),
@@ -89,9 +95,17 @@ func main() {
 	router := api.NewRouter(items, prices, jobs, settings, users, collections, items, events, adminEmails,
 		ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir)
 
-	addr := fmt.Sprintf(":%s", port)
-	log.Printf("listening on %s", addr)
-	if err := http.ListenAndServe(addr, router); err != nil {
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%s", port),
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second, // cover uploads up to 8 MiB
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 16,
+	}
+	log.Printf("listening on %s", srv.Addr)
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }

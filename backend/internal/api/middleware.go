@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -12,13 +11,7 @@ import (
 	"github.com/jplanckeel/thevaultbo/internal/store"
 )
 
-func jwtSecret() []byte {
-	secret := []byte(os.Getenv("JWT_SECRET"))
-	if len(secret) == 0 {
-		secret = []byte("thevaultbo-default-secret")
-	}
-	return secret
-}
+func jwtSecret() []byte { return handlers.JWTSecret() }
 
 // bearerSubject returns the subject of a valid HS256 bearer token, or "".
 func bearerSubject(r *http.Request, secret []byte) string {
@@ -28,7 +21,7 @@ func bearerSubject(r *http.Request, secret []byte) string {
 	}
 	token, err := jwt.Parse(strings.TrimPrefix(auth, "Bearer "), func(t *jwt.Token) (interface{}, error) {
 		return secret, nil
-	}, jwt.WithValidMethods([]string{"HS256"}))
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired())
 	if err != nil || !token.Valid {
 		return ""
 	}
@@ -55,10 +48,9 @@ func UserAuthMiddleware(next http.Handler) http.Handler {
 // and records which one in the request context for the sync audit log.
 func AnyAuthMiddleware(next http.Handler) http.Handler {
 	secret := jwtSecret()
-	apiKey := os.Getenv("API_KEY")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if key := r.Header.Get("X-API-Key"); key != "" && apiKey != "" && key == apiKey {
+		if handlers.APIKeyMatches(r.Header.Get("X-API-Key")) {
 			ctx := handlers.WithCaller(r.Context(), handlers.Caller{Source: domain.SourceMobile, Actor: "api-key"})
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return

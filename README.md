@@ -36,6 +36,22 @@ Le back-office est dans l'app web, section **Back-office** de la sidebar (visibl
 
 Le rôle admin est porté par le compte utilisateur : listez les e-mails dans `ADMIN_EMAILS` (séparés par des virgules) côté backend, puis connectez-vous normalement. Les corrections sont durables : un objet corrigé n'est plus écrasé par les synchros, un objet fusionné est redirigé vers celui conservé, et un objet supprimé est refusé (HTTP 410) s'il revient d'une synchro.
 
+## Sécurité
+
+Variables d'environnement du backend (voir `.env.example`) :
+
+| Variable | Rôle |
+|---|---|
+| `JWT_SECRET` | **Obligatoire**, ≥ 32 caractères (`openssl rand -hex 32`). Le serveur refuse de démarrer sinon. |
+| `API_KEY` | Clé de l'app mobile, ≥ 16 caractères. Vide = synchro mobile désactivée. |
+| `ADMIN_EMAILS` | Comptes ayant accès au back-office. |
+| `TRUST_PROXY` | `true` uniquement si l'app n'est joignable que via le reverse proxy (Traefik) : active `X-Forwarded-For` pour la limitation de débit. |
+| `CORS_ORIGINS` | Origines navigateur supplémentaires autorisées. Vide = même origine uniquement. |
+
+Protections en place : en-têtes de sécurité (CSP, HSTS derrière HTTPS, nosniff, frame-ancestors), limitation de débit (connexion, recherche IGDB, écritures catalogue), taille maximale des requêtes, timeouts HTTP, validation des entrées et des URLs de jaquettes, type d'image détecté à l'upload, conteneur non-root. La CI exécute `govulncheck`, `gosec` et `npm audit`.
+
+La clé `API_KEY` est embarquée dans l'APK et peut en être extraite : elle ne donne accès qu'à l'ajout au catalogue partagé et à la recherche IGDB, protégés par la limitation de débit et le back-office (correction, suppression définitive).
+
 ## Documentation Agent
 
 Ce projet utilise des fichiers de configuration agent pour guider le développement assisté par IA :

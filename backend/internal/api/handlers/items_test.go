@@ -14,7 +14,6 @@ import (
 	"github.com/jplanckeel/thevaultbo/internal/store"
 )
 
-
 // mockItemStore is an in-memory ItemStore for testing.
 type mockItemStore struct {
 	items map[string]domain.Item
@@ -39,7 +38,7 @@ func (m *mockItemStore) List(_ context.Context) ([]domain.Item, error) {
 	}
 	return result, nil
 }
-func (m *mockItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error) { return nil, nil }
+func (m *mockItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error)        { return nil, nil }
 func (m *mockItemStore) UpdateIGDB(_ context.Context, _ string, _ domain.IGDBData) error { return nil }
 
 func (m *mockItemStore) UpdateCoverURL(_ context.Context, id string, coverURL string) error {

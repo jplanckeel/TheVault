@@ -3,9 +3,14 @@ services:
     image: jplanckeel/thevaultbo:latest
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/thevaultbo?sslmode=disable
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/thevaultbo?sslmode=disable
       PORT: "8080"
       STATIC_DIR: /app/static
+      UPLOAD_DIR: /app/uploads
+      # Only reachable through Traefik: X-Forwarded-For can be trusted for rate limiting.
+      TRUST_PROXY: "true"
+      # Extra browser origins allowed by CORS (comma-separated); empty = same origin only.
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
       EBAY_CLIENT_ID: ${EBAY_CLIENT_ID}
       EBAY_CLIENT_SECRET: ${EBAY_CLIENT_SECRET}
       EBAY_CRON: ${EBAY_CRON:-0 3 * * 0}
@@ -13,8 +18,10 @@ services:
       IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET}
       IGDB_CRON: ${IGDB_CRON:-0 4 * * 0}
       ADMIN_EMAILS: ${ADMIN_EMAILS}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (openssl rand -hex 32)}
       API_KEY: ${API_KEY}
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -33,7 +40,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       POSTGRES_DB: thevaultbo
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -47,6 +54,7 @@ services:
 
 volumes:
   db-data:
+  uploads:
 
 networks:
   dokploy-network:

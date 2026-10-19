@@ -60,7 +60,9 @@ func (m *memAdmin) Merge(_ context.Context, source, target string) (domain.Item,
 	m.merged = [2]string{source, target}
 	return m.items.GetByID(context.Background(), target)
 }
-func (m *memAdmin) OwnerCounts(_ context.Context) (map[string]int, error) { return map[string]int{}, nil }
+func (m *memAdmin) OwnerCounts(_ context.Context) (map[string]int, error) {
+	return map[string]int{}, nil
+}
 func (m *memAdmin) PricedItemIDs(_ context.Context) (map[string]bool, error) {
 	return map[string]bool{}, nil
 }
