@@ -1,0 +1,97 @@
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  PG_CONTAINER: thevaultbo-postgres
+  PG_USER: postgres
+  PG_PASSWORD: postgres
+  PG_DB: thevaultbo
+  PG_PORT: 5432
+  IMAGE: jplanckeel/thevault
+  TAG:
+    sh: git rev-parse --short HEAD
+
+tasks:
+  dev:
+    desc: Start PostgreSQL, backend (hot-reload), and frontend dev server
+    cmds:
+      #- task: db
+      - task dev:backend & task dev:frontend; wait
+
+  dev:backend:
+    desc: Start backend with Air hot-reload
+    dir: backend
+    cmds:
+      - air
+
+  dev:frontend:
+    desc: Start frontend Vite dev server
+    dir: frontend
+    cmds:
+      - npm run dev
+
+  db:
+    desc: Start PostgreSQL 17 container and wait until ready
+    cmds:
+      - |
+        if ! docker ps -q -f name={{.PG_CONTAINER}} | grep -q .; then
+          docker run -d \
+            --name {{.PG_CONTAINER}} \
+            -e POSTGRES_USER={{.PG_USER}} \
+            -e POSTGRES_PASSWORD={{.PG_PASSWORD}} \
+            -e POSTGRES_DB={{.PG_DB}} \
+            -p {{.PG_PORT}}:5432 \
+            -v {{.PG_CONTAINER}}-data:/var/lib/postgresql/data \
+            postgres:17-alpine
+        fi
+      - until docker exec {{.PG_CONTAINER}} pg_isready -U {{.PG_USER}} -q; do sleep 1; done
+
+  db:stop:
+    desc: Stop and remove the PostgreSQL container
+    cmds:
+      - docker rm -f {{.PG_CONTAINER}} || true
+
+  db:reset:
+    desc: Drop and recreate the database (server restart will re-migrate)
+    cmds:
+      - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='{{.PG_DB}}' AND pid <> pg_backend_pid()"
+      - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "DROP DATABASE IF EXISTS {{.PG_DB}}"
+      - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "CREATE DATABASE {{.PG_DB}}"
+
+  docker:build:
+    desc: Build Docker image multiarch (amd64 + arm64)
+    cmds:
+      - docker buildx build --platform linux/amd64,linux/arm64 -t {{.IMAGE}}:{{.TAG}} -t {{.IMAGE}}:latest --push .
+
+  docker:push:
+    desc: Push Docker image to registry (jplanckeel/thevault)
+    cmds:
+      - docker push {{.IMAGE}}:{{.TAG}}
+      - docker push {{.IMAGE}}:latest
+
+  docker:release:
+    desc: Build and push Docker image in one step
+    cmds:
+      - task: docker:build
+      - task: docker:push
+
+  build:
+    desc: Build backend binary and frontend bundle
+    cmds:
+      - cmd: go build -o bin/server ./cmd/server
+        dir: backend
+      - cmd: npm run build
+        dir: frontend
+
+  test:
+    desc: Run all Go tests
+    dir: backend
+    cmds:
+      - go test ./...
+
+  lint:
+    desc: Run golangci-lint on the backend
+    dir: backend
+    cmds:
+      - golangci-lint run ./...

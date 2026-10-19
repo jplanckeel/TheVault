@@ -1,0 +1,7 @@
+ALTER TABLE items
+  DROP COLUMN IF EXISTS igdb_id,
+  DROP COLUMN IF EXISTS summary,
+  DROP COLUMN IF EXISTS genres,
+  DROP COLUMN IF EXISTS developer,
+  DROP COLUMN IF EXISTS publisher,
+  DROP COLUMN IF EXISTS release_year;

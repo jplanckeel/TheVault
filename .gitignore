@@ -25,3 +25,30 @@ generated/
 # macOS
 .DS_Store
 **/.DS_Store
+
+# ─── Backend / Web (ex-TheVaultBO) ───
+# env
+.env
+
+# Go
+backend/bin/
+backend/.air/
+backend/tmp/
+backend/vendor/
+
+# Node
+web/node_modules/
+web/dist/
+
+
+# CSV
+*.csv
+
+# Controllers
+controllercons/
+
+# worktrees
+.worktrees/
+
+# Runtime uploads
+backend/uploads/

@@ -1,0 +1,19 @@
+# Git
+.git
+.gitignore
+
+# Node
+frontend/node_modules
+frontend/dist
+
+# Go build artifacts
+backend/tmp
+
+# Misc
+.env
+*.csv
+controllercons
+docs
+scripts
+tmp
+.claude
