@@ -6,14 +6,15 @@
 
 | Dossier | Contenu |
 |---|---|
-| `composeApp/`, `shared/`, `android/` | Application mobile (Kotlin Multiplatform, Gradle) |
+| `androidApp/` | Point d'entrée Android (Activity, manifeste, icônes) |
+| `composeApp/`, `shared/` | UI Compose et logique partagées (bibliothèques Kotlin Multiplatform) |
 | `backend/` | API Go (PostgreSQL, scraping eBay, IGDB) — ex-TheVaultBO |
 | `web/` | Back-office web React + Vite, servi par le backend en production |
 | `design/stitch/` | Maquettes Stitch exportées |
 | `docs/`, `scripts/` | Documentation et scripts d'import |
 
 ```bash
-./gradlew assembleDebug   # app mobile
+./gradlew :androidApp:assembleDebug   # app mobile (Android Studio : configuration « androidApp »)
 task dev                  # backend (Air) + web (Vite)
 task test                 # tests Go
 task docker:release       # image Docker backend + web

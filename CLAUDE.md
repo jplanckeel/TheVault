@@ -15,22 +15,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew detekt
 
 # Run unit tests
-./gradlew :shared:testDebugUnitTest
-./gradlew :composeApp:testDebugUnitTest
+./gradlew :shared:testAndroidHostTest
+./gradlew :composeApp:testAndroidHostTest
 
 # Run a single test class
-./gradlew :shared:testDebugUnitTest --tests "com.thevault.domain.usecase.SaveGameUseCaseTest"
+./gradlew :shared:testAndroidHostTest --tests "com.thevault.domain.usecase.SaveGameUseCaseTest"
 
 # Test coverage report (open build/reports/kover/html/index.html)
 ./gradlew koverReport
 
-# Build debug APK
-./gradlew assembleDebug
+# Build debug APK (androidApp/build/outputs/apk/debug/)
+./gradlew :androidApp:assembleDebug
 ```
 
 ## Monorepo layout
 
-- **Mobile app** — Gradle project at the root (`composeApp/`, `shared/`, `android/`). Everything below in this section applies to it.
+- **Mobile app** — Gradle project at the root: `androidApp/` (Android entry point: Activity, Application, manifest, launcher icons), `composeApp/` (shared Compose UI, KMP library) and `shared/` (domain + data, KMP library). AGP 9 forbids `com.android.application` in a KMP module, so KMP modules use `com.android.kotlin.multiplatform.library` and are configured in `kotlin { android { } }`. Run configuration: `androidApp` (`.run/androidApp.run.xml`).
 - **`backend/`** — Go API (module `github.com/jplanckeel/thevaultbo`), PostgreSQL migrations in `backend/migrations/`. Commands: `task dev:backend`, `task test`, `task lint`.
 - **`web/`** — React + Vite + Tailwind back-office, served by the backend via `STATIC_DIR` in production. Commands: `task dev:web`, `cd web && npm run build`. See `web/DESIGN.md` and `.kiro/PROJECT.md`.
 - **`Dockerfile` / `docker-compose.yml`** build and deploy backend + web only (image `thevaultbo`).

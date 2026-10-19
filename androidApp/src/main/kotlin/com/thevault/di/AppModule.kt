@@ -3,7 +3,7 @@ package com.thevault.di
 import org.koin.dsl.module
 
 /**
- * Android platform-specific Koin module for the :composeApp.
+ * Android app Koin module (:androidApp).
  */
 val appModule =
     module {
