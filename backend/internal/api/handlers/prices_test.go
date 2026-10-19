@@ -40,6 +40,9 @@ func (e *errPriceStore) ListByItemID(_ context.Context, _ string) ([]domain.Pric
 func (e *errPriceStore) LatestPerItem(_ context.Context) ([]domain.PriceSnapshot, error) {
 	return nil, errors.New("db error")
 }
+func (e *errPriceStore) TopMovers(_ context.Context, _, _ int) ([]domain.TopMover, error) {
+	return nil, errors.New("db error")
+}
 
 func TestGetLatestPrices_StoreError_Returns500(t *testing.T) {
 	h := handlers.NewPricesHandler(&errPriceStore{})

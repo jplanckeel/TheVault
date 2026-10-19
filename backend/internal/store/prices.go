@@ -103,5 +103,51 @@ func (s *PostgresPriceStore) LatestPerItem(ctx context.Context) ([]domain.PriceS
 	return snaps, nil
 }
 
+// TopMovers returns the items with the largest absolute price increase over the last N days.
+func (s *PostgresPriceStore) TopMovers(ctx context.Context, days, limit int) ([]domain.TopMover, error) {
+	const q = `
+		WITH oldest AS (
+			SELECT DISTINCT ON (item_id, condition)
+				item_id, condition, price_median
+			FROM price_snapshots
+			WHERE scraped_at >= NOW() - ($1 || ' days')::interval
+			ORDER BY item_id, condition, scraped_at ASC
+		),
+		newest AS (
+			SELECT DISTINCT ON (item_id, condition)
+				item_id, condition, price_median
+			FROM price_snapshots
+			ORDER BY item_id, condition, scraped_at DESC
+		)
+		SELECT
+			n.item_id,
+			n.condition,
+			o.price_median AS price_old,
+			n.price_median AS price_new,
+			(n.price_median - o.price_median) AS delta_abs,
+			CASE WHEN o.price_median > 0 THEN (n.price_median - o.price_median) / o.price_median * 100 ELSE 0 END AS delta_pct
+		FROM newest n
+		JOIN oldest o ON n.item_id = o.item_id AND n.condition = o.condition
+		WHERE n.price_median > o.price_median
+		ORDER BY delta_abs DESC
+		LIMIT $2
+	`
+	rows, err := s.pool.Query(ctx, q, days, limit)
+	if err != nil {
+		return nil, fmt.Errorf("top movers: %w", err)
+	}
+	defer rows.Close()
+
+	var movers []domain.TopMover
+	for rows.Next() {
+		var m domain.TopMover
+		if err := rows.Scan(&m.ItemID, &m.Condition, &m.PriceOld, &m.PriceNew, &m.DeltaAbs, &m.DeltaPct); err != nil {
+			return nil, fmt.Errorf("top mover scan: %w", err)
+		}
+		movers = append(movers, m)
+	}
+	return movers, rows.Err()
+}
+
 // compile-time interface satisfaction check
 var _ PriceStore = (*PostgresPriceStore)(nil)

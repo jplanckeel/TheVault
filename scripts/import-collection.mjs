@@ -28,7 +28,9 @@ const DELAY_MS = 50  // pause entre chaque requête pour ne pas surcharger l'API
 const CATEGORY_TO_TYPE = {
   'games':       'game',
   'consoles':    'console',
+  'systems':     'console',
   'accessories': 'accessory',
+  'controller':  'accessory',
 }
 
 const OWNERSHIP_TO_CONDITION = {

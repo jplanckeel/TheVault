@@ -196,8 +196,8 @@ func (c *Client) SearchGame(title string) (*domain.IGDBData, error) {
 
 	if g.Cover != nil && g.Cover.URL != "" {
 		// IGDB URLs: //images.igdb.com/igdb/image/upload/t_thumb/xxxx.jpg
-		// → https://images.igdb.com/igdb/image/upload/t_cover_big/xxxx.jpg
-		coverURL := strings.Replace(g.Cover.URL, "t_thumb", "t_cover_big", 1)
+		// → https://images.igdb.com/igdb/image/upload/t_cover_big_2x/xxxx.jpg
+		coverURL := strings.Replace(g.Cover.URL, "t_thumb", "t_cover_big_2x", 1)
 		if strings.HasPrefix(coverURL, "//") {
 			coverURL = "https:" + coverURL
 		}
@@ -225,6 +225,116 @@ func (c *Client) SearchGame(title string) (*domain.IGDBData, error) {
 	}
 
 	return data, nil
+}
+
+// SearchGameResult is a single search result returned to the mobile app.
+type SearchGameResult struct {
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	ReleaseYear int      `json:"release_year,omitempty"`
+	Platforms   []string `json:"platforms,omitempty"`
+	Genres      []string `json:"genres,omitempty"`
+	CoverURL    string   `json:"cover_url,omitempty"`
+	Summary     string   `json:"summary,omitempty"`
+	Developer   string   `json:"developer,omitempty"`
+	Publisher   string   `json:"publisher,omitempty"`
+}
+
+// igdbSearchGame extends igdbGame with name and platforms for search results.
+type igdbSearchGame struct {
+	ID                int64              `json:"id"`
+	Name              string             `json:"name"`
+	FirstReleaseDate  int64              `json:"first_release_date"`
+	Cover             *igdbCover         `json:"cover"`
+	Genres            []igdbNamed        `json:"genres"`
+	Platforms         []igdbNamed        `json:"platforms"`
+	Summary           string             `json:"summary"`
+	InvolvedCompanies []igdbInvolvedComp `json:"involved_companies"`
+}
+
+// SearchGames queries IGDB and returns multiple results for a search term.
+func (c *Client) SearchGames(term string) ([]SearchGameResult, error) {
+	safe := strings.ReplaceAll(term, `"`, `\"`)
+	query := fmt.Sprintf(
+		`fields name,first_release_date,cover.url,genres.name,platforms.name,summary,`+
+			`involved_companies.company.name,involved_companies.developer,involved_companies.publisher;`+
+			`search "%s"; where version_parent = null; limit 15;`, safe)
+
+	token, err := c.getToken()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, igdbGamesURL, bytes.NewBufferString(query))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Client-ID", c.clientID)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.mu.Lock()
+		c.cachedToken = ""
+		c.mu.Unlock()
+		return c.SearchGames(term)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("igdb search: HTTP %d", resp.StatusCode)
+	}
+
+	var games []igdbSearchGame
+	if err := json.NewDecoder(resp.Body).Decode(&games); err != nil {
+		return nil, err
+	}
+
+	results := make([]SearchGameResult, 0, len(games))
+	for _, g := range games {
+		r := SearchGameResult{
+			ID:      fmt.Sprintf("%d", g.ID),
+			Title:   g.Name,
+			Summary: g.Summary,
+		}
+		if g.FirstReleaseDate != 0 {
+			r.ReleaseYear = int(time.Unix(g.FirstReleaseDate, 0).UTC().Year())
+		}
+		if g.Cover != nil && g.Cover.URL != "" {
+			url := strings.Replace(g.Cover.URL, "t_thumb", "t_cover_big_2x", 1)
+			if strings.HasPrefix(url, "//") {
+				url = "https:" + url
+			}
+			r.CoverURL = url
+		}
+		for _, gen := range g.Genres {
+			if gen.Name != "" {
+				r.Genres = append(r.Genres, gen.Name)
+			}
+		}
+		for _, p := range g.Platforms {
+			if p.Name != "" {
+				r.Platforms = append(r.Platforms, p.Name)
+			}
+		}
+		for _, ic := range g.InvolvedCompanies {
+			if ic.Company == nil {
+				continue
+			}
+			if ic.Developer && r.Developer == "" {
+				r.Developer = ic.Company.Name
+			}
+			if ic.Publisher && r.Publisher == "" {
+				r.Publisher = ic.Company.Name
+			}
+		}
+		results = append(results, r)
+	}
+	return results, nil
 }
 
 // igdbPlatform is the raw IGDB platform response.

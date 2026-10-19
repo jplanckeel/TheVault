@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/jplanckeel/thevaultbo/internal/domain"
 	"github.com/jplanckeel/thevaultbo/internal/store"
@@ -30,4 +31,26 @@ func (h *PricesHandler) GetLatestPrices(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(snaps)
+}
+
+// GetTopMovers handles GET /api/v1/prices/top-movers?days=30&limit=3.
+func (h *PricesHandler) GetTopMovers(w http.ResponseWriter, r *http.Request) {
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	if days <= 0 {
+		days = 30
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 {
+		limit = 3
+	}
+	movers, err := h.prices.TopMovers(r.Context(), days, limit)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if movers == nil {
+		movers = []domain.TopMover{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(movers)
 }

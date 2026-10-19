@@ -60,9 +60,9 @@ tasks:
       - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "CREATE DATABASE {{.PG_DB}}"
 
   docker:build:
-    desc: Build Docker image (tag = git short SHA + latest)
+    desc: Build Docker image multiarch (amd64 + arm64)
     cmds:
-      - docker build -t {{.IMAGE}}:{{.TAG}} -t {{.IMAGE}}:latest .
+      - docker buildx build --platform linux/amd64,linux/arm64 -t {{.IMAGE}}:{{.TAG}} -t {{.IMAGE}}:latest --push .
 
   docker:push:
     desc: Push Docker image to registry (jplanckeel/thevault)

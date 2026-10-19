@@ -21,6 +21,7 @@ func (m *memItemStore) Upsert(_ context.Context, item domain.Item) (domain.Item,
 	return item, nil
 }
 func (m *memItemStore) List(_ context.Context) ([]domain.Item, error) { return m.items, nil }
+func (m *memItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error) { return m.items, nil }
 func (m *memItemStore) GetByID(_ context.Context, id string) (domain.Item, error) {
 	for _, it := range m.items {
 		if it.ID == id {
@@ -41,6 +42,9 @@ func (m *memPriceStore) ListByItemID(_ context.Context, _ string) ([]domain.Pric
 }
 func (m *memPriceStore) LatestPerItem(_ context.Context) ([]domain.PriceSnapshot, error) {
 	return m.snaps, nil
+}
+func (m *memPriceStore) TopMovers(_ context.Context, _, _ int) ([]domain.TopMover, error) {
+	return nil, nil
 }
 
 type memJobStore struct{ jobs map[string]domain.ScrapeJob }

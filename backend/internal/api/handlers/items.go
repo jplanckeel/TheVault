@@ -3,7 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
@@ -12,13 +17,18 @@ import (
 
 // ItemsHandler handles HTTP requests for items.
 type ItemsHandler struct {
-	items  store.ItemStore
-	prices store.PriceStore
+	items     store.ItemStore
+	prices    store.PriceStore
+	uploadDir string // absolute path where uploaded covers are stored
 }
 
 // NewItemsHandler creates a new ItemsHandler.
-func NewItemsHandler(items store.ItemStore, prices store.PriceStore) *ItemsHandler {
-	return &ItemsHandler{items: items, prices: prices}
+func NewItemsHandler(items store.ItemStore, prices store.PriceStore, uploadDir ...string) *ItemsHandler {
+	dir := ""
+	if len(uploadDir) > 0 {
+		dir = uploadDir[0]
+	}
+	return &ItemsHandler{items: items, prices: prices, uploadDir: dir}
 }
 
 // UpsertItem handles POST /api/v1/items — upsert from mobile app.
@@ -108,4 +118,62 @@ func (h *ItemsHandler) UpdateCover(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"cover_url": body.CoverURL})
+}
+
+// UploadCover handles POST /api/v1/items/{id}/cover/upload — file upload.
+func (h *ItemsHandler) UploadCover(w http.ResponseWriter, r *http.Request) {
+	if h.uploadDir == "" {
+		http.Error(w, "file upload not configured", http.StatusNotImplemented)
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+
+	if err := r.ParseMultipartForm(8 << 20); err != nil { // 8 MB limit
+		http.Error(w, "file too large", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("cover")
+	if err != nil {
+		http.Error(w, "cover file required", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowed := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
+	if !allowed[ext] {
+		http.Error(w, "unsupported file type", http.StatusBadRequest)
+		return
+	}
+
+	coversDir := filepath.Join(h.uploadDir, "covers")
+	if err := os.MkdirAll(coversDir, 0755); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	// Use item ID as filename to allow replacement without orphaned files.
+	dest := filepath.Join(coversDir, fmt.Sprintf("%s%s", id, ext))
+	out, err := os.Create(dest)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, file); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	coverURL := fmt.Sprintf("/covers/%s%s", id, ext)
+	if err := h.items.UpdateCoverURL(r.Context(), id, coverURL); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"cover_url": coverURL})
 }

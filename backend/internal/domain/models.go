@@ -86,3 +86,13 @@ type PriceStats struct {
 	Median float64
 	Count  int
 }
+
+// TopMover holds the price evolution of an item over a period.
+type TopMover struct {
+	ItemID       string  `json:"item_id"`
+	Condition    string  `json:"condition"`
+	PriceOld     float64 `json:"price_old"`
+	PriceNew     float64 `json:"price_new"`
+	DeltaAbs     float64 `json:"delta_abs"`
+	DeltaPct     float64 `json:"delta_pct"`
+}

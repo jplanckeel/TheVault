@@ -38,6 +38,8 @@ func main() {
 	prices := store.NewPriceStore(pool)
 	jobs := store.NewJobStore(pool)
 	settings := store.NewSettingsStore(pool)
+	users := store.NewUserStore(pool)
+	collections := store.NewUserCollectionStore(pool)
 
 	// Build eBay runner
 	ebayClientID := getenv("EBAY_CLIENT_ID", "")
@@ -70,7 +72,11 @@ func main() {
 
 	// Build router
 	staticDir := getenv("STATIC_DIR", "")
-	router := api.NewRouter(items, prices, jobs, settings, ebayRunner, igdbRunner, staticDir)
+	uploadDir := getenv("UPLOAD_DIR", staticDir)
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	router := api.NewRouter(items, prices, jobs, settings, users, collections, ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir)
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("listening on %s", addr)

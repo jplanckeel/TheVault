@@ -39,6 +39,7 @@ func (m *mockItemStore) List(_ context.Context) ([]domain.Item, error) {
 	}
 	return result, nil
 }
+func (m *mockItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error) { return nil, nil }
 
 func (m *mockItemStore) GetByID(_ context.Context, id string) (domain.Item, error) {
 	for _, v := range m.items {
@@ -60,6 +61,9 @@ func (m *mockPriceStore) ListByItemID(_ context.Context, _ string) ([]domain.Pri
 }
 func (m *mockPriceStore) LatestPerItem(_ context.Context) ([]domain.PriceSnapshot, error) {
 	return []domain.PriceSnapshot{}, nil
+}
+func (m *mockPriceStore) TopMovers(_ context.Context, _, _ int) ([]domain.TopMover, error) {
+	return []domain.TopMover{}, nil
 }
 
 func TestUpsertItem_Returns201(t *testing.T) {

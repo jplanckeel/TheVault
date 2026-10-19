@@ -22,3 +22,6 @@ controllercons/
 
 # worktrees
 .worktrees/
+
+# Runtime uploads
+backend/uploads/
