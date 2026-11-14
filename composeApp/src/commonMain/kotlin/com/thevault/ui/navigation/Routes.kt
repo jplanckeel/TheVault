@@ -21,6 +21,9 @@ object Routes {
     /** Wishlist tab. */
     const val WISHLIST = "wishlist"
 
+    /** Account, backup and share links. */
+    const val CLOUD = "cloud"
+
     /** « Je l'ai déjà ? » offline search. */
     const val CHECK = "check"
 

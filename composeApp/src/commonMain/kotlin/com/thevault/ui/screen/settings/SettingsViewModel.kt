@@ -141,6 +141,9 @@ class SettingsViewModel(
         }
     }
 
+    /** Insurance inventory of the owned items. */
+    suspend fun insuranceLines(): List<InsuranceLine> = insuranceLines(source.entries().first())
+
     /** Dismisses the feedback message. */
     fun clearMessage() = state.update { it.copy(message = null) }
 

@@ -133,7 +133,13 @@ fun buildPlatformState(
         ownedCount = owned.size,
         wishCount = wished.size,
         value = owned.totalValue(),
-        formats = owned.groupingBy { it.condition.formatGroup }.eachCount().toSortedMap(compareBy { it.ordinal }),
+        formats =
+            owned
+                .groupingBy { it.condition.formatGroup }
+                .eachCount()
+                .toList()
+                .sortedBy { it.first.ordinal }
+                .toMap(),
         manufacturer = f.platform?.let { manufacturerOf(it) } ?: Manufacturer.Other,
         region = regions.maxByOrNull { it.value }?.key?.takeIf { it != Region.OTHER },
     )

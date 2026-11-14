@@ -18,7 +18,20 @@ class UsageTest {
         id: String,
         title: String,
         status: ItemStatus = ItemStatus.OWNED,
-    ) = CollectionEntry(id, ItemKind.Game, title, "GameCube", manufacturerOf("GameCube"), null, Components.CIB, Region.PAL, status, null, null, null)
+    ) = CollectionEntry(
+        id,
+        ItemKind.Game,
+        title,
+        "GameCube",
+        manufacturerOf("GameCube"),
+        null,
+        Components.CIB,
+        Region.PAL,
+        status,
+        null,
+        null,
+        null,
+    )
 
     @Test
     fun bulkChangeKeepsBlankFieldsAndAddsTags() {

@@ -40,6 +40,7 @@ import com.thevault.ui.component.shortPlatformName
 import com.thevault.ui.navigation.tabBarClearance
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.StatsSummary
+import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.abs
@@ -81,7 +82,7 @@ fun StatsScreen(
                 ListRow(
                     e.title,
                     meta = "${shortPlatformName(e.platform)} · ${e.condition.formatLabel}",
-                    trailing = formatEuro(e.value ?: 0.0),
+                    trailing = (if (e.valueSource == ValueSource.UsIndicative) "≈ " else "") + formatEuro(e.value ?: 0.0),
                     cover = Triple(e.coverUrl, e.platform, e.condition),
                     onClick = { onEntryClick(e) },
                 )

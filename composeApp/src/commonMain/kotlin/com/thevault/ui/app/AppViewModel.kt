@@ -58,6 +58,15 @@ class AppViewModel(
             .map { ThemeMode.fromKey(it) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.System)
 
+    /** Whether amounts are hidden (« Masquer les prix »). */
+    val hidePrices: StateFlow<Boolean> =
+        observeSetting(KEY_HIDE_PRICES).map { it == "1" }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** Hides or shows the amounts. */
+    fun setHidePrices(hide: Boolean) {
+        viewModelScope.launch { setSetting(KEY_HIDE_PRICES, if (hide) "1" else "0") }
+    }
+
     /** Background sync state. */
     val syncStatus: StateFlow<SyncStatus> = scheduler.status
 
@@ -116,5 +125,6 @@ class AppViewModel(
     private companion object {
         const val SNAPSHOT_DEBOUNCE_MS = 1_500L
         const val KEY_ACHIEVEMENTS_READY = "achievements.ready"
+        const val KEY_HIDE_PRICES = "ui.hide_prices"
     }
 }

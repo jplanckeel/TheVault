@@ -118,6 +118,10 @@ private fun NavGraphBuilder.detailDestinations(
     app: AppViewModel,
 ) {
     val back: () -> Unit = { nav.popBackStack() }
+    composable(Routes.CLOUD) {
+        com.thevault.ui.screen.cloud
+            .CloudScreen(onBack = back)
+    }
     composable(Routes.CHECK) { QuickCheckScreen(onBack = back, onOpen = { nav.navigate(Routes.detail(it)) }) }
     composable(Routes.SETS) { SetsScreen(onBack = back, onOpen = { nav.navigate("set/$it") }) }
     composable(Routes.SET_DETAIL) { entry ->
@@ -125,7 +129,7 @@ private fun NavGraphBuilder.detailDestinations(
         SetDetailScreen(id, back)
     }
     composable(Routes.REPORT) { QuoteReportScreen(onBack = back, onEntryClick = { nav.navigate(Routes.detail(it)) }) }
-    composable(Routes.SETTINGS) { SettingsScreen(app = app, onBack = back) }
+    composable(Routes.SETTINGS) { SettingsScreen(app = app, onBack = back, onCloud = { nav.navigate(Routes.CLOUD) }) }
     composable(Routes.GAME_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable
         GameDetailScreen(gameId = id, onBack = back, onEdit = { nav.navigate(Routes.editGame(id)) })

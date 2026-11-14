@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,7 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import com.thevault.ui.app.AppViewModel
 import com.thevault.ui.component.AchievementToast
+import com.thevault.ui.component.PriceMask
 import com.thevault.ui.component.clickableNoRipple
 import com.thevault.ui.navigation.VaultNavHost
 import com.thevault.ui.theme.ThemeMode
@@ -50,11 +52,13 @@ fun App(onDarkShell: (Boolean) -> Unit = {}) {
     }
     val app: AppViewModel = koinViewModel()
     val mode by app.themeMode.collectAsState()
+    val hidePrices by app.hidePrices.collectAsState()
+    PriceMask.hidden = hidePrices
     val dark = mode == ThemeMode.Black || mode == ThemeMode.System && isSystemInDarkTheme()
     LaunchedEffect(dark) { onDarkShell(dark) }
     VaultTheme(mode) {
         Box(Modifier.fillMaxSize().background(Vault.colors.shell)) {
-            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) { VaultNavHost(app) }
+            key(hidePrices) { Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) { VaultNavHost(app) } }
             AchievementOverlay(app, Modifier.align(Alignment.TopCenter))
         }
     }

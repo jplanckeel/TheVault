@@ -37,6 +37,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.thevault.ui.theme.Vault
 import com.thevault.ui.theme.VaultRadius
@@ -227,6 +228,7 @@ private fun SearchFrame(
  * @param keyboardOptions Keyboard options.
  * @param singleLine Single line input.
  * @param suffix Optional trailing text ("€").
+ * @param visualTransformation Display transformation (passwords).
  */
 @Composable
 fun VaultTextField(
@@ -238,6 +240,7 @@ fun VaultTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     singleLine: Boolean = true,
     suffix: String? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     val c = Vault.colors
     var focused by remember { mutableStateOf(false) }
@@ -248,6 +251,7 @@ fun VaultTextField(
             onValueChange = onValueChange,
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
+            visualTransformation = visualTransformation,
             textStyle = Vault.type.body.copy(color = c.ink),
             cursorBrush = SolidColor(c.indigo),
             modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
