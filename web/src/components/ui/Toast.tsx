@@ -16,31 +16,24 @@ interface Ctx {
 
 const ToastCtx = createContext<Ctx | null>(null)
 
-const TONE_STYLES: Record<ToastTone, { icon: string; cls: string }> = {
-  success: { icon: 'check_circle', cls: 'border-vault-success/40 text-vault-success' },
-  error: { icon: 'error', cls: 'border-vault-error/40 text-vault-error' },
-  info: { icon: 'info', cls: 'border-vault-primary/40 text-vault-primary' },
+const TONES: Record<ToastTone, { icon: string; kicker: string; bg: string }> = {
+  success: { icon: 'check', kicker: 'Fait', bg: '#2B9A55' },
+  error: { icon: 'priority_high', kicker: 'Erreur', bg: '#D9362E' },
+  info: { icon: 'info', kicker: 'Info', bg: '#6E5CE6' },
 }
 
-/**
- * Minimal toast system, no external dep.
- * Wrap your app with <ToastProvider> and call useToast().push("Saved!", "success").
- */
+/** Console-trophy style notifications (pill, bottom of the screen). */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
-
   const push = useCallback((message: string, tone: ToastTone = 'info') => {
     setToasts((prev) => [...prev, { id: Date.now() + Math.random(), tone, message }])
   }, [])
-
-  const remove = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }, [])
+  const remove = useCallback((id: number) => setToasts((prev) => prev.filter((t) => t.id !== id)), [])
 
   return (
     <ToastCtx.Provider value={{ push }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed inset-x-4 bottom-28 md:bottom-6 md:left-auto md:right-6 z-[200] flex flex-col items-center md:items-end gap-2 pointer-events-none" aria-live="polite">
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onDone={() => remove(t.id)} />
         ))}
@@ -51,32 +44,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function ToastItem({ toast, onDone }: { toast: Toast; onDone: () => void }) {
   useEffect(() => {
-    const timer = setTimeout(onDone, 3500)
+    const timer = setTimeout(onDone, 4000)
     return () => clearTimeout(timer)
   }, [onDone])
-
-  const style = TONE_STYLES[toast.tone]
+  const tone = TONES[toast.tone]
   return (
-    <div
-      role="status"
-      className={[
-        'pointer-events-auto flex items-center gap-3 min-w-[260px] max-w-sm',
-        'rounded-lg px-4 py-3 glass-active animate-fade-in-up',
-        style.cls,
-      ].join(' ')}
-    >
-      <MaterialIcon name={style.icon} size={20} />
-      <span className="text-sm text-vault-on-surface">{toast.message}</span>
+    <div role="status" className="tv-toast tv-enter pointer-events-auto">
+      <span className="tv-toast-medal" style={{ background: tone.bg }}>
+        <MaterialIcon name={tone.icon} size={20} />
+      </span>
+      <span className="flex flex-col gap-0.5 min-w-0">
+        <span className="tv-toast-kicker">{tone.kicker}</span>
+        <span className="text-[14px] font-semibold leading-snug">{toast.message}</span>
+      </span>
     </div>
   )
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- hook colocated with its provider
 export function useToast(): Ctx {
-  const ctx = useContext(ToastCtx)
-  if (!ctx) {
-    // Graceful no-op fallback if used outside the provider.
-    return { push: (m: string) => console.log('[toast]', m) }
-  }
-  return ctx
+  return useContext(ToastCtx) ?? { push: () => {} }
 }

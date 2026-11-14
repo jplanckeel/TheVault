@@ -187,20 +187,20 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in-up"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm tv-enter"
       onClick={(e) => {
         if (e.target === e.currentTarget && phase !== 'running') onClose()
       }}
     >
-      <Card padding="lg" radius="2xl" className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Card padding="lg" className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-vault-primary/15 text-vault-primary flex items-center justify-center">
+            <div className="h-10 w-10 rounded-lg bg-indigo/15 text-indigo-ink flex items-center justify-center">
               <MaterialIcon name="upload_file" size={22} />
             </div>
             <div>
-              <h2 className="text-headline-sm text-vault-on-surface">Import GameEye CSV</h2>
-              <p className="text-xs text-vault-on-surface-variant">
+              <h2 className="tv-section text-ink">Import GameEye CSV</h2>
+              <p className="text-xs text-ink-muted">
                 Format gameeye / ge-tracker — toutes les colonnes sont reconnues
               </p>
             </div>
@@ -208,7 +208,7 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
           {phase !== 'running' && (
             <button
               onClick={onClose}
-              className="text-vault-on-surface-variant hover:text-vault-on-surface focus-ring rounded-lg"
+              className="text-ink-muted hover:text-ink focus-ring rounded-md"
               aria-label="Fermer"
             >
               <MaterialIcon name="close" size={22} />
@@ -227,17 +227,17 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
             onDragLeave={() => setDragOver(false)}
             onClick={() => fileInputRef.current?.click()}
             className={[
-              'rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-all',
+              'rounded-lg border-2 border-dashed p-10 text-center cursor-pointer transition-all',
               dragOver
-                ? 'border-vault-primary bg-vault-primary/5 glow-purple'
-                : 'border-vault-outline-variant/40 hover:border-vault-primary/50 hover:bg-vault-surface-low/40',
+                ? 'border-indigo bg-indigo/5'
+                : 'border-line/40 hover:border-indigo/50 hover:bg-panel/40',
             ].join(' ')}
           >
-            <MaterialIcon name="cloud_upload" size={40} className="text-vault-primary mb-3" />
-            <p className="text-sm font-semibold text-vault-on-surface">
-              Glisse ton fichier <code className="text-vault-primary">.csv</code> ici
+            <MaterialIcon name="cloud_upload" size={40} className="text-indigo-ink mb-3" />
+            <p className="text-sm font-semibold text-ink">
+              Glisse ton fichier <code className="text-indigo-ink">.csv</code> ici
             </p>
-            <p className="text-xs text-vault-on-surface-variant mt-1">ou clique pour le choisir</p>
+            <p className="text-xs text-ink-muted mt-1">ou clique pour le choisir</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -255,24 +255,24 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
         {phase === 'preview' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 flex-wrap">
-              <Chip tone="primary" variant="soft" icon="description">
+              <Chip tone="primary" icon="description">
                 {fileName}
               </Chip>
-              <Chip tone="success" variant="soft">
+              <Chip tone="success">
                 {rows.length - wishlistCount} owned
               </Chip>
               {wishlistCount > 0 && (
-                <Chip tone="secondary" variant="soft">
+                <Chip tone="primary">
                   {wishlistCount} wishlist
                 </Chip>
               )}
             </div>
 
             {/* Preview table — first 5 rows */}
-            <div className="rounded-xl border border-vault-outline-variant/30 overflow-hidden">
+            <div className="rounded-lg border border-line/30 overflow-hidden">
               <table className="w-full text-xs">
-                <thead className="bg-vault-surface-high">
-                  <tr className="text-left text-vault-on-surface-variant text-label-bold">
+                <thead className="bg-well">
+                  <tr className="text-left text-ink-muted tv-engrave">
                     <th className="px-3 py-2">Title</th>
                     <th className="px-3 py-2">Platform</th>
                     <th className="px-3 py-2">Cond.</th>
@@ -281,35 +281,35 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
                 </thead>
                 <tbody>
                   {rows.slice(0, 5).map((r) => (
-                    <tr key={r.externalId} className="border-t border-vault-outline-variant/20">
-                      <td className="px-3 py-2 text-vault-on-surface truncate max-w-[200px]">{r.title}</td>
-                      <td className="px-3 py-2 text-vault-on-surface-variant">{r.platform}</td>
-                      <td className="px-3 py-2 uppercase text-vault-primary font-bold">{r.condition}</td>
-                      <td className="px-3 py-2 text-vault-on-surface-variant">{r.type}</td>
+                    <tr key={r.externalId} className="border-t border-line/20">
+                      <td className="px-3 py-2 text-ink truncate max-w-[200px]">{r.title}</td>
+                      <td className="px-3 py-2 text-ink-muted">{r.platform}</td>
+                      <td className="px-3 py-2 uppercase text-indigo-ink font-bold">{r.condition}</td>
+                      <td className="px-3 py-2 text-ink-muted">{r.type}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {rows.length > 5 && (
-                <p className="px-3 py-2 text-xs text-vault-on-surface-variant text-center bg-vault-surface-high/30">
+                <p className="px-3 py-2 text-xs text-ink-muted text-center bg-well/30">
                   + {rows.length - 5} autres lignes
                 </p>
               )}
             </div>
 
             {/* Catalogue contribution option */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-vault-outline-variant/30 cursor-pointer hover:bg-vault-surface-low/40 transition-colors">
+            <label className="flex items-start gap-3 p-3 rounded-lg border border-line/30 cursor-pointer hover:bg-panel/40 transition-colors">
               <input
                 type="checkbox"
                 checked={createMissing}
                 onChange={(e) => setCreateMissing(e.target.checked)}
-                className="mt-0.5 accent-vault-primary"
+                className="mt-0.5 accent-indigo"
               />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-vault-on-surface">
+                <p className="text-sm font-semibold text-ink">
                   Créer les items manquants dans le catalogue
                 </p>
-                <p className="text-xs text-vault-on-surface-variant mt-0.5">
+                <p className="text-xs text-ink-muted mt-0.5">
                   Les titres absents du catalogue partagé seront ajoutés automatiquement (sans cover IGDB pour l'instant).
                 </p>
               </div>
@@ -329,20 +329,20 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
         {/* Phase: running */}
         {phase === 'running' && (
           <div className="space-y-4 py-4">
-            <p className="text-sm text-vault-on-surface-variant text-center">
+            <p className="text-sm text-ink-muted text-center">
               Import en cours…{' '}
-              <span className="font-bold text-vault-on-surface tabular-nums">
+              <span className="font-bold text-ink tabular-nums">
                 {progress.done}/{progress.total}
               </span>
             </p>
-            <div className="h-2 rounded-full bg-vault-surface-high overflow-hidden">
+            <div className="h-2 rounded-full bg-well overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-vault-primary-deep to-vault-primary glow-purple transition-all"
+                className="h-full bg-indigo transition-all"
                 style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
               />
             </div>
             {progress.currentTitle && (
-              <p className="text-xs text-vault-on-surface-variant text-center truncate">
+              <p className="text-xs text-ink-muted text-center truncate">
                 {progress.currentTitle}
               </p>
             )}
@@ -353,30 +353,30 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
         {phase === 'done' && report && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <div className="rounded-xl bg-vault-success/10 border border-vault-success/30 p-3">
-                <p className="text-2xl font-extrabold text-vault-success tabular-nums">{report.added}</p>
-                <p className="text-[10px] text-label-bold text-vault-on-surface-variant">Ajoutés</p>
+              <div className="rounded-lg bg-led-sync/10 border border-led-sync/30 p-3">
+                <p className="text-2xl font-extrabold text-gain tabular-nums">{report.added}</p>
+                <p className="text-[10px] tv-engrave text-ink-muted">Ajoutés</p>
               </div>
-              <div className="rounded-xl bg-vault-surface-high/40 border border-vault-outline-variant/30 p-3">
-                <p className="text-2xl font-extrabold text-vault-on-surface tabular-nums">
+              <div className="rounded-lg bg-well/40 border border-line/30 p-3">
+                <p className="text-2xl font-extrabold text-ink tabular-nums">
                   {report.alreadyOwned}
                 </p>
-                <p className="text-[10px] text-label-bold text-vault-on-surface-variant">Déjà présents</p>
+                <p className="text-[10px] tv-engrave text-ink-muted">Déjà présents</p>
               </div>
-              <div className="rounded-xl bg-vault-warning/10 border border-vault-warning/30 p-3">
-                <p className="text-2xl font-extrabold text-vault-warning tabular-nums">
+              <div className="rounded-lg bg-snes-b/10 border border-snes-b/30 p-3">
+                <p className="text-2xl font-extrabold text-ink tabular-nums">
                   {report.notFound.length}
                 </p>
-                <p className="text-[10px] text-label-bold text-vault-on-surface-variant">Non trouvés</p>
+                <p className="text-[10px] tv-engrave text-ink-muted">Non trouvés</p>
               </div>
-              <div className="rounded-xl bg-vault-error/10 border border-vault-error/30 p-3">
-                <p className="text-2xl font-extrabold text-vault-error tabular-nums">{report.failed.length}</p>
-                <p className="text-[10px] text-label-bold text-vault-on-surface-variant">Échecs</p>
+              <div className="rounded-lg bg-led-power/10 border border-led-power/30 p-3">
+                <p className="text-2xl font-extrabold text-loss tabular-nums">{report.failed.length}</p>
+                <p className="text-[10px] tv-engrave text-ink-muted">Échecs</p>
               </div>
             </div>
 
             {report.upserted > 0 && (
-              <p className="text-xs text-vault-primary">
+              <p className="text-xs text-indigo-ink">
                 <MaterialIcon name="auto_awesome" size={14} className="mr-1" />
                 {report.upserted} item{report.upserted > 1 ? 's' : ''} créé
                 {report.upserted > 1 ? 's' : ''} dans le catalogue.
@@ -384,14 +384,14 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
             )}
 
             {report.notFound.length > 0 && (
-              <details className="rounded-xl border border-vault-outline-variant/30 p-3">
-                <summary className="text-sm text-vault-on-surface-variant cursor-pointer">
+              <details className="rounded-lg border border-line/30 p-3">
+                <summary className="text-sm text-ink-muted cursor-pointer">
                   Voir les {report.notFound.length} items non trouvés
                 </summary>
-                <ul className="mt-3 space-y-1 max-h-40 overflow-y-auto text-xs text-vault-on-surface-variant">
+                <ul className="mt-3 space-y-1 max-h-40 overflow-y-auto text-xs text-ink-muted">
                   {report.notFound.slice(0, 50).map((n) => (
                     <li key={`${n.title}-${n.platform}`}>
-                      • <span className="text-vault-on-surface">{n.title}</span> — {n.platform}
+                      • <span className="text-ink">{n.title}</span> — {n.platform}
                     </li>
                   ))}
                   {report.notFound.length > 50 && (
@@ -402,13 +402,13 @@ export default function CsvImportModal({ open, onClose, onComplete }: Props) {
             )}
 
             {report.failed.length > 0 && (
-              <details className="rounded-xl border border-vault-error/30 p-3">
-                <summary className="text-sm text-vault-error cursor-pointer">
+              <details className="rounded-lg border border-led-power/30 p-3">
+                <summary className="text-sm text-loss cursor-pointer">
                   Voir les {report.failed.length} échecs
                 </summary>
                 <ul className="mt-3 space-y-1 max-h-40 overflow-y-auto text-xs">
                   {report.failed.slice(0, 50).map((f, i) => (
-                    <li key={i} className="text-vault-error">
+                    <li key={i} className="text-loss">
                       • {f.title} — {f.error}
                     </li>
                   ))}

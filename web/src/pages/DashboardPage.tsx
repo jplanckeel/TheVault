@@ -1,37 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { useAuth } from '../AuthContext'
 import type { Item, PriceSnapshot, TopMover } from '../types'
-import { Card, Chip, EmptyState, GameCard, Section, Skeleton, Stat } from '../components/ui'
-import BrandPlaceholder from '../components/BrandPlaceholder'
+import { CollectionCard, EmptyState, ListRow, PageHeader, PriceDelta, Section, Skeleton, SourceBadge, Stat } from '../components/ui'
 import { itemPath } from '../lib/routes'
 import { bestPrice, buildPriceMap, totalValue, type PriceMap } from '../lib/prices'
-import { formatEuro } from '../lib/format'
+import { formatEuro, formatEuroOrDash, formatRelative } from '../lib/format'
+import { conditionLabel, parseCondition } from '../lib/condition'
+import { shortPlatform } from '../lib/platforms'
 
-const LATEST_COUNT = 6
-const PLATFORM_COUNT = 5
+const SHELF_COUNT = 6
 
-interface PlatformShare {
-  platform: string
-  count: number
-  fraction: number
-}
-
-/** Top platforms by number of games — same rule as the mobile dashboard. */
-function platformShares(items: Item[]): PlatformShare[] {
-  const games = items.filter((i) => i.type === 'game')
-  if (games.length === 0) return []
-  const counts = new Map<string, number>()
-  for (const g of games) if (g.platform) counts.set(g.platform, (counts.get(g.platform) ?? 0) + 1)
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, PLATFORM_COUNT)
-    .map(([platform, count]) => ({ platform, count, fraction: count / games.length }))
-}
-
-/** Collection overview — real data only (see design/DESIGN_SYSTEM.md §1). */
+/** Home: vault value, counters, top pieces, market risers and latest additions — real data only. */
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [collection, setCollection] = useState<Item[]>([])
   const [wishlistCount, setWishlistCount] = useState(0)
   const [snapshots, setSnapshots] = useState<PriceSnapshot[]>([])
@@ -48,7 +32,7 @@ export default function DashboardPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-    // Market movers are optional: failures simply hide the card.
+    // Market risers are optional: a failure simply hides the section.
     Promise.all([api.prices.topMovers(30, 5), api.items.list()])
       .then(([m, items]) => {
         setMovers(m)
@@ -58,57 +42,63 @@ export default function DashboardPage() {
   }, [])
 
   const prices = useMemo(() => buildPriceMap(snapshots), [snapshots])
-  const latest = useMemo(
-    () => [...collection].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, LATEST_COUNT),
-    [collection],
+  const latest = useMemo(() => [...collection].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, SHELF_COUNT), [collection])
+  const topPieces = useMemo(
+    () =>
+      collection
+        .map((item) => ({ item, value: bestPrice(item, prices) }))
+        .filter((e): e is { item: Item; value: number } => e.value !== undefined)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, SHELF_COUNT),
+    [collection, prices],
   )
-  const platforms = useMemo(() => platformShares(collection), [collection])
+  const lastQuote = useMemo(() => snapshots.reduce<string | null>((acc, s) => (!acc || s.scraped_at > acc ? s.scraped_at : acc), null), [snapshots])
 
   if (loading) return <DashboardSkeleton />
 
+  const name = user ? user.name || user.email.split('@')[0] : ''
   const count = (type: Item['type']) => collection.filter((i) => i.type === type).length
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <header>
-        <h1 className="text-display-lg text-vault-on-surface">Dashboard</h1>
-        <p className="mt-1 text-vault-on-surface-variant">Votre vault en un coup d'œil</p>
-      </header>
+    <div className="tv-enter flex flex-col gap-8">
+      <PageHeader eyebrow={name ? `Joueur 1 · ${name}` : 'Joueur 1'} title="Mon coffre" />
 
       {collection.length === 0 ? (
         <EmptyState
-          icon="inventory_2"
-          title="Votre vault est vide"
-          description="Ajoutez votre premier objet pour voir apparaître la valeur de votre collection."
+          title="Ton coffre est vide"
+          description="Ajoute ton premier objet ou importe ton export GameEye pour voir la valeur de ta collection."
           cta={{ label: 'Ajouter un objet', icon: 'add', onClick: () => navigate('/add') }}
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <ValueHero items={collection} prices={prices} />
-            {platforms.length > 0 && <PlatformBreakdown platforms={platforms} />}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
+            <ValueCard items={collection} prices={prices} lastQuote={lastQuote} />
+            <div className="grid grid-cols-2 gap-3 content-start">
+              <Stat label="Jeux" value={count('game')} onClick={() => navigate('/collection?type=game')} />
+              <Stat label="Consoles" value={count('console')} onClick={() => navigate('/collection?type=console')} />
+              <Stat label="Accessoires" value={count('accessory')} onClick={() => navigate('/collection?type=accessory')} />
+              <Stat label="Envies" value={wishlistCount} onClick={() => navigate('/wishlist')} />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Stat label="Jeux" value={count('game')} icon="stadia_controller" onClick={() => navigate('/collection?type=game')} />
-            <Stat label="Consoles" value={count('console')} icon="sports_esports" onClick={() => navigate('/collection?type=console')} />
-            <Stat label="Accessoires" value={count('accessory')} icon="cable" onClick={() => navigate('/collection?type=accessory')} />
-            <Stat label="Wishlist" value={wishlistCount} icon="favorite" onClick={() => navigate('/wishlist')} />
-          </div>
+          {topPieces.length > 0 && (
+            <Section title="Pièces maîtresses" action={<Link to="/collection?platform=*" className="tv-link">Tout voir</Link>}>
+              <Shelf>
+                {topPieces.map(({ item, value }) => (
+                  <ItemCard key={item.id} item={item} value={formatEuro(value)} />
+                ))}
+              </Shelf>
+            </Section>
+          )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card padding="md" radius="2xl" className={movers.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}>
-              <Section
-                title="Derniers ajouts"
-                action={<TextAction label="Voir tout" onClick={() => navigate('/collection?type=game')} />}
-              >
-                <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${movers.length > 0 ? '' : 'lg:grid-cols-6'}`}>
-                  {latest.map((item) => (
-                    <GameCard key={item.id} item={item} price={bestPrice(item, prices)} onClick={() => navigate(itemPath(item))} />
-                  ))}
-                </div>
-              </Section>
-            </Card>
-            {movers.length > 0 && <MarketMovers movers={movers} catalogue={catalogue} />}
+          <div className={`grid grid-cols-1 gap-8 ${movers.length > 0 ? 'xl:grid-cols-[1.6fr_1fr]' : ''}`}>
+            <Section title="Derniers ajouts" action={<Link to="/collection" className="tv-link">Collection</Link>}>
+              <Shelf>
+                {latest.map((item) => (
+                  <ItemCard key={item.id} item={item} value={formatEuroOrDash(bestPrice(item, prices))} />
+                ))}
+              </Shelf>
+            </Section>
+            {movers.length > 0 && <MarketRisers movers={movers} catalogue={catalogue} />}
           </div>
         </>
       )}
@@ -116,104 +106,89 @@ export default function DashboardPage() {
   )
 }
 
-function ValueHero({ items, prices }: { items: Item[]; prices: PriceMap }) {
+function ValueCard({ items, prices, lastQuote }: { items: Item[]; prices: PriceMap; lastQuote: string | null }) {
   const priced = items.filter((i) => bestPrice(i, prices) !== undefined).length
+  const lit = Math.round((priced / Math.max(items.length, 1)) * 10)
   return (
-    <Card padding="lg" radius="2xl" className="lg:col-span-2 flex flex-col justify-between">
-      <div>
-        <p className="text-label-bold text-vault-on-surface-variant">Valeur estimée</p>
-        <p className="mt-2 text-display-lg text-vault-on-surface tabular-nums">{formatEuro(totalValue(items, prices))}</p>
+    <section className="tv-panel flex flex-col gap-4 p-5" aria-label="Valeur du coffre">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] font-medium text-ink-muted">Valeur du coffre</span>
+        <SourceBadge updated={lastQuote ? formatRelative(lastQuote) : undefined}>Cotes eBay</SourceBadge>
       </div>
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Chip tone={priced === items.length ? 'success' : 'neutral'} icon="sell">
-          {priced} / {items.length} objets valorisés
-        </Chip>
-        <span className="text-xs text-vault-on-surface-variant">Médiane des ventes eBay les plus récentes</span>
-      </div>
-    </Card>
-  )
-}
-
-function PlatformBreakdown({ platforms }: { platforms: PlatformShare[] }) {
-  return (
-    <Card padding="md" radius="2xl">
-      <Section title="Par plateforme">
-        <ul className="space-y-3.5">
-          {platforms.map((p) => (
-            <li key={p.platform}>
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold text-vault-on-surface truncate">{p.platform}</span>
-                <span className="text-vault-on-surface-variant tabular-nums">{p.count} jeux</span>
-              </div>
-              <div className="mt-1.5 h-1.5 rounded-full bg-vault-surface-high overflow-hidden">
-                <div className="h-full rounded-full bg-vault-primary" style={{ width: `${Math.round(p.fraction * 100)}%` }} />
-              </div>
-            </li>
+      <span className="tv-display-xl">{formatEuro(totalValue(items, prices))}</span>
+      <div className="tv-well px-4 py-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between text-[13px]">
+          <span className="text-ink-muted">Objets cotés</span>
+          <span className="tv-price">
+            {priced} / {items.length}
+          </span>
+        </div>
+        <div className="tv-meter" aria-hidden="true">
+          {Array.from({ length: 10 }).map((_, i) => (
+            // Off segments use the shell colour: the default (well) would vanish on this well.
+            <span key={i} className={`tv-meter-seg ${i < lit ? 'is-on' : 'bg-shell!'}`} />
           ))}
-        </ul>
-      </Section>
-    </Card>
+        </div>
+      </div>
+      <p className="text-[12px] text-ink-faint">Médiane des annonces eBay de l'état de chaque objet. Les objets sans cote ne comptent pas.</p>
+    </section>
   )
 }
 
-function MarketMovers({ movers, catalogue }: { movers: TopMover[]; catalogue: Item[] }) {
-  const navigate = useNavigate()
+function MarketRisers({ movers, catalogue }: { movers: TopMover[]; catalogue: Item[] }) {
   const byId = new Map(catalogue.map((i) => [i.id, i]))
   return (
-    <Card padding="md" radius="2xl">
-      <Section title="Hausses du marché" description="Catalogue · 30 derniers jours">
-        <ul>
-          {movers.map((m) => {
-            const item = byId.get(m.item_id)
-            if (!item) return null
-            return (
-              <li key={`${m.item_id}:${m.condition}`}>
-                <button
-                  onClick={() => navigate(itemPath(item))}
-                  className="w-full flex items-center gap-3 py-2 rounded-lg text-left hover:bg-vault-surface-high/50 focus-ring"
-                >
-                  <div className="h-10 w-10 shrink-0 rounded-md overflow-hidden">
-                    {item.cover_url ? (
-                      <img src={item.cover_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <BrandPlaceholder platform={item.platform} />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-vault-on-surface truncate">{item.title}</p>
-                    <p className="text-[10px] font-bold tracking-widest uppercase text-vault-on-surface-variant truncate">
-                      {item.platform} · {m.condition}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold tabular-nums text-vault-success">+{formatEuro(m.delta_abs)}</p>
-                    <p className="text-xs tabular-nums text-vault-on-surface-variant">+{m.delta_pct.toFixed(1)} %</p>
-                  </div>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </Section>
-    </Card>
+    <Section title="Plus fortes hausses" description="Catalogue · 30 derniers jours">
+      <div className="tv-panel p-2 flex flex-col">
+        {movers.map((m) => {
+          const item = byId.get(m.item_id)
+          if (!item) return null
+          const condition = parseCondition(m.condition)
+          return (
+            <ListRow
+              key={`${m.item_id}:${m.condition}`}
+              to={itemPath(item)}
+              cover={{ title: item.title, platform: item.platform, src: item.cover_url || undefined }}
+              title={item.title}
+              meta={`${shortPlatform(item.platform)}${condition ? ` · ${conditionLabel(condition)}` : ''}`}
+              trailing={
+                <span className="flex flex-col items-end gap-0.5">
+                  <span>{formatEuro(m.price_new)}</span>
+                  <PriceDelta value={m.delta_pct} className="text-[12px]" />
+                </span>
+              }
+            />
+          )
+        })}
+      </div>
+    </Section>
   )
 }
 
-function TextAction({ label, onClick }: { label: string; onClick: () => void }) {
+function Shelf({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">{children}</div>
+}
+
+function ItemCard({ item, value }: { item: Item; value: string }) {
   return (
-    <button onClick={onClick} className="text-sm font-semibold text-vault-primary hover:text-vault-primary-dim focus-ring rounded">
-      {label}
-    </button>
+    <CollectionCard
+      to={itemPath(item)}
+      title={item.title}
+      platform={item.platform}
+      src={item.cover_url || undefined}
+      condition={parseCondition(item.condition)}
+      value={value}
+    />
   )
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton variant="text" lines={2} className="max-w-md" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Skeleton variant="card" className="lg:col-span-2 h-48" />
-        <Skeleton variant="card" className="h-48" />
+    <div className="flex flex-col gap-6">
+      <Skeleton variant="text" lines={2} className="max-w-xs" />
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
+        <Skeleton className="h-56 rounded-lg" />
+        <Skeleton className="h-56 rounded-lg" />
       </div>
     </div>
   )

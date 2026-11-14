@@ -1,5 +1,6 @@
 import type { Item } from '../types'
 import { bestPrice, type PriceMap } from './prices'
+import { familyOf, FAMILY_ORDER } from './platforms'
 
 /** Item category — same set as the mobile `ItemKind`. */
 export type ItemType = Item['type']
@@ -26,11 +27,21 @@ export interface CollectionFilters {
   sort: SortMode
 }
 
+/** One platform of the selected type, with what the user holds on it. */
+export interface PlatformSummary {
+  platform: string
+  count: number
+  /** Sum of the known quotes (0 when none is known). */
+  value: number
+}
+
 export interface CollectionView {
   /** Visible items, filtered and sorted. */
   items: Item[]
   /** Platforms of the selected type, most frequent first. */
   platforms: string[]
+  /** Same platforms with counts and values, grouped by manufacturer then by count. */
+  platformSummaries: PlatformSummary[]
   /** Number of items per type, before text / platform filtering. */
   countByType: Record<ItemType, number>
 }
@@ -64,5 +75,11 @@ export function buildCollectionView(all: Item[], filters: CollectionFilters, pri
 
   const countByType = { game: 0, console: 0, accessory: 0 } as Record<ItemType, number>
   for (const i of all) countByType[i.type] = (countByType[i.type] ?? 0) + 1
-  return { items: sorted, platforms, countByType }
+
+  const values = new Map<string, number>()
+  for (const i of ofType) if (i.platform) values.set(i.platform, (values.get(i.platform) ?? 0) + (bestPrice(i, prices) ?? 0))
+  const platformSummaries = platforms
+    .map((platform) => ({ platform, count: counts.get(platform) ?? 0, value: values.get(platform) ?? 0 }))
+    .sort((a, b) => FAMILY_ORDER.indexOf(familyOf(a.platform)) - FAMILY_ORDER.indexOf(familyOf(b.platform)) || b.count - a.count)
+  return { items: sorted, platforms, platformSummaries, countByType }
 }

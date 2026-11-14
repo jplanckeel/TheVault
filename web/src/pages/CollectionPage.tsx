@@ -33,24 +33,24 @@ export default function CollectionPage() {
   return (
     <>
       <ItemGridView
-        title="Ma collection"
+        eyebrow="Mon coffre"
+        title="Collection"
         items={items}
         prices={prices}
         loading={loading}
         actions={
           <>
-            <Button variant="ghost" leftIcon="upload_file" onClick={() => setCsvOpen(true)}>
+            <Button variant="secondary" size="sm" leftIcon="upload_file" onClick={() => setCsvOpen(true)}>
               Importer un CSV
             </Button>
-            <Button leftIcon="add" onClick={() => navigate('/add')}>
+            <Button size="sm" leftIcon="add" onClick={() => navigate('/add')}>
               Ajouter
             </Button>
           </>
         }
         empty={{
-          icon: 'inventory_2',
-          title: 'Votre vault est vide',
-          description: 'Importez votre export GameEye ou ajoutez votre premier objet depuis IGDB.',
+          title: 'Ton coffre est vide',
+          description: 'Importe ton export GameEye ou ajoute ton premier objet depuis IGDB.',
           cta: { label: 'Importer un CSV', icon: 'upload_file', onClick: () => setCsvOpen(true) },
         }}
       />

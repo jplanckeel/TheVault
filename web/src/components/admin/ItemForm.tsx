@@ -79,16 +79,16 @@ export default function ItemForm({ item, onSaved }: Props) {
       {text('genres', 'Genres', 'Action, Aventure…')}
       {text('cover_url', 'URL de la jaquette', 'https://…')}
       <label className="block">
-        <span className="text-label-bold text-vault-on-surface-variant mb-2 block">Résumé</span>
+        <span className="tv-engrave text-ink-muted mb-2 block">Résumé</span>
         <textarea
           rows={4}
           value={draft.summary}
           onChange={(e) => set('summary', e.target.value)}
-          className="w-full rounded-lg bg-vault-surface-high border border-vault-outline-variant/30 px-3 py-2 text-sm text-vault-on-surface placeholder:text-vault-on-surface-variant/60 focus:outline-none focus:border-vault-primary"
+          className="w-full rounded-md bg-well border border-line/30 px-3 py-2 text-sm text-ink placeholder:text-ink-muted/60 focus:outline-none focus:border-indigo"
         />
       </label>
       <div className="flex items-center justify-between gap-3 pt-2">
-        <p className="text-xs text-vault-on-surface-variant">
+        <p className="text-xs text-ink-muted">
           {dirty ? `${Object.keys(patch).length} champ(s) modifié(s)` : 'Aucune modification'}
         </p>
         <div className="flex gap-2">
