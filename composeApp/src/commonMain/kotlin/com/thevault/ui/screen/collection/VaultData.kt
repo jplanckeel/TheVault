@@ -69,6 +69,27 @@ class ItemActions(
     }
 
     /**
+     * Applies [change] to the copy details of the items [ids] (bulk edit).
+     *
+     * @param kind Item category.
+     * @param ids Item identifiers.
+     * @param change Edit of the details.
+     */
+    suspend fun editDetails(
+        kind: ItemKind,
+        ids: Collection<String>,
+        change: (com.thevault.domain.model.CopyDetails) -> com.thevault.domain.model.CopyDetails,
+    ) {
+        ids.forEach { id ->
+            when (kind) {
+                ItemKind.Game -> getGame(id)?.let { saveGame(it.copy(details = change(it.details))) }
+                ItemKind.Console -> getConsole(id)?.let { saveConsole(it.copy(details = change(it.details))) }
+                ItemKind.Accessory -> getAccessory(id)?.let { saveAccessory(it.copy(details = change(it.details))) }
+            }
+        }
+    }
+
+    /**
      * Changes the status of an item.
      *
      * @param kind Item category.

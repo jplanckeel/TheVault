@@ -2,8 +2,10 @@
 
 package com.thevault.ui.component
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -42,6 +48,7 @@ import coil3.compose.SubcomposeAsyncImage
 import com.thevault.domain.model.Components
 import com.thevault.ui.theme.OverlayColors
 import com.thevault.ui.theme.Vault
+import com.thevault.ui.theme.VaultRadius
 
 /**
  * Cartridge silhouette: rounded top corners, chamfered bottom corners.
@@ -210,21 +217,48 @@ data class CardData(
  * @param onClick Callback.
  * @param modifier Modifier.
  * @param missing Greyed-out (wishlist).
+ * @param selected Selected in a bulk edit (indigo frame and check).
+ * @param onLongClick Optional long press (starts a selection).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CollectionCard(
     data: CardData,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     missing: Boolean = false,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val c = Vault.colors
     val interaction = remember { MutableInteractionSource() }
     Column(
-        modifier.pressable(interaction, 0.97f).clickable(interaction, indication = null, role = Role.Button, onClick = onClick),
+        modifier
+            .pressable(interaction, 0.97f)
+            .combinedClickable(interaction, indication = null, role = Role.Button, onLongClick = onLongClick, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        GameCover(data.coverUrl, data.title, data.platform, Modifier.fillMaxWidth(), CoverSize.M, data.condition, missing)
+        Box {
+            GameCover(data.coverUrl, data.title, data.platform, Modifier.fillMaxWidth(), CoverSize.M, data.condition, missing)
+            if (selected) {
+                Box(
+                    Modifier.matchParentSize().border(3.dp, c.indigo, CartridgeShape(10.dp, 9.dp)),
+                    contentAlignment = Alignment.BottomEnd,
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Sélectionné",
+                        tint = c.indigo,
+                        modifier =
+                            Modifier
+                                .padding(6.dp)
+                                .size(22.dp)
+                                .clip(VaultRadius.pill)
+                                .background(c.onIndigo),
+                    )
+                }
+            }
+        }
         Text(
             data.title,
             style = Vault.type.label.copy(lineHeight = 16.sp),

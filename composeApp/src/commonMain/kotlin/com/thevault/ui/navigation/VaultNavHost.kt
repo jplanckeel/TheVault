@@ -20,6 +20,7 @@ import androidx.savedstate.read
 import com.thevault.ui.app.AppViewModel
 import com.thevault.ui.screen.add.AddScreen
 import com.thevault.ui.screen.additem.AddItemScreen
+import com.thevault.ui.screen.check.QuickCheckScreen
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.CollectionNavigation
 import com.thevault.ui.screen.collection.CollectionScreen
@@ -80,7 +81,7 @@ private fun NavGraphBuilder.tabDestinations(
     composable(Routes.HOME) {
         HomeScreen(
             HomeActions(
-                onSearch = { nav.navigateToTab(Routes.collection(ItemKind.Game)) },
+                onSearch = { nav.navigate(Routes.CHECK) },
                 onOpenCollection = { nav.navigateToTab(Routes.collection(it)) },
                 onOpenRisers = { nav.navigate(Routes.platform(null)) },
                 onEntryClick = openEntry,
@@ -117,6 +118,7 @@ private fun NavGraphBuilder.detailDestinations(
     app: AppViewModel,
 ) {
     val back: () -> Unit = { nav.popBackStack() }
+    composable(Routes.CHECK) { QuickCheckScreen(onBack = back, onOpen = { nav.navigate(Routes.detail(it)) }) }
     composable(Routes.SETS) { SetsScreen(onBack = back, onOpen = { nav.navigate("set/$it") }) }
     composable(Routes.SET_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable

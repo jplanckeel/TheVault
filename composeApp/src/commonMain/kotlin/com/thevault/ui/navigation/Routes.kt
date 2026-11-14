@@ -21,6 +21,9 @@ object Routes {
     /** Wishlist tab. */
     const val WISHLIST = "wishlist"
 
+    /** « Je l'ai déjà ? » offline search. */
+    const val CHECK = "check"
+
     /** Completion lists. */
     const val SETS = "sets"
 

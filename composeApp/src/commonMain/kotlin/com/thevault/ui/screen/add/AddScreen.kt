@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
+import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.RemoteGame
 import com.thevault.ui.component.EmptyState
 import com.thevault.ui.component.Engrave
@@ -98,13 +99,22 @@ private fun AddSheet(
     onClose: () -> Unit,
     onAddDetails: (String) -> Unit,
 ) {
+    val entries by viewModel.entries.collectAsState()
     state.candidate?.let { candidate ->
+        val key = ownedKey(candidate.title, state.form.platform)
         QuickAddSheet(
             candidate,
             state.form,
-            QuickAddActions(viewModel::onFormChanged, viewModel::dismiss) { status, details ->
-                viewModel.save(status) { gameId -> if (details && gameId != null) onAddDetails(gameId) else onClose() }
-            },
+            alreadyOwned =
+                entries.count {
+                    it.kind == candidate.kind &&
+                        it.status == ItemStatus.OWNED &&
+                        ownedKey(it.title, it.platform) == key
+                },
+            actions =
+                QuickAddActions(viewModel::onFormChanged, viewModel::dismiss) { status, details ->
+                    viewModel.save(status) { gameId -> if (details && gameId != null) onAddDetails(gameId) else onClose() }
+                },
         )
     }
 }

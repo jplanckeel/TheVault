@@ -120,7 +120,7 @@ private fun HomeHeader(
                 else -> LedColor.Sync to "Sync"
             }
         StatusLed(led, Modifier.clickableNoRipple(actions.onSync), label = label, blink = sync.running)
-        KeyButton(Icons.Default.Search, "Rechercher dans la collection", actions.onSearch)
+        KeyButton(Icons.Default.Search, "Je l'ai déjà ?", actions.onSearch)
     }
 }
 

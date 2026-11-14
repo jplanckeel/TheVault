@@ -20,7 +20,20 @@ class SetCompletionTest {
     private fun game(
         title: String,
         status: ItemStatus = ItemStatus.OWNED,
-    ) = CollectionEntry(title, ItemKind.Game, title, "Nintendo GameCube", manufacturerOf("GameCube"), null, Components.CIB, Region.PAL, status, null, null, null)
+    ) = CollectionEntry(
+        title,
+        ItemKind.Game,
+        title,
+        "Nintendo GameCube",
+        manufacturerOf("GameCube"),
+        null,
+        Components.CIB,
+        Region.PAL,
+        status,
+        null,
+        null,
+        null,
+    )
 
     @Test
     fun matchesTitlesIgnoringCaseAndPunctuation() {

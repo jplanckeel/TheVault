@@ -33,9 +33,13 @@ val commonModule =
                 .QuoteReportViewModel(get(), get())
         }
         viewModel { CollectionViewModel(get()) }
-        viewModel { PlatformGamesViewModel(get()) }
+        viewModel { PlatformGamesViewModel(get(), get()) }
         viewModel { WishlistViewModel(get()) }
         viewModel { ProfileViewModel(get()) }
+        viewModel {
+            com.thevault.ui.screen.check
+                .QuickCheckViewModel(get())
+        }
         viewModel {
             com.thevault.ui.screen.sets
                 .SetsViewModel(get(), get(), get())

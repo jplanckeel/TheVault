@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /** Which games of the platform are shown. */
 enum class Ownership {
@@ -59,7 +60,28 @@ data class PlatformGamesUiState(
 /** ViewModel of the platform games grid. */
 class PlatformGamesViewModel(
     source: VaultEntriesSource,
+    private val actions: ItemActions,
 ) : ViewModel() {
+    /** Identifiers selected for a bulk edit (empty outside of selection mode). */
+    val selection = kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
+
+    /** Adds or removes a game from the selection. */
+    fun toggleSelection(id: String) = selection.update { if (id in it) it - id else it + id }
+
+    /** Leaves the selection mode. */
+    fun clearSelection() {
+        selection.value = emptySet()
+    }
+
+    /** Applies [change] to the selected games and leaves the selection mode. */
+    fun applyBulk(change: BulkChange) {
+        val ids = selection.value
+        viewModelScope.launch {
+            actions.editDetails(ItemKind.Game, ids, change::applyTo)
+            clearSelection()
+        }
+    }
+
     private val filters = MutableStateFlow(GameFilters())
     private val ownership = MutableStateFlow(Ownership.Owned)
 
