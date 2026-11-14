@@ -35,7 +35,7 @@ func (h *AccessoriesHandler) ListAccessories(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(accessories)
+	_ = json.NewEncoder(w).Encode(accessories)
 }
 
 func (h *AccessoriesHandler) GetAccessory(w http.ResponseWriter, r *http.Request) {
@@ -56,5 +56,5 @@ func (h *AccessoriesHandler) GetAccessory(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(item)
+	_ = json.NewEncoder(w).Encode(item)
 }

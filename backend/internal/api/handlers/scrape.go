@@ -47,7 +47,7 @@ func (h *ScrapeHandler) TriggerScrape(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(job)
+	_ = json.NewEncoder(w).Encode(job)
 }
 
 // ListJobs handles GET /api/v1/scrape — lists all scrape jobs.
@@ -61,7 +61,7 @@ func (h *ScrapeHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 		jobs = []domain.ScrapeJob{}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(jobs)
+	_ = json.NewEncoder(w).Encode(jobs)
 }
 
 // GetJob handles GET /api/v1/scrape/{id} — returns a single scrape job.
@@ -77,5 +77,5 @@ func (h *ScrapeHandler) GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(job)
+	_ = json.NewEncoder(w).Encode(job)
 }

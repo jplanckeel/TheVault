@@ -55,7 +55,7 @@ func (h *UserCollectionHandler) ListCollection(w http.ResponseWriter, r *http.Re
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	_ = json.NewEncoder(w).Encode(items)
 }
 
 func (h *UserCollectionHandler) ListWishlist(w http.ResponseWriter, r *http.Request) {
@@ -66,5 +66,5 @@ func (h *UserCollectionHandler) ListWishlist(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	_ = json.NewEncoder(w).Encode(items)
 }

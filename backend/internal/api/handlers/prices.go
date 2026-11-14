@@ -30,7 +30,7 @@ func (h *PricesHandler) GetLatestPrices(w http.ResponseWriter, r *http.Request) 
 		snaps = []domain.PriceSnapshot{}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(snaps)
+	_ = json.NewEncoder(w).Encode(snaps)
 }
 
 // GetTopMovers handles GET /api/v1/prices/top-movers?days=30&limit=3.
@@ -52,7 +52,7 @@ func (h *PricesHandler) GetTopMovers(w http.ResponseWriter, r *http.Request) {
 		movers = []domain.TopMover{}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(movers)
+	_ = json.NewEncoder(w).Encode(movers)
 }
 
 // quotesRequest is the body of POST /api/v1/prices/quotes.
@@ -83,7 +83,7 @@ func (h *PricesHandler) GetQuotes(w http.ResponseWriter, r *http.Request) {
 		quotes = []domain.ExternalQuote{}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(quotes)
+	_ = json.NewEncoder(w).Encode(quotes)
 }
 
 // GetHistory handles GET /api/v1/prices/history?external_id=…&days=365 — the price
@@ -104,5 +104,5 @@ func (h *PricesHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 		snaps = []domain.PriceSnapshot{}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(snaps)
+	_ = json.NewEncoder(w).Encode(snaps)
 }

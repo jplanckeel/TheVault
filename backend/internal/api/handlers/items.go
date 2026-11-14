@@ -85,7 +85,7 @@ func (h *ItemsHandler) UpsertItem(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(saved)
+	_ = json.NewEncoder(w).Encode(saved)
 }
 
 // ListItems handles GET /api/v1/items.
@@ -100,7 +100,7 @@ func (h *ItemsHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	_ = json.NewEncoder(w).Encode(items)
 }
 
 // GetItem handles GET /api/v1/items/{id}.
@@ -116,7 +116,7 @@ func (h *ItemsHandler) GetItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(item)
+	_ = json.NewEncoder(w).Encode(item)
 }
 
 // GetItemPrices handles GET /api/v1/items/{id}/prices.
@@ -131,7 +131,7 @@ func (h *ItemsHandler) GetItemPrices(w http.ResponseWriter, r *http.Request) {
 		snaps = []domain.PriceSnapshot{}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(snaps)
+	_ = json.NewEncoder(w).Encode(snaps)
 }
 
 // UpdateCover handles PUT /api/v1/items/{id}/cover — manual cover URL update.
@@ -151,13 +151,16 @@ func (h *ItemsHandler) UpdateCover(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"cover_url": body.CoverURL})
+	_ = json.NewEncoder(w).Encode(map[string]string{"cover_url": body.CoverURL})
 }
 
 // allowedCoverTypes maps sniffed MIME types to the extension used on disk.
 var allowedCoverTypes = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 
 const maxCoverBytes = 8 << 20
+
+// maxMultipartOverhead leaves room for the multipart boundaries and headers.
+const maxMultipartOverhead = 64 << 10
 
 // UploadCover handles POST /api/v1/items/{id}/cover/upload — file upload.
 //
@@ -179,6 +182,8 @@ func (h *ItemsHandler) UploadCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxCoverBytes+maxMultipartOverhead)
+	// #nosec G120 -- the body is capped by http.MaxBytesReader just above.
 	if err := r.ParseMultipartForm(maxCoverBytes); err != nil {
 		http.Error(w, "file too large", http.StatusRequestEntityTooLarge)
 		return
@@ -210,14 +215,20 @@ func (h *ItemsHandler) UploadCover(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+	// Writes are confined to the covers directory, whatever the file name.
+	root, err := os.OpenRoot(coversDir)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	defer root.Close()
 	// Remove a previous cover with another extension so it is not left behind.
 	for _, other := range allowedCoverTypes {
 		if other != ext {
-			_ = os.Remove(filepath.Join(coversDir, id+other))
+			_ = root.Remove(id + other)
 		}
 	}
-	dest := filepath.Join(coversDir, id+ext)
-	if err := os.WriteFile(dest, data, 0o600); err != nil {
+	if err := root.WriteFile(id+ext, data, 0o600); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -229,5 +240,5 @@ func (h *ItemsHandler) UploadCover(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"cover_url": coverURL})
+	_ = json.NewEncoder(w).Encode(map[string]string{"cover_url": coverURL})
 }

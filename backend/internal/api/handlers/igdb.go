@@ -32,11 +32,11 @@ func (h *IGDBHandler) SyncIGDB(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"id":      job.ID,
 		"message": fmt.Sprintf("IGDB sync démarré pour %d jeu(x)", len(items)),
 		"total":   len(items),
 	})
 
-	go h.runner.Sync(context.Background(), job, items)
+	go h.runner.Sync(context.WithoutCancel(ctx), job, items)
 }
