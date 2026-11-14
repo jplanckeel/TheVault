@@ -92,7 +92,7 @@ func main() {
 	if uploadDir == "" {
 		uploadDir = "./uploads"
 	}
-	router := api.NewRouter(items, prices, jobs, settings, users, collections, items, events, adminEmails,
+	router := api.NewRouter(items, prices, jobs, settings, users, collections, store.NewVaultStore(pool), items, events, adminEmails,
 		ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir)
 
 	srv := &http.Server{
