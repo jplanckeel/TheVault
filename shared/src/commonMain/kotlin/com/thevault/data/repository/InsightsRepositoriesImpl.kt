@@ -9,6 +9,7 @@ import com.thevault.data.remote.dto.QuoteDto
 import com.thevault.database.Achievement_unlock
 import com.thevault.database.App_setting
 import com.thevault.database.Price_quote
+import com.thevault.database.Price_snapshot
 import com.thevault.database.Sync_state
 import com.thevault.database.TheVaultDatabase
 import com.thevault.database.Value_snapshot
@@ -16,6 +17,8 @@ import com.thevault.domain.model.AchievementUnlock
 import com.thevault.domain.model.PriceGrade
 import com.thevault.domain.model.PricePoint
 import com.thevault.domain.model.PriceQuote
+import com.thevault.domain.model.PriceSnapshot
+import com.thevault.domain.model.PriceSource
 import com.thevault.domain.model.SyncOutcome
 import com.thevault.domain.model.SyncPayload
 import com.thevault.domain.model.ValueSnapshot
@@ -31,6 +34,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -43,6 +48,7 @@ import kotlin.time.Instant
 class PriceRepositoryImpl(
     private val database: TheVaultDatabase,
     private val remote: PriceRemoteDataSource,
+    private val clock: Clock = Clock.System,
 ) : PriceRepository {
     private val queries = database.insightsQueries
 
@@ -55,13 +61,31 @@ class PriceRepositoryImpl(
 
     override suspend fun refreshQuotes(itemIds: List<String>): Int {
         val quotes = remote.quotes(itemIds).mapNotNull { it.toDomain() }
+        val today = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         withContext(Dispatchers.IO) {
             queries.transaction {
                 queries.deleteAllQuotes()
                 quotes.forEach { queries.insertQuote(it.toEntity()) }
+                quotes.groupBy { it.itemId }.forEach { (id, q) -> queries.upsertPriceSnapshot(palSnapshot(id, today, q).toEntity()) }
             }
         }
         return quotes.size
+    }
+
+    override fun observeSnapshots(): Flow<Map<String, List<PriceSnapshot>>> =
+        queries
+            .selectAllSnapshots()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { rows -> rows.mapNotNull { it.toDomain() }.groupBy { it.itemId } }
+
+    override suspend fun replaceImportedPrices(snapshots: List<PriceSnapshot>) {
+        withContext(Dispatchers.IO) {
+            queries.transaction {
+                queries.deleteSnapshotsOfSource(PriceSource.GAMEYE_US.key)
+                snapshots.forEach { queries.upsertPriceSnapshot(it.toEntity()) }
+            }
+        }
     }
 
     override suspend fun history(itemId: String): List<PricePoint> =
@@ -73,6 +97,36 @@ class PriceRepositoryImpl(
                 PricePoint(at, grade, dto.priceMedian)
             }.sortedBy { it.at }
 }
+
+/** PAL snapshot of the quotes of one item. */
+internal fun palSnapshot(
+    itemId: String,
+    day: LocalDate,
+    quotes: List<PriceQuote>,
+): PriceSnapshot {
+    fun median(grade: PriceGrade) = quotes.find { it.grade == grade }?.median
+    return PriceSnapshot(
+        itemId,
+        day,
+        PriceSource.EBAY_PAL,
+        median(
+            PriceGrade.LOOSE,
+        ),
+        median(PriceGrade.CIB),
+        median(PriceGrade.NEW),
+        quotes.sumOf {
+            it.samples
+        },
+    )
+}
+
+private fun Price_snapshot.toDomain(): PriceSnapshot? {
+    val source = PriceSource.fromKey(source) ?: return null
+    val date = runCatching { LocalDate.parse(day) }.getOrNull() ?: return null
+    return PriceSnapshot(item_id, date, source, price_loose, price_cib, price_new, sample_size.toInt())
+}
+
+private fun PriceSnapshot.toEntity() = Price_snapshot(itemId, day.toString(), source.key, loose, cib, new, "EUR", sampleSize.toLong())
 
 /** Maps a backend quote; null when its condition or date is unknown. */
 internal fun QuoteDto.toDomain(): PriceQuote? {

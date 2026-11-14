@@ -3,7 +3,9 @@ package com.thevault.ui.screen.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thevault.domain.usecase.CsvService
+import com.thevault.domain.usecase.GetImportedPricesUseCase
 import com.thevault.domain.usecase.ObserveSyncedIdsUseCase
+import com.thevault.domain.usecase.RecordImportedPricesUseCase
 import com.thevault.domain.usecase.RefreshQuotesUseCase
 import com.thevault.domain.usecase.SyncScheduler
 import com.thevault.domain.usecase.SyncVaultWithIgdbUseCase
@@ -60,6 +62,7 @@ data class SettingsUiState(
 /**
  * ViewModel of the Settings screen: CSV import / export and IGDB enrichment.
  */
+@Suppress("LongParameterList")
 class SettingsViewModel(
     private val csvService: CsvService,
     private val syncVaultWithIgdb: SyncVaultWithIgdbUseCase,
@@ -67,6 +70,8 @@ class SettingsViewModel(
     observeSynced: ObserveSyncedIdsUseCase,
     private val scheduler: SyncScheduler,
     private val refreshQuotes: RefreshQuotesUseCase,
+    private val recordImportedPrices: RecordImportedPricesUseCase,
+    private val getImportedPrices: GetImportedPricesUseCase,
 ) : ViewModel() {
     private val state = MutableStateFlow(SettingsUiState())
 
@@ -96,6 +101,7 @@ class SettingsViewModel(
             val message =
                 csvService.importCsv(content).fold(
                     onSuccess = {
+                        recordImportedPrices(it.usPrices)
                         SettingsMessage(
                             "Import terminé : ${it.created} ajoutés, ${it.updated} mis à jour.",
                             MessageTone.Success,
@@ -110,7 +116,7 @@ class SettingsViewModel(
 
     /** Builds the CSV export; returns null and shows an error on failure. */
     suspend fun exportCsv(): String? =
-        csvService.exportCsv().fold(
+        csvService.exportCsv(getImportedPrices()).fold(
             onSuccess = {
                 state.update { s -> s.copy(message = SettingsMessage("Export enregistré.", MessageTone.Success)) }
                 it

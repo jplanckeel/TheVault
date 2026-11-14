@@ -91,7 +91,7 @@ class MigrationTest {
     fun freshSchemaMatchesMigratedTables() {
         val fresh = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { TheVaultDatabase.Schema.create(it) }
         val upgraded = legacyDriver().also { TheVaultDatabase.Schema.migrate(it, 4, TheVaultDatabase.Schema.version) }
-        listOf("game", "console", "accessory", "item_tag", "item_photo").forEach { table ->
+        listOf("game", "console", "accessory", "item_tag", "item_photo", "price_snapshot").forEach { table ->
             assertEquals(fresh.columns(table), upgraded.columns(table), "columns of $table")
         }
     }

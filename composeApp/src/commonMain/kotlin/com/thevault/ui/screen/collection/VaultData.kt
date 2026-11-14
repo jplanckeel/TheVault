@@ -10,6 +10,7 @@ import com.thevault.domain.usecase.GetGameByIdUseCase
 import com.thevault.domain.usecase.ObserveAccessoriesUseCase
 import com.thevault.domain.usecase.ObserveConsolesUseCase
 import com.thevault.domain.usecase.ObserveGamesUseCase
+import com.thevault.domain.usecase.ObservePriceSnapshotsUseCase
 import com.thevault.domain.usecase.ObserveQuotesUseCase
 import com.thevault.domain.usecase.SaveAccessoryUseCase
 import com.thevault.domain.usecase.SaveConsoleUseCase
@@ -24,17 +25,19 @@ import kotlinx.coroutines.flow.combine
  * @param observeConsoles Consoles.
  * @param observeAccessories Accessories.
  * @param observeQuotes Cached eBay quotes.
+ * @param observeSnapshots Price history and imported US prices.
  */
 class VaultEntriesSource(
     private val observeGames: ObserveGamesUseCase,
     private val observeConsoles: ObserveConsolesUseCase,
     private val observeAccessories: ObserveAccessoriesUseCase,
     private val observeQuotes: ObserveQuotesUseCase,
+    private val observeSnapshots: ObservePriceSnapshotsUseCase,
 ) {
-    /** All entries, whatever their status, valued with the cached eBay quotes. */
+    /** All entries, whatever their status, valued with the eBay quotes and imported US prices. */
     fun entries(): Flow<List<CollectionEntry>> =
-        combine(observeGames(), observeConsoles(), observeAccessories(), observeQuotes()) { games, consoles, accessories, quotes ->
-            (games.map { it.toEntry() } + consoles.map { it.toEntry() } + accessories.map { it.toEntry() }).withQuotes(quotes)
+        combine(observeGames(), observeConsoles(), observeAccessories(), observeQuotes(), observeSnapshots()) { g, c, a, quotes, snaps ->
+            (g.map { it.toEntry() } + c.map { it.toEntry() } + a.map { it.toEntry() }).withMarket(quotes, snaps)
         }
 }
 

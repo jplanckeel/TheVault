@@ -21,6 +21,9 @@ object Routes {
     /** Wishlist tab. */
     const val WISHLIST = "wishlist"
 
+    /** Report of the last quote refresh. */
+    const val REPORT = "report"
+
     /** Profile tab (level, achievements). */
     const val PROFILE = "profile"
 

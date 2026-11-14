@@ -23,20 +23,24 @@ import org.koin.dsl.module
  */
 val commonModule =
     module {
-        factory { VaultEntriesSource(get(), get(), get(), get()) }
+        factory { VaultEntriesSource(get(), get(), get(), get(), get()) }
         factory { ItemActions(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
         viewModel { AppViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-        viewModel { HomeViewModel(get(), get(), get()) }
+        viewModel { HomeViewModel(get(), get(), get(), get()) }
+        viewModel {
+            com.thevault.ui.screen.report
+                .QuoteReportViewModel(get(), get())
+        }
         viewModel { CollectionViewModel(get()) }
         viewModel { PlatformGamesViewModel(get()) }
         viewModel { WishlistViewModel(get()) }
         viewModel { ProfileViewModel(get()) }
         viewModel { StatsViewModel(get()) }
         viewModel { AddViewModel(get(), get(), get(), get(), get()) }
-        viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
+        viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
         viewModel { ItemDetailViewModel(get(), get()) }
         viewModel { ItemEditViewModel(get(), get(), get(), get()) }
-        viewModel { GameDetailViewModel(get(), get(), get(), get(), get()) }
+        viewModel { GameDetailViewModel(get(), get(), get(), get(), get(), get()) }
         viewModel { AddItemViewModel(get(), get(), get()) }
     }

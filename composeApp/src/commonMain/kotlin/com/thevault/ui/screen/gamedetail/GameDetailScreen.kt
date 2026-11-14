@@ -38,6 +38,8 @@ import com.thevault.ui.component.Panel
 import com.thevault.ui.component.StatusDialog
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.label
+import com.thevault.ui.component.needsDetails
+import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -67,7 +69,7 @@ fun GameDetailScreen(
         LoadingBox()
         return
     }
-    DetailDialogs(dialog, game, viewModel) { dialog = null }
+    DetailDialogs(dialog, game, viewModel, onEdit) { dialog = null }
     Column(
         Modifier
             .fillMaxSize()
@@ -95,8 +97,11 @@ fun GameDetailScreen(
             credits(game),
             fromIgdb = game.coverUrl != null,
         )
-        CopyPanel(game.details, CopyPurchase(game.purchasePrice, game.acquiredAt, state.value))
-        MarketSection(state.quotes, state.grade, state.history, viewModel::onGradeSelected)
+        CopyPanel(
+            game.details,
+            CopyPurchase(game.purchasePrice, game.acquiredAt, state.value, state.valueSource == ValueSource.UsIndicative),
+        )
+        MarketSection(state.quotes, state.grade, state.history, viewModel::onGradeSelected, state.usPrice)
         NotesPanel(game.notes)
         val wish = game.status == ItemStatus.WISHLIST
         DetailButtons(wish, { if (wish) viewModel.setStatus(ItemStatus.OWNED) else dialog = DetailDialog.Status }, onEdit)
@@ -129,10 +134,16 @@ private fun DetailDialogs(
     dialog: DetailDialog?,
     game: Game,
     viewModel: GameDetailViewModel,
+    onEdit: () -> Unit,
     onClose: () -> Unit,
 ) {
     when (dialog) {
-        DetailDialog.Status -> StatusDialog(game.status, { viewModel.setStatus(it).also { onClose() } }, { onClose() })
+        DetailDialog.Status ->
+            StatusDialog(game.status, {
+                viewModel.setStatus(it)
+                onClose()
+                if (it.needsDetails) onEdit()
+            }, { onClose() })
         DetailDialog.Delete ->
             DeleteConfirmDialog(game.title, {
                 onClose()

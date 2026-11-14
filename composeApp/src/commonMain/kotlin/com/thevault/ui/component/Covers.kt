@@ -190,6 +190,7 @@ private fun CoverPlaceholder(
  * @property value Value, null when unknown.
  * @property changePercent 30-day change of the quote, null when unknown.
  * @property caption Mono line under the title (short platform, or manufacturer for consoles).
+ * @property indicative Whether the value is only an indicative US price (shown with « ≈ »).
  */
 data class CardData(
     val title: String,
@@ -199,6 +200,7 @@ data class CardData(
     val value: Double?,
     val changePercent: Double? = null,
     val caption: String = shortPlatformName(platform),
+    val indicative: Boolean = false,
 )
 
 /**
@@ -239,7 +241,20 @@ fun CollectionCard(
                 maxLines = 1,
                 modifier = Modifier.weight(1f),
             )
-            Text(formatEuroOrDash(data.value), style = Vault.type.monoPrice.copy(fontSize = 13.sp), color = c.ink, maxLines = 1)
+            Text(
+                (
+                    if (data.indicative &&
+                        data.value != null
+                    ) {
+                        "≈ "
+                    } else {
+                        ""
+                    }
+                ) + formatEuroOrDash(data.value),
+                style = Vault.type.monoPrice.copy(fontSize = 13.sp),
+                color = c.ink,
+                maxLines = 1,
+            )
         }
         data.changePercent?.takeIf { it != 0.0 }?.let { PriceDelta(formatWholePercent(it), it > 0, small = true) }
     }

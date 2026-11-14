@@ -68,3 +68,71 @@ class RepositoryTest {
             assertEquals(accessory, AccessoryRepositoryImpl(db).observeAll().first().single())
         }
 }
+
+/** Price snapshots: PAL history and imported US prices. */
+class PriceSnapshotTest {
+    @Test
+    fun importedPricesAreReplacedAndRead() =
+        kotlinx.coroutines.test.runTest {
+            val db = TheVaultDatabase(JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { TheVaultDatabase.Schema.create(it) })
+            val repo =
+                com.thevault.data.repository
+                    .PriceRepositoryImpl(db, NoRemote)
+            val record =
+                com.thevault.domain.usecase
+                    .RecordImportedPricesUseCase(repo)
+            record(
+                mapOf(
+                    "a" to
+                        com.thevault.domain.usecase
+                            .UsPrices(1.0, 2.0, 3.0),
+                    "b" to
+                        com.thevault.domain.usecase
+                            .UsPrices(null, 5.0, null),
+                ),
+            )
+            record(
+                mapOf(
+                    "a" to
+                        com.thevault.domain.usecase
+                            .UsPrices(4.0, 5.0, 6.0),
+                ),
+            )
+            val prices =
+                com.thevault.domain.usecase
+                    .GetImportedPricesUseCase(repo)()
+            assertEquals(
+                mapOf(
+                    "a" to
+                        com.thevault.domain.usecase
+                            .UsPrices(4.0, 5.0, 6.0),
+                ),
+                prices,
+            )
+        }
+
+    @Test
+    fun palSnapshotPoolsTheGradesOfAnItem() {
+        val at = kotlin.time.Instant.fromEpochSeconds(0)
+        val q =
+            listOf(
+                com.thevault.domain.model
+                    .PriceQuote("a", com.thevault.domain.model.PriceGrade.LOOSE, 10.0, 8.0, 12.0, 4, at),
+                com.thevault.domain.model
+                    .PriceQuote("a", com.thevault.domain.model.PriceGrade.CIB, 25.0, 20.0, 30.0, 6, at),
+            )
+        val s =
+            com.thevault.data.repository
+                .palSnapshot("a", LocalDate(2026, 11, 14), q)
+        assertEquals(10.0, s.loose)
+        assertEquals(25.0, s.cib)
+        assertNull(s.new)
+        assertEquals(10, s.sampleSize)
+    }
+
+    private object NoRemote : com.thevault.data.remote.PriceRemoteDataSource {
+        override suspend fun quotes(externalIds: List<String>) = emptyList<com.thevault.data.remote.dto.QuoteDto>()
+
+        override suspend fun history(externalId: String) = emptyList<com.thevault.data.remote.dto.PriceSnapshotDto>()
+    }
+}

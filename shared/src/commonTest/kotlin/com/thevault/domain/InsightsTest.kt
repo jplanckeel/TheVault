@@ -65,6 +65,10 @@ class InsightsTest {
         override suspend fun refreshQuotes(itemIds: List<String>): Int = (++refreshes).let { itemIds.size }
 
         override suspend fun history(itemId: String): List<PricePoint> = emptyList()
+
+        override fun observeSnapshots(): Flow<Map<String, List<com.thevault.domain.model.PriceSnapshot>>> = MutableStateFlow(emptyMap())
+
+        override suspend fun replaceImportedPrices(snapshots: List<com.thevault.domain.model.PriceSnapshot>) = Unit
     }
 
     private class FakeSettings : SettingsRepository {

@@ -94,16 +94,20 @@ fun CollectionContent(
                 items(ItemKind.entries) { k ->
                     VaultChip(
                         k.label,
-                        k == kind,
+                        k == kind && !state.filters.showSold,
                         { viewModel.onKindSelected(k) },
                         count =
                             state.totals[k]?.count ?: 0,
                     )
                 }
+                if (state.sold.isNotEmpty()) {
+                    item { VaultChip("Vendus", state.filters.showSold, viewModel::onSoldSelected, count = state.sold.size) }
+                }
             }
         }
         when {
             state.isLoading -> fullWidth { LoadingBox() }
+            state.filters.showSold -> soldSection(state.sold, navigation)
             kind == ItemKind.Game -> gamesSection(state, viewModel, navigation)
             kind == ItemKind.Console -> consolesSection(state, viewModel, navigation)
             else -> accessoriesSection(state, viewModel, navigation)

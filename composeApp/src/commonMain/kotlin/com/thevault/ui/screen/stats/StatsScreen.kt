@@ -52,13 +52,13 @@ fun StatsScreen(
     onExport: () -> Unit,
     viewModel: StatsViewModel = koinViewModel(),
 ) {
-    val summary by viewModel.summary.collectAsState()
+    val state by viewModel.state.collectAsState()
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        val s = summary
+        val s = state?.summary
         item {
             val since = s?.since?.let { "Depuis ${MONTHS[it.month.ordinal]} ${it.year}" } ?: "Statistiques"
             ScreenHeader("Stats", eyebrow = since, leading = { KeyButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", onBack) })
@@ -69,9 +69,14 @@ fun StatsScreen(
         }
         summaryItems(s)
         if (s.topPlatforms.isNotEmpty()) item { Platforms(s) }
+        if (s.platformGains.isNotEmpty()) item { Gains(s.platformGains) }
         item { Conditions(s) }
+        state?.let { st ->
+            item { Months(st.months) }
+            if (st.regions.size > 1 || st.regions.any { it.first.contains("·") }) item { Regions(st.regions) }
+        }
         if (s.topValue.isNotEmpty()) {
-            item { SectionHeader("Top valeur", Modifier.padding(top = 8.dp), action = "Exporter CSV", onAction = onExport) }
+            item { SectionHeader("Top 10 valeur", Modifier.padding(top = 8.dp), action = "Exporter CSV", onAction = onExport) }
             items(s.topValue, key = { "${it.kind}_${it.id}" }) { e ->
                 ListRow(
                     e.title,

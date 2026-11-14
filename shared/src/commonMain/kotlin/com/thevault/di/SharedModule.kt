@@ -128,6 +128,18 @@ val sharedModule =
         factory { ObserveQuotesUseCase(get()) }
         factory { RefreshQuotesUseCase(get(), get()) }
         factory { GetPriceHistoryUseCase(get()) }
+        factory {
+            com.thevault.domain.usecase
+                .ObservePriceSnapshotsUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .RecordImportedPricesUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .GetImportedPricesUseCase(get())
+        }
         factory { ObserveValueHistoryUseCase(get()) }
         factory { RecordValueSnapshotUseCase(get()) }
         factory { ObserveAchievementUnlocksUseCase(get()) }

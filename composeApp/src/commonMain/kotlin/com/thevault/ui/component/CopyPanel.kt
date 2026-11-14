@@ -33,11 +33,13 @@ import kotlin.math.abs
  * @property price Price paid.
  * @property date Purchase date.
  * @property value Effective value.
+ * @property indicative Whether [value] is only the indicative US price of an import.
  */
 data class CopyPurchase(
     val price: Double?,
     val date: LocalDate?,
     val value: Double?,
+    val indicative: Boolean = false,
 )
 
 /**
@@ -58,7 +60,15 @@ fun CopyPanel(
             Engrave("Mon exemplaire", Modifier.weight(1f))
             ConditionTag(details.components)
         }
-        CopyFigures(details.totalCost(purchase.price), purchase.value, details.shippingCost)
+        CopyFigures(details.totalCost(purchase.price), purchase.value, details.shippingCost, purchase.indicative)
+        if (purchase.indicative) {
+            Text(
+                "Cote US indicative (import Gameye) : pas encore de cote PAL.",
+                style = Vault.type.caption,
+                color = c.inkMuted,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
         details.components.parts.takeIf { it.isNotEmpty() }?.let { parts ->
             Box(
                 Modifier
@@ -138,11 +148,24 @@ private fun CopyFigures(
     cost: Double?,
     value: Double?,
     shipping: Double?,
+    indicative: Boolean,
 ) {
     val c = Vault.colors
     Row(Modifier.padding(top = 14.dp)) {
         Figure(if (shipping != null) "Payé + port" else "Payé", formatEuroOrDash(cost), Modifier.weight(1f))
-        Figure("Cote", formatEuroOrDash(value), Modifier.weight(1f))
+        Figure(
+            if (indicative) "Cote US" else "Cote",
+            (
+                if (indicative &&
+                    value != null
+                ) {
+                    "≈ "
+                } else {
+                    ""
+                }
+            ) + formatEuroOrDash(value),
+            Modifier.weight(1f),
+        )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Plus-value", style = Vault.type.caption, color = c.inkMuted)
             val gain = if (cost != null && value != null) value - cost else null

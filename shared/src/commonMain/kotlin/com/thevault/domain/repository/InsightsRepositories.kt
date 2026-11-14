@@ -3,6 +3,7 @@ package com.thevault.domain.repository
 import com.thevault.domain.model.AchievementUnlock
 import com.thevault.domain.model.PricePoint
 import com.thevault.domain.model.PriceQuote
+import com.thevault.domain.model.PriceSnapshot
 import com.thevault.domain.model.SyncOutcome
 import com.thevault.domain.model.SyncPayload
 import com.thevault.domain.model.ValueSnapshot
@@ -22,6 +23,12 @@ interface PriceRepository {
 
     /** Price history of [itemId], oldest first. */
     suspend fun history(itemId: String): List<PricePoint>
+
+    /** Every recorded snapshot (PAL refreshes and imports), keyed by item, oldest first. */
+    fun observeSnapshots(): Flow<Map<String, List<PriceSnapshot>>>
+
+    /** Replaces the US prices of the last Gameye import. */
+    suspend fun replaceImportedPrices(snapshots: List<PriceSnapshot>)
 }
 
 /** Daily value of the collection, recorded on the device. */

@@ -108,3 +108,54 @@ data class AchievementUnlock(
     val unlockedAt: Instant,
     val seen: Boolean,
 )
+
+/**
+ * Origin of a price snapshot.
+ *
+ * @property key Stored value.
+ */
+enum class PriceSource(
+    val key: String,
+) {
+    /** eBay France / Germany (/ UK) listings, pooled: the PAL reference. */
+    EBAY_PAL("ebay_pal"),
+
+    /** US prices (PriceCharting) of a Gameye export — indicative only. */
+    GAMEYE_US("gameye_import_us"),
+    ;
+
+    /** Companion helpers. */
+    companion object {
+        /** Source of a stored value, null when unknown. */
+        fun fromKey(key: String): PriceSource? = entries.find { it.key == key }
+    }
+}
+
+/**
+ * Prices of one item on one day from one source.
+ *
+ * @property itemId Item identifier.
+ * @property day Day of the snapshot.
+ * @property source Origin.
+ * @property loose Loose price.
+ * @property cib Complete price.
+ * @property new New price.
+ * @property sampleSize Listings behind the prices (0 when unknown).
+ */
+data class PriceSnapshot(
+    val itemId: String,
+    val day: LocalDate,
+    val source: PriceSource,
+    val loose: Double?,
+    val cib: Double?,
+    val new: Double?,
+    val sampleSize: Int = 0,
+) {
+    /** Price for [grade]. */
+    fun price(grade: PriceGrade): Double? =
+        when (grade) {
+            PriceGrade.LOOSE -> loose
+            PriceGrade.CIB -> cib
+            PriceGrade.NEW -> new
+        }
+}

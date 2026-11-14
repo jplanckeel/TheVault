@@ -47,3 +47,6 @@ val Region.label: String
             Region.NTSC_JP -> "NTSC-J"
             Region.OTHER -> "Autre"
         }
+
+/** Whether choosing this status calls for details (sale price, borrower…). */
+val ItemStatus.needsDetails: Boolean get() = this == ItemStatus.SOLD || this == ItemStatus.LOANED

@@ -13,7 +13,7 @@ private const val HOME_PLATFORMS = 4
 private const val TOP_VALUE = 3
 private const val RISERS = 3
 private const val STATS_PLATFORMS = 5
-private const val STATS_TOP = 5
+private const val STATS_TOP = 10
 
 /**
  * Count and value of one category.
@@ -51,6 +51,7 @@ data class PurchaseCoverage(
  * @property platforms Top game platforms by value.
  * @property topValue Most valuable items.
  * @property quotedAt Time of the most recent eBay quote, null when none.
+ * @property indicativeValue Part of [totalValue] that only comes from imported US prices.
  */
 data class HomeSummary(
     val totalValue: Double = 0.0,
@@ -62,6 +63,7 @@ data class HomeSummary(
     val platforms: List<PlatformSummary> = emptyList(),
     val topValue: List<CollectionEntry> = emptyList(),
     val quotedAt: Instant? = null,
+    val indicativeValue: Double = 0.0,
 )
 
 /** Items that count as part of the collection (not wishlist, sold or loaned). */
@@ -81,6 +83,7 @@ fun buildHomeSummary(all: List<CollectionEntry>): HomeSummary {
         platforms = platformSummaries(games).sortedByDescending { it.value }.take(HOME_PLATFORMS),
         topValue = owned.filter { it.value != null }.sortedByDescending { it.value }.take(TOP_VALUE),
         quotedAt = latestQuote(all),
+        indicativeValue = owned.filter { it.valueSource == ValueSource.UsIndicative }.sumOf { it.value ?: 0.0 },
     )
 }
 
@@ -122,6 +125,7 @@ fun purchaseCoverage(entries: List<CollectionEntry>): PurchaseCoverage {
  * @property gainOnPriced Value minus price paid, on the items whose price is known.
  * @property valueOfPriced Value of the items whose price is known.
  * @property since Earliest acquisition date, null when unknown.
+ * @property platformGains Latent gain (value − price − shipping) per game platform, biggest first.
  */
 data class StatsSummary(
     val totalValue: Double = 0.0,
@@ -134,12 +138,41 @@ data class StatsSummary(
     val gainOnPriced: Double = 0.0,
     val valueOfPriced: Double = 0.0,
     val since: LocalDate? = null,
+    val platformGains: List<PlatformGain> = emptyList(),
 )
+
+/**
+ * Latent gain of the priced items of a platform.
+ *
+ * @property platform Platform.
+ * @property manufacturer Manufacturer.
+ * @property gain Value − price − shipping.
+ * @property cost Price + shipping.
+ */
+data class PlatformGain(
+    val platform: String,
+    val manufacturer: com.thevault.ui.component.Manufacturer,
+    val gain: Double,
+    val cost: Double,
+)
+
+/** Price + shipping of an entry, null when the price is unknown. */
+val CollectionEntry.cost: Double? get() = details.totalCost(purchasePrice)
+
+/** Latent gain per game platform, on the items whose value and price are known. */
+fun platformGains(owned: List<CollectionEntry>): List<PlatformGain> =
+    owned
+        .filter { it.kind == ItemKind.Game && it.cost != null && it.value != null }
+        .groupBy { it.platform }
+        .map { (p, list) ->
+            val cost = list.sumOf { it.cost ?: 0.0 }
+            PlatformGain(p, list.first().manufacturer, list.sumOf { it.value ?: 0.0 } - cost, cost)
+        }.sortedByDescending { kotlin.math.abs(it.gain) }
 
 /** Builds the stats screen data. Pure function, unit-tested. */
 fun buildStatsSummary(all: List<CollectionEntry>): StatsSummary {
     val owned = all.owned()
-    val priced = owned.filter { it.purchasePrice != null && it.value != null }
+    val priced = owned.filter { it.cost != null && it.value != null }
     return StatsSummary(
         totalValue = owned.totalValue(),
         byKind = kindTotals(owned),
@@ -148,9 +181,10 @@ fun buildStatsSummary(all: List<CollectionEntry>): StatsSummary {
         purchases = purchaseCoverage(owned),
         totalCount = owned.size,
         topValue = owned.filter { it.value != null }.sortedByDescending { it.value }.take(STATS_TOP),
-        gainOnPriced = priced.sumOf { (it.value ?: 0.0) - (it.purchasePrice ?: 0.0) },
+        gainOnPriced = priced.sumOf { (it.value ?: 0.0) - (it.cost ?: 0.0) },
         valueOfPriced = priced.sumOf { it.value ?: 0.0 },
         since = owned.mapNotNull { it.acquiredAt }.minOrNull(),
+        platformGains = platformGains(owned).take(STATS_PLATFORMS),
     )
 }
 

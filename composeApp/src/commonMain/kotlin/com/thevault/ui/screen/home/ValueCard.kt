@@ -48,6 +48,14 @@ internal fun ValueCard(
             }
         }
         Text(formatEuro(summary.totalValue), style = Vault.type.displayXl, color = c.ink, modifier = Modifier.padding(top = 12.dp))
+        if (summary.indicativeValue > 0.0) {
+            Text(
+                "dont ${formatEuro(summary.indicativeValue)} en cote US indicative (import Gameye)",
+                style = Vault.type.caption,
+                color = c.inkMuted,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
         val change = state.change
         val first = state.points.firstOrNull()
         if (change != null && first != null && change != 0.0) {

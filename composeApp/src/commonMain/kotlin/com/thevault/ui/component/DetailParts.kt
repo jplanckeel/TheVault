@@ -120,6 +120,7 @@ val PriceGrade.label: String
  * @param selected Selected grade.
  * @param history Price history.
  * @param onSelect Grade callback.
+ * @param usPrice Indicative US price of the import, shown apart.
  */
 @Composable
 fun ColumnScope.MarketSection(
@@ -127,12 +128,20 @@ fun ColumnScope.MarketSection(
     selected: PriceGrade,
     history: List<PricePoint>,
     onSelect: (PriceGrade) -> Unit,
+    usPrice: Double? = null,
 ) {
     val c = Vault.colors
     val latest = quotes.maxOfOrNull { it.scrapedAt }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text("Cote eBay", style = Vault.type.displayM, color = c.ink, modifier = Modifier.weight(1f))
         if (latest != null) SourceBadge("eBay", updated = formatAge(Clock.System.now() - latest)) else SourceBadge("eBay", stale = true)
+    }
+    if (usPrice != null) {
+        Text(
+            "Cote US indicative (import Gameye) : ${formatEuro(usPrice, decimals = 2)} — prix américain, pas une cote PAL.",
+            style = Vault.type.caption,
+            color = c.inkMuted,
+        )
     }
     if (quotes.isEmpty()) {
         Text(

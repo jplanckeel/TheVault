@@ -4,10 +4,15 @@ package com.thevault.domain.usecase
 
 import com.thevault.domain.model.PricePoint
 import com.thevault.domain.model.PriceQuote
+import com.thevault.domain.model.PriceSnapshot
+import com.thevault.domain.model.PriceSource
 import com.thevault.domain.repository.PriceRepository
 import com.thevault.domain.repository.SettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
@@ -86,4 +91,53 @@ class GetPriceHistoryUseCase(
         } catch (_: Exception) {
             emptyList()
         }
+}
+
+/**
+ * Observes every price snapshot (PAL history and imported US prices).
+ *
+ * @param repository Price repository.
+ */
+class ObservePriceSnapshotsUseCase(
+    private val repository: PriceRepository,
+) {
+    /** Snapshots keyed by item, oldest first. */
+    operator fun invoke(): Flow<Map<String, List<PriceSnapshot>>> = repository.observeSnapshots()
+}
+
+/**
+ * Stores the US prices of a Gameye import as `gameye_import_us` snapshots.
+ *
+ * @param repository Price repository.
+ * @param clock Time source.
+ */
+class RecordImportedPricesUseCase(
+    private val repository: PriceRepository,
+    private val clock: Clock = Clock.System,
+) {
+    /** Replaces the imported prices with [prices], dated today. */
+    suspend operator fun invoke(prices: Map<String, UsPrices>) {
+        val today = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        repository.replaceImportedPrices(
+            prices.map { (id, p) -> PriceSnapshot(id, today, PriceSource.GAMEYE_US, p.loose, p.cib, p.new) },
+        )
+    }
+}
+
+/**
+ * Latest US prices of the last import, keyed by item (for the CSV export).
+ *
+ * @param repository Price repository.
+ */
+class GetImportedPricesUseCase(
+    private val repository: PriceRepository,
+) {
+    /** Imported US prices by item. */
+    suspend operator fun invoke(): Map<String, UsPrices> =
+        repository
+            .observeSnapshots()
+            .first()
+            .mapNotNull { (id, list) ->
+                list.lastOrNull { it.source == PriceSource.GAMEYE_US }?.let { id to UsPrices(it.loose, it.cib, it.new) }
+            }.toMap()
 }

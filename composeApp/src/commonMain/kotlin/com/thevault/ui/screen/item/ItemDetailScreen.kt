@@ -36,9 +36,11 @@ import com.thevault.ui.component.MenuEntry
 import com.thevault.ui.component.StatusDialog
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.label
+import com.thevault.ui.component.needsDetails
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.ItemActions
 import com.thevault.ui.screen.collection.ItemKind
+import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.screen.collection.VaultEntriesSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -133,7 +135,13 @@ fun ItemDetailScreen(
     var statusDialog by remember { mutableStateOf(false) }
     var deleteDialog by remember { mutableStateOf(false) }
     val entry = state.entry ?: return LoadingBox()
-    if (statusDialog) StatusDialog(entry.status, { viewModel.setStatus(it).also { statusDialog = false } }, { statusDialog = false })
+    if (statusDialog) {
+        StatusDialog(entry.status, {
+            viewModel.setStatus(it)
+            statusDialog = false
+            if (it.needsDetails) onEdit()
+        }, { statusDialog = false })
+    }
     if (deleteDialog) {
         DeleteConfirmDialog(entry.title, {
             deleteDialog = false
@@ -160,8 +168,16 @@ fun ItemDetailScreen(
         )
         val credits = listOf(entry.manufacturer.label, entry.subtype).filter { it.isNotBlank() && it != "Autres" }.joinToString(" · ")
         DetailHeader(entry.title, entry.platform, entry.region, entry.details.regionVariant, entry.coverUrl, credits, fromIgdb = false)
-        CopyPanel(entry.details, CopyPurchase(entry.purchasePrice, entry.acquiredAt, entry.value))
-        MarketSection(entry.quotes, state.grade, emptyList(), viewModel::onGradeSelected)
+        CopyPanel(
+            entry.details,
+            CopyPurchase(
+                entry.purchasePrice,
+                entry.acquiredAt,
+                entry.value,
+                entry.valueSource == ValueSource.UsIndicative,
+            ),
+        )
+        MarketSection(entry.quotes, state.grade, emptyList(), viewModel::onGradeSelected, entry.usPrice)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             VaultButton("Statut", { statusDialog = true }, Modifier.weight(1f), ButtonVariant.Secondary)
             VaultButton("Modifier", onEdit, Modifier.weight(1f))

@@ -32,6 +32,7 @@ import com.thevault.ui.screen.home.HomeScreen
 import com.thevault.ui.screen.item.ItemDetailScreen
 import com.thevault.ui.screen.item.ItemEditScreen
 import com.thevault.ui.screen.profile.ProfileScreen
+import com.thevault.ui.screen.report.QuoteReportScreen
 import com.thevault.ui.screen.settings.SettingsScreen
 import com.thevault.ui.screen.stats.StatsScreen
 import com.thevault.ui.screen.wishlist.WishlistScreen
@@ -83,6 +84,7 @@ private fun NavGraphBuilder.tabDestinations(
                 onEntryClick = openEntry,
                 onAdd = openAdd,
                 onSync = { nav.navigate(Routes.SETTINGS) },
+                onOpenReport = { nav.navigate(Routes.REPORT) },
             ),
             app = app,
         )
@@ -111,6 +113,7 @@ private fun NavGraphBuilder.detailDestinations(
     app: AppViewModel,
 ) {
     val back: () -> Unit = { nav.popBackStack() }
+    composable(Routes.REPORT) { QuoteReportScreen(onBack = back, onEntryClick = { nav.navigate(Routes.detail(it)) }) }
     composable(Routes.SETTINGS) { SettingsScreen(app = app, onBack = back) }
     composable(Routes.GAME_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable
