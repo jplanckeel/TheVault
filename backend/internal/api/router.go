@@ -16,6 +16,7 @@ import (
 const (
 	maxJSONBody   = 1 << 20  // 1 MiB
 	maxUploadBody = 10 << 20 // 10 MiB (covers are capped at 8 MiB)
+	maxBackupBody = 8 << 20  // 8 MiB (a 20 000-item collection)
 )
 
 // NewRouter builds and returns the chi router with all routes mounted.
@@ -26,6 +27,7 @@ func NewRouter(
 	settings store.SettingsStore,
 	users store.UserStore,
 	collections store.UserCollectionStore,
+	vaults store.VaultStore,
 	adminItems store.AdminItemStore,
 	events store.SyncEventStore,
 	adminEmails []string,
@@ -67,6 +69,8 @@ func NewRouter(
 	}
 	adm := handlers.NewAdminHandler(items, adminItems, events, jobs, igdbSyncer)
 	uch := handlers.NewUserCollectionHandler(collections)
+	vh := handlers.NewVaultHandler(vaults)
+	shareLimit := NewRateLimiter(60, time.Minute) // public share pages
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -91,6 +95,8 @@ func NewRouter(
 	r.Route("/api/v1", func(r chi.Router) {
 		// Cover upload is the only route accepting large bodies.
 		r.With(AdminMiddleware(users), MaxBodySize(maxUploadBody)).Post("/items/{id}/cover/upload", ih.UploadCover)
+		r.With(UserAuthMiddleware, MaxBodySize(maxBackupBody)).Put("/backup", vh.PutBackup)
+		r.With(shareLimit.Middleware).Get("/public/shares/{token}", vh.PublicShare)
 
 		r.Group(func(r chi.Router) {
 			r.Use(MaxBodySize(maxJSONBody))
@@ -117,6 +123,10 @@ func NewRouter(
 				r.Delete("/collection/{itemId}", uch.RemoveItem)
 				r.Get("/collection", uch.ListCollection)
 				r.Get("/wishlist", uch.ListWishlist)
+				r.Get("/backup", vh.GetBackup)
+				r.Post("/shares", vh.CreateShare)
+				r.Get("/shares", vh.ListShares)
+				r.Delete("/shares/{token}", vh.RevokeShare)
 			})
 
 			// Shared catalogue mutations — logged-in users and the mobile app (X-API-Key).

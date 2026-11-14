@@ -23,7 +23,32 @@ CREATE TABLE game (
     game_modes TEXT,
     themes TEXT,
     is_collector_edition INTEGER NOT NULL DEFAULT 0,
-    is_limited_edition INTEGER NOT NULL DEFAULT 0
+    is_limited_edition INTEGER NOT NULL DEFAULT 0,
+    has_media INTEGER NOT NULL DEFAULT 1,
+    has_box INTEGER NOT NULL DEFAULT 0,
+    has_manual INTEGER NOT NULL DEFAULT 0,
+    has_extras INTEGER NOT NULL DEFAULT 0,
+    media_grade TEXT,
+    box_grade TEXT,
+    manual_grade TEXT,
+    is_sealed INTEGER NOT NULL DEFAULT 0,
+    is_digital INTEGER NOT NULL DEFAULT 0,
+    region_variant TEXT,
+    edition TEXT NOT NULL DEFAULT 'STANDARD',
+    barcode TEXT,
+    product_code TEXT,
+    shipping_cost REAL,
+    acquired_from TEXT,
+    location TEXT,
+    loaned_to TEXT,
+    loan_due_at TEXT,
+    sold_price REAL,
+    sold_at TEXT,
+    wish_priority INTEGER,
+    wish_max_price REAL,
+    wish_target TEXT,
+    play_status TEXT,
+    play_minutes INTEGER
 );
 
 CREATE INDEX game_status ON game(status);
@@ -68,7 +93,30 @@ CREATE TABLE console (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     is_collector_edition INTEGER NOT NULL DEFAULT 0,
-    is_limited_edition INTEGER NOT NULL DEFAULT 0
+    is_limited_edition INTEGER NOT NULL DEFAULT 0,
+    has_media INTEGER NOT NULL DEFAULT 1,
+    has_box INTEGER NOT NULL DEFAULT 0,
+    has_manual INTEGER NOT NULL DEFAULT 0,
+    has_extras INTEGER NOT NULL DEFAULT 0,
+    media_grade TEXT,
+    box_grade TEXT,
+    manual_grade TEXT,
+    is_sealed INTEGER NOT NULL DEFAULT 0,
+    is_digital INTEGER NOT NULL DEFAULT 0,
+    region_variant TEXT,
+    edition TEXT NOT NULL DEFAULT 'STANDARD',
+    barcode TEXT,
+    product_code TEXT,
+    shipping_cost REAL,
+    acquired_from TEXT,
+    location TEXT,
+    loaned_to TEXT,
+    loan_due_at TEXT,
+    sold_price REAL,
+    sold_at TEXT,
+    wish_priority INTEGER,
+    wish_max_price REAL,
+    wish_target TEXT
 );
 
 CREATE INDEX console_status ON console(status);
@@ -102,7 +150,30 @@ CREATE TABLE accessory (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     is_collector_edition INTEGER NOT NULL DEFAULT 0,
-    is_limited_edition INTEGER NOT NULL DEFAULT 0
+    is_limited_edition INTEGER NOT NULL DEFAULT 0,
+    has_media INTEGER NOT NULL DEFAULT 1,
+    has_box INTEGER NOT NULL DEFAULT 0,
+    has_manual INTEGER NOT NULL DEFAULT 0,
+    has_extras INTEGER NOT NULL DEFAULT 0,
+    media_grade TEXT,
+    box_grade TEXT,
+    manual_grade TEXT,
+    is_sealed INTEGER NOT NULL DEFAULT 0,
+    is_digital INTEGER NOT NULL DEFAULT 0,
+    region_variant TEXT,
+    edition TEXT NOT NULL DEFAULT 'STANDARD',
+    barcode TEXT,
+    product_code TEXT,
+    shipping_cost REAL,
+    acquired_from TEXT,
+    location TEXT,
+    loaned_to TEXT,
+    loan_due_at TEXT,
+    sold_price REAL,
+    sold_at TEXT,
+    wish_priority INTEGER,
+    wish_max_price REAL,
+    wish_target TEXT
 );
 
 CREATE INDEX accessory_status ON accessory(status);
@@ -157,3 +228,76 @@ SELECT
     COALESCE((SELECT SUM(purchase_price) FROM console WHERE status = 'OWNED'), 0.0) +
     COALESCE((SELECT SUM(purchase_price) FROM accessory WHERE status = 'OWNED'), 0.0)
 AS total_invested;
+
+-- Tags and photos of any item (game, console, accessory)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE item_tag (
+    item_id TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (item_id, tag)
+);
+
+CREATE TABLE item_photo (
+    id TEXT NOT NULL PRIMARY KEY,
+    item_id TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX item_photo_item ON item_photo(item_id);
+
+selectAllTags:
+SELECT * FROM item_tag ORDER BY tag ASC;
+
+insertTag:
+INSERT OR IGNORE INTO item_tag VALUES ?;
+
+deleteTagsOf:
+DELETE FROM item_tag WHERE item_id = :itemId;
+
+selectPhotosOf:
+SELECT * FROM item_photo WHERE item_id = :itemId ORDER BY created_at ASC;
+
+insertPhoto:
+INSERT OR REPLACE INTO item_photo VALUES ?;
+
+deletePhoto:
+DELETE FROM item_photo WHERE id = :id;
+
+-- Completion lists (sets): a platform, a series or any personal list of wanted titles.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE item_set (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE set_entry (
+    set_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    PRIMARY KEY (set_id, title, platform)
+);
+
+selectSets:
+SELECT * FROM item_set ORDER BY name ASC;
+
+upsertSet:
+INSERT OR REPLACE INTO item_set VALUES ?;
+
+deleteSet:
+DELETE FROM item_set WHERE id = :id;
+
+selectSetEntries:
+SELECT * FROM set_entry;
+
+insertSetEntry:
+INSERT OR IGNORE INTO set_entry VALUES ?;
+
+deleteSetEntry:
+DELETE FROM set_entry WHERE set_id = :setId AND title = :title AND platform = :platform;
+
+deleteEntriesOfSet:
+DELETE FROM set_entry WHERE set_id = :setId;

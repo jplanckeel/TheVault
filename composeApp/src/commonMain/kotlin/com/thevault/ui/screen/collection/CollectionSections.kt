@@ -74,7 +74,7 @@ private fun PlatformRow(
         name = shortPlatformName(p.platform),
         meta = "${p.manufacturer.label} · ${gameCount(p.count)}",
         band = p.manufacturer.color,
-        value = formatEuro(p.value),
+        value = if (p.value > 0.0) formatEuro(p.value) else "—",
         onClick = { onOpen(p.platform) },
         share = if (totalGames > 0) p.count.toFloat() / totalGames else null,
         change = p.changePercent?.takeIf { it != 0.0 }?.let { pct -> { PriceDelta(formatWholePercent(pct), pct > 0, small = true) } },

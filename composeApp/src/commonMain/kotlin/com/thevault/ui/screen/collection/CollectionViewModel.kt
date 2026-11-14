@@ -2,6 +2,7 @@ package com.thevault.ui.screen.collection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.thevault.domain.model.ItemStatus
 import com.thevault.ui.component.Manufacturer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDate
 
 /**
  * Accessory filter of the collection.
@@ -46,6 +48,9 @@ enum class PlatformSort(
 
     /** Alphabetical. */
     Name("A → Z", compareBy { it.platform.lowercase() }),
+
+    /** Biggest 30-day change first. */
+    Change("Variation", compareByDescending { it.changePercent?.let { c -> kotlin.math.abs(c) } ?: -1.0 }),
 }
 
 /**
@@ -56,6 +61,7 @@ enum class PlatformSort(
  * @property query Search among games.
  * @property consoleMaker Console manufacturer filter, or null for all.
  * @property accessoryFilter Accessory filter.
+ * @property showSold Shows the sold items instead of a category.
  */
 data class CollectionFilters(
     val kind: ItemKind = ItemKind.Game,
@@ -63,6 +69,7 @@ data class CollectionFilters(
     val query: String = "",
     val consoleMaker: Manufacturer? = null,
     val accessoryFilter: AccessoryFilter = AccessoryFilter.All,
+    val showSold: Boolean = false,
 )
 
 /**
@@ -77,6 +84,7 @@ data class CollectionFilters(
  * @property consoles Consoles matching the filter, most valuable first.
  * @property consoleMakers Manufacturers present among consoles.
  * @property accessories Accessories matching the filter, most valuable first.
+ * @property sold Sold items, most recent sale first.
  * @property isLoading Whether data is still loading.
  */
 data class CollectionUiState(
@@ -89,6 +97,7 @@ data class CollectionUiState(
     val consoles: List<CollectionEntry> = emptyList(),
     val consoleMakers: List<Manufacturer> = emptyList(),
     val accessories: List<CollectionEntry> = emptyList(),
+    val sold: List<CollectionEntry> = emptyList(),
     val isLoading: Boolean = false,
 )
 
@@ -100,11 +109,14 @@ class CollectionViewModel(
 
     /** Observable UI state. */
     val uiState: StateFlow<CollectionUiState> =
-        combine(source.entries(), filters) { all, f -> buildCollectionState(all.owned(), f) }
+        combine(source.entries(), filters) { all, f -> buildCollectionState(all.owned(), f, all.filter { it.status == ItemStatus.SOLD }) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CollectionUiState(isLoading = true))
 
     /** Selects a category. */
-    fun onKindSelected(kind: ItemKind) = filters.update { it.copy(kind = kind) }
+    fun onKindSelected(kind: ItemKind) = filters.update { it.copy(kind = kind, showSold = false) }
+
+    /** Shows the sold items. */
+    fun onSoldSelected() = filters.update { it.copy(showSold = true) }
 
     /** Updates the game search. */
     fun onQueryChanged(query: String) = filters.update { it.copy(query = query) }
@@ -128,6 +140,7 @@ class CollectionViewModel(
 fun buildCollectionState(
     owned: List<CollectionEntry>,
     filters: CollectionFilters,
+    sold: List<CollectionEntry> = emptyList(),
 ): CollectionUiState {
     val games = owned.filter { it.kind == ItemKind.Game }
     val consoles = owned.filter { it.kind == ItemKind.Console }
@@ -146,6 +159,7 @@ fun buildCollectionState(
             accessories
                 .filter { it.matches(filters.accessoryFilter) }
                 .sortedWith(byValue),
+        sold = sold.sortedWith(compareByDescending<CollectionEntry, LocalDate?>(nullsFirst()) { it.details.soldAt }),
     )
 }
 

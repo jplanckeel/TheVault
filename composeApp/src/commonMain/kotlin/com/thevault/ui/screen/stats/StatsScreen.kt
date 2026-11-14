@@ -40,6 +40,7 @@ import com.thevault.ui.component.shortPlatformName
 import com.thevault.ui.navigation.tabBarClearance
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.StatsSummary
+import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.abs
@@ -52,13 +53,13 @@ fun StatsScreen(
     onExport: () -> Unit,
     viewModel: StatsViewModel = koinViewModel(),
 ) {
-    val summary by viewModel.summary.collectAsState()
+    val state by viewModel.state.collectAsState()
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = tabBarClearance()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        val s = summary
+        val s = state?.summary
         item {
             val since = s?.since?.let { "Depuis ${MONTHS[it.month.ordinal]} ${it.year}" } ?: "Statistiques"
             ScreenHeader("Stats", eyebrow = since, leading = { KeyButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", onBack) })
@@ -69,14 +70,19 @@ fun StatsScreen(
         }
         summaryItems(s)
         if (s.topPlatforms.isNotEmpty()) item { Platforms(s) }
+        if (s.platformGains.isNotEmpty()) item { Gains(s.platformGains) }
         item { Conditions(s) }
+        state?.let { st ->
+            item { Months(st.months) }
+            if (st.regions.size > 1 || st.regions.any { it.first.contains("·") }) item { Regions(st.regions) }
+        }
         if (s.topValue.isNotEmpty()) {
-            item { SectionHeader("Top valeur", Modifier.padding(top = 8.dp), action = "Exporter CSV", onAction = onExport) }
+            item { SectionHeader("Top 10 valeur", Modifier.padding(top = 8.dp), action = "Exporter CSV", onAction = onExport) }
             items(s.topValue, key = { "${it.kind}_${it.id}" }) { e ->
                 ListRow(
                     e.title,
                     meta = "${shortPlatformName(e.platform)} · ${e.condition.formatLabel}",
-                    trailing = formatEuro(e.value ?: 0.0),
+                    trailing = (if (e.valueSource == ValueSource.UsIndicative) "≈ " else "") + formatEuro(e.value ?: 0.0),
                     cover = Triple(e.coverUrl, e.platform, e.condition),
                     onClick = { onEntryClick(e) },
                 )
@@ -141,7 +147,7 @@ private fun Platforms(s: StatsSummary) {
 
 @Composable
 private fun Conditions(s: StatsSummary) {
-    val groups = FormatGroup.entries.filter { it != FormatGroup.Other || s.formats[it] ?: 0 > 0 }
+    val groups = FormatGroup.entries.filter { it != FormatGroup.Digital || s.formats[it] ?: 0 > 0 }
     Panel(Modifier.fillMaxWidth()) {
         Engrave("Objets par état")
         Row(Modifier.padding(top = 14.dp)) {

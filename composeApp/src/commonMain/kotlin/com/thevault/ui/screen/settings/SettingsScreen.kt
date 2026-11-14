@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import com.thevault.ui.component.Segment
 import com.thevault.ui.component.SegmentedControl
 import com.thevault.ui.component.StatusLed
 import com.thevault.ui.component.VaultButton
+import com.thevault.ui.component.VaultChip
 import com.thevault.ui.theme.ThemeMode
 import com.thevault.ui.theme.Vault
 import kotlinx.coroutines.delay
@@ -45,6 +47,7 @@ private const val MESSAGE_DURATION_MS = 5_000L
 fun SettingsScreen(
     app: AppViewModel,
     onBack: () -> Unit,
+    onCloud: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -61,6 +64,7 @@ fun SettingsScreen(
     ) {
         ScreenHeader("Réglages", eyebrow = "Système", leading = { KeyButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", onBack) })
         state.message?.let { Feedback(it) }
+        MoreSections(app, viewModel, onCloud)
         Section("Coque", "Le thème de l'application.") {
             SegmentedControl(ThemeMode.entries.map { Segment(it.label) }, mode.ordinal, { app.setTheme(ThemeMode.entries[it]) })
         }
@@ -147,5 +151,23 @@ private fun Feedback(message: SettingsMessage) {
     Panel(Modifier.fillMaxWidth()) {
         StatusLed(led, blink = message.tone == MessageTone.Info)
         Text(message.text, style = Vault.type.bodyStrong, color = Vault.colors.ink, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+@Composable
+private fun MoreSections(
+    app: AppViewModel,
+    viewModel: SettingsViewModel,
+    onCloud: () -> Unit,
+) {
+    val hide by app.hidePrices.collectAsState()
+    Section("Compte et partage", "Sauvegarde sur ton compte et liens de partage en lecture seule.") {
+        VaultButton("Ouvrir", onCloud, Modifier.fillMaxWidth(), ButtonVariant.Secondary, icon = Icons.Default.CloudSync)
+    }
+    Section("Confidentialité", "Masque tous les montants à l'écran (pour montrer l'app sans dévoiler les prix).") {
+        VaultChip("Masquer les prix", hide, { app.setHidePrices(!hide) })
+    }
+    Section("Inventaire pour l'assurance", "Liste des objets possédés avec prix payés et valeurs, en PDF ou CSV.") {
+        InsuranceExportSection(viewModel::insuranceLines)
     }
 }

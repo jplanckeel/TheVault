@@ -10,6 +10,7 @@ import com.thevault.ui.screen.collection.VaultEntriesSource
 import com.thevault.ui.screen.gamedetail.GameDetailViewModel
 import com.thevault.ui.screen.home.HomeViewModel
 import com.thevault.ui.screen.item.ItemDetailViewModel
+import com.thevault.ui.screen.item.ItemEditViewModel
 import com.thevault.ui.screen.profile.ProfileViewModel
 import com.thevault.ui.screen.settings.SettingsViewModel
 import com.thevault.ui.screen.stats.StatsViewModel
@@ -22,19 +23,40 @@ import org.koin.dsl.module
  */
 val commonModule =
     module {
-        factory { VaultEntriesSource(get(), get(), get(), get()) }
+        factory { VaultEntriesSource(get(), get(), get(), get(), get()) }
         factory { ItemActions(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
         viewModel { AppViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-        viewModel { HomeViewModel(get(), get(), get()) }
+        viewModel { HomeViewModel(get(), get(), get(), get()) }
+        viewModel {
+            com.thevault.ui.screen.report
+                .QuoteReportViewModel(get(), get())
+        }
         viewModel { CollectionViewModel(get()) }
-        viewModel { PlatformGamesViewModel(get()) }
+        viewModel { PlatformGamesViewModel(get(), get()) }
         viewModel { WishlistViewModel(get()) }
         viewModel { ProfileViewModel(get()) }
+        viewModel {
+            com.thevault.ui.screen.cloud
+                .CloudViewModel(get(), get(), get(), get(), get(), get(), get())
+        }
+        viewModel {
+            com.thevault.ui.screen.check
+                .QuickCheckViewModel(get())
+        }
+        viewModel {
+            com.thevault.ui.screen.sets
+                .SetsViewModel(get(), get(), get())
+        }
+        viewModel {
+            com.thevault.ui.screen.sets
+                .SetDetailViewModel(get(), get(), get(), get(), get(), get(), get())
+        }
         viewModel { StatsViewModel(get()) }
         viewModel { AddViewModel(get(), get(), get(), get(), get()) }
-        viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
+        viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
         viewModel { ItemDetailViewModel(get(), get()) }
-        viewModel { GameDetailViewModel(get(), get(), get(), get(), get()) }
+        viewModel { ItemEditViewModel(get(), get(), get(), get()) }
+        viewModel { GameDetailViewModel(get(), get(), get(), get(), get(), get()) }
         viewModel { AddItemViewModel(get(), get(), get()) }
     }

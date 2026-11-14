@@ -11,10 +11,15 @@ import com.thevault.domain.model.priceGrade
 import com.thevault.domain.usecase.DeleteGameUseCase
 import com.thevault.domain.usecase.GetPriceHistoryUseCase
 import com.thevault.domain.usecase.ObserveGamesUseCase
+import com.thevault.domain.usecase.ObservePriceSnapshotsUseCase
 import com.thevault.domain.usecase.ObserveQuotesUseCase
 import com.thevault.domain.usecase.SaveGameUseCase
+import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.screen.collection.effectiveValue
+import com.thevault.ui.screen.collection.localHistory
+import com.thevault.ui.screen.collection.mergeHistory
 import com.thevault.ui.screen.collection.quoteFor
+import com.thevault.ui.screen.collection.usPriceFor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +34,9 @@ import kotlinx.coroutines.launch
  * @property isLoading Whether the game is loading.
  * @property isDeleted Whether the game was deleted (screen closes).
  * @property quotes eBay quotes of the game, all grades.
- * @property value Effective value (reliable quote, otherwise typed value).
+ * @property value Effective value (reliable PAL quote, typed value, or US indicative price).
+ * @property valueSource Origin of [value].
+ * @property usPrice Indicative US price of the import for the game's completeness.
  * @property grade Grade shown in the « Cote eBay » section.
  * @property history Price history, oldest first.
  */
@@ -39,6 +46,8 @@ data class GameDetailUiState(
     val isDeleted: Boolean = false,
     val quotes: List<PriceQuote> = emptyList(),
     val value: Double? = null,
+    val valueSource: ValueSource = ValueSource.None,
+    val usPrice: Double? = null,
     val grade: PriceGrade = PriceGrade.CIB,
     val history: List<PricePoint> = emptyList(),
 ) {
@@ -50,6 +59,7 @@ data class GameDetailUiState(
 class GameDetailViewModel(
     observeGames: ObserveGamesUseCase,
     observeQuotes: ObserveQuotesUseCase,
+    observeSnapshots: ObservePriceSnapshotsUseCase,
     private val getHistory: GetPriceHistoryUseCase,
     private val deleteGame: DeleteGameUseCase,
     private val saveGame: SaveGameUseCase,
@@ -61,18 +71,25 @@ class GameDetailViewModel(
 
     /** Observable UI state. */
     val uiState: StateFlow<GameDetailUiState> =
-        combine(id, observeGames(), observeQuotes(), grade, history) { gameId, games, quotes, g, h ->
+        combine(id, observeGames(), observeQuotes(), observeSnapshots(), grade) { gameId, games, quotes, snaps, g ->
             val game = games.find { it.id == gameId }
             val itemQuotes = gameId?.let { quotes[it] }.orEmpty()
+            val itemSnaps = gameId?.let { snaps[it] }.orEmpty()
+            val components = game?.details?.components
+            val us = components?.let { usPriceFor(it, itemSnaps) }
+            val (value, source) = effectiveValue(game?.currentValue, components?.let { quoteFor(it, itemQuotes) }, us)
             GameDetailUiState(
                 game = game,
                 isLoading = gameId == null,
                 quotes = itemQuotes,
-                value = game?.let { effectiveValue(it.currentValue, quoteFor(it.condition, itemQuotes)) },
-                grade = g ?: game?.condition?.priceGrade ?: PriceGrade.CIB,
-                history = h,
+                value = value,
+                valueSource = source,
+                usPrice = us,
+                grade = g ?: components?.priceGrade ?: PriceGrade.CIB,
+                history = localHistory(itemSnaps),
             )
-        }.combine(deleted) { s, d -> s.copy(isDeleted = d) }
+        }.combine(history) { s, remote -> s.copy(history = mergeHistory(remote, s.history)) }
+            .combine(deleted) { s, d -> s.copy(isDeleted = d) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GameDetailUiState())
 
     /** Shows the game [gameId] and loads its price history. */

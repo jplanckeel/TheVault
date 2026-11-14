@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thevault.domain.model.Accessory
 import com.thevault.domain.model.Console
+import com.thevault.domain.model.CopyDetails
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.RemoteGame
@@ -159,7 +160,7 @@ private fun AddCandidate.toGame(
     genre = remote?.genres?.firstOrNull() ?: "N/A",
     releaseYear = remote?.releaseYear ?: 0,
     region = form.region,
-    condition = form.condition,
+    details = CopyDetails(components = form.condition),
     coverUrl = remote?.coverUrl,
     status = form.status,
     purchasePrice = form.price.toAmount(),
@@ -179,7 +180,7 @@ private fun AddCandidate.toConsole(
     manufacturer = manufacturerOf(form.platform.ifBlank { title }).label,
     region = form.region,
     color = "",
-    condition = form.condition,
+    details = CopyDetails(components = form.condition),
     productionYear = 0,
     status = form.status,
     purchasePrice = form.price.toAmount(),
@@ -194,7 +195,7 @@ private fun AddCandidate.toAccessory(
     name = title,
     type = "Accessoire",
     compatibleConsole = form.platform,
-    condition = form.condition,
+    details = CopyDetails(components = form.condition),
     status = form.status,
     purchasePrice = form.price.toAmount(),
     acquiredAt = today(),

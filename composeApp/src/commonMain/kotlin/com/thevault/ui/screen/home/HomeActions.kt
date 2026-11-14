@@ -12,6 +12,7 @@ import com.thevault.ui.screen.collection.ItemKind
  * @property onEntryClick Opens an item detail.
  * @property onAdd Opens the add screen.
  * @property onSync Opens the sync settings (tap on the LED).
+ * @property onOpenReport Opens the report of the last quote refresh.
  */
 data class HomeActions(
     val onSearch: () -> Unit = {},
@@ -20,4 +21,5 @@ data class HomeActions(
     val onEntryClick: (CollectionEntry) -> Unit = {},
     val onAdd: () -> Unit = {},
     val onSync: () -> Unit = {},
+    val onOpenReport: () -> Unit = {},
 )

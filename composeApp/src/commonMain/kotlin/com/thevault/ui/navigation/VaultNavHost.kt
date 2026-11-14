@@ -20,6 +20,7 @@ import androidx.savedstate.read
 import com.thevault.ui.app.AppViewModel
 import com.thevault.ui.screen.add.AddScreen
 import com.thevault.ui.screen.additem.AddItemScreen
+import com.thevault.ui.screen.check.QuickCheckScreen
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.CollectionNavigation
 import com.thevault.ui.screen.collection.CollectionScreen
@@ -30,7 +31,11 @@ import com.thevault.ui.screen.gamedetail.GameDetailScreen
 import com.thevault.ui.screen.home.HomeActions
 import com.thevault.ui.screen.home.HomeScreen
 import com.thevault.ui.screen.item.ItemDetailScreen
+import com.thevault.ui.screen.item.ItemEditScreen
 import com.thevault.ui.screen.profile.ProfileScreen
+import com.thevault.ui.screen.report.QuoteReportScreen
+import com.thevault.ui.screen.sets.SetDetailScreen
+import com.thevault.ui.screen.sets.SetsScreen
 import com.thevault.ui.screen.settings.SettingsScreen
 import com.thevault.ui.screen.stats.StatsScreen
 import com.thevault.ui.screen.wishlist.WishlistScreen
@@ -76,12 +81,13 @@ private fun NavGraphBuilder.tabDestinations(
     composable(Routes.HOME) {
         HomeScreen(
             HomeActions(
-                onSearch = { nav.navigateToTab(Routes.collection(ItemKind.Game)) },
+                onSearch = { nav.navigate(Routes.CHECK) },
                 onOpenCollection = { nav.navigateToTab(Routes.collection(it)) },
                 onOpenRisers = { nav.navigate(Routes.platform(null)) },
                 onEntryClick = openEntry,
                 onAdd = openAdd,
                 onSync = { nav.navigate(Routes.SETTINGS) },
+                onOpenReport = { nav.navigate(Routes.REPORT) },
             ),
             app = app,
         )
@@ -97,7 +103,9 @@ private fun NavGraphBuilder.tabDestinations(
     }
     composable(Routes.WISHLIST) { WishlistScreen(onEntryClick = openEntry, onAdd = openAdd) }
     composable(Routes.PROFILE) {
-        ProfileScreen(onStats = { nav.navigate(Routes.STATS) }, onSettings = { nav.navigate(Routes.SETTINGS) })
+        ProfileScreen(onStats = {
+            nav.navigate(Routes.STATS)
+        }, onSettings = { nav.navigate(Routes.SETTINGS) }, onSets = { nav.navigate(Routes.SETS) })
     }
     composable(Routes.STATS) {
         StatsScreen(onBack = { nav.popBackStack() }, onEntryClick = openEntry, onExport = { nav.navigate(Routes.SETTINGS) })
@@ -110,23 +118,39 @@ private fun NavGraphBuilder.detailDestinations(
     app: AppViewModel,
 ) {
     val back: () -> Unit = { nav.popBackStack() }
-    composable(Routes.SETTINGS) { SettingsScreen(app = app, onBack = back) }
+    composable(Routes.CLOUD) {
+        com.thevault.ui.screen.cloud
+            .CloudScreen(onBack = back)
+    }
+    composable(Routes.CHECK) { QuickCheckScreen(onBack = back, onOpen = { nav.navigate(Routes.detail(it)) }) }
+    composable(Routes.SETS) { SetsScreen(onBack = back, onOpen = { nav.navigate("set/$it") }) }
+    composable(Routes.SET_DETAIL) { entry ->
+        val id = entry.stringArg("id") ?: return@composable
+        SetDetailScreen(id, back)
+    }
+    composable(Routes.REPORT) { QuoteReportScreen(onBack = back, onEntryClick = { nav.navigate(Routes.detail(it)) }) }
+    composable(Routes.SETTINGS) { SettingsScreen(app = app, onBack = back, onCloud = { nav.navigate(Routes.CLOUD) }) }
     composable(Routes.GAME_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable
         GameDetailScreen(gameId = id, onBack = back, onEdit = { nav.navigate(Routes.editGame(id)) })
     }
     composable(Routes.CONSOLE_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable
-        ItemDetailScreen(ItemKind.Console, id, back)
+        ItemDetailScreen(ItemKind.Console, id, back, onEdit = { nav.navigate(Routes.editItem(ItemKind.Console, id)) })
     }
     composable(Routes.ACCESSORY_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable
-        ItemDetailScreen(ItemKind.Accessory, id, back)
+        ItemDetailScreen(ItemKind.Accessory, id, back, onEdit = { nav.navigate(Routes.editItem(ItemKind.Accessory, id)) })
     }
     composable(Routes.ADD) {
         AddScreen(onClose = back, onAddDetails = { gameId ->
             nav.navigate(Routes.editGame(gameId)) { popUpTo(Routes.ADD) { inclusive = true } }
         })
+    }
+    composable(Routes.EDIT_ITEM) { entry ->
+        val kind = entry.stringArg("kind")?.let { k -> ItemKind.entries.find { it.name == k } } ?: return@composable
+        val id = entry.stringArg("id") ?: return@composable
+        ItemEditScreen(kind, id, back)
     }
     composable(Routes.EDIT_GAME, arguments = listOf(optionalString("gameId"))) { entry ->
         AddItemScreen(gameId = entry.stringArg("gameId"), onBack = back)

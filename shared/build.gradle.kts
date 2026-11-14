@@ -121,6 +121,11 @@ kotlin {
             implementation(libs.koin.test)
             implementation(libs.ktor.client.mock)
         }
+
+        // JVM SQLite driver: migration and repository tests on the host.
+        getByName("androidHostTest").dependencies {
+            implementation(libs.sqldelight.sqlite.driver)
+        }
     }
 }
 

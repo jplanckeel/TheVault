@@ -10,19 +10,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.thevault.ui.component.ButtonSize
 import com.thevault.ui.component.EmptyState
 import com.thevault.ui.component.Engrave
 import com.thevault.ui.component.KeyButton
 import com.thevault.ui.component.ScreenHeader
 import com.thevault.ui.component.Segment
 import com.thevault.ui.component.SegmentedControl
+import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.VaultChip
 import com.thevault.ui.component.formatEuro
 import com.thevault.ui.component.gameCount
@@ -48,6 +54,11 @@ fun PlatformGamesScreen(
 ) {
     LaunchedEffect(platform) { viewModel.onPlatformSelected(platform) }
     val state by viewModel.uiState.collectAsState()
+    val selection by viewModel.selection.collectAsState()
+    var bulk by remember { mutableStateOf(false) }
+    if (bulk) {
+        BulkEditSheet(selection.size, { viewModel.applyBulk(it).also { bulk = false } }, { bulk = false })
+    }
     LazyVerticalGrid(
         columns = GridCells.Fixed(GRID_COLUMNS),
         modifier = Modifier.fillMaxSize(),
@@ -55,7 +66,13 @@ fun PlatformGamesScreen(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        fullWidth { Header(state, onBack, viewModel::onSortToggled) }
+        fullWidth {
+            if (selection.isEmpty()) {
+                Header(state, onBack, viewModel::onSortToggled)
+            } else {
+                SelectionBar(selection.size, viewModel::clearSelection) { bulk = true }
+            }
+        }
         fullWidth { Engrave("${gameCount(state.ownedCount)} · ${formatEuro(state.value)} · tri ${state.filters.sort.label}") }
         fullWidth {
             val options =
@@ -74,7 +91,7 @@ fun PlatformGamesScreen(
         if (!state.isLoading && state.games.isEmpty()) {
             fullWidth { EmptyState(Icons.Default.SearchOff, "Aucun jeu", message = "Aucun jeu ne correspond à ces filtres.") }
         }
-        cards(state.games, onEntryClick, missing = false)
+        cards(state.games, onEntryClick, missing = false, selection = selection) { viewModel.toggleSelection(it.id) }
     }
 }
 
@@ -104,5 +121,20 @@ private fun FormatChips(
         items(state.formats.entries.toList()) { (group, count) ->
             VaultChip(group.label, state.filters.format == group, { viewModel.onFormatSelected(group) }, count = count)
         }
+    }
+}
+
+@Composable
+private fun SelectionBar(
+    count: Int,
+    onCancel: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    ScreenHeader(
+        "$count sélectionnés",
+        eyebrow = "Édition en lot",
+        leading = { KeyButton(Icons.Default.Close, "Annuler la sélection", onCancel) },
+    ) {
+        VaultButton("Modifier", onEdit, size = ButtonSize.Small)
     }
 }

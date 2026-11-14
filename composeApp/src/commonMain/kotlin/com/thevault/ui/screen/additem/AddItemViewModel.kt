@@ -3,13 +3,15 @@ package com.thevault.ui.screen.additem
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thevault.domain.model.Game
-import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.PlayLog
+import com.thevault.domain.model.PlayStatus
 import com.thevault.domain.model.Region
 import com.thevault.domain.model.RemoteGame
 import com.thevault.domain.usecase.GetGameByIdUseCase
 import com.thevault.domain.usecase.SaveGameUseCase
 import com.thevault.domain.usecase.SearchRemoteGamesUseCase
+import com.thevault.ui.screen.copy.CopyDraft
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,18 +34,17 @@ import kotlin.uuid.Uuid
  * @property genre Genre.
  * @property releaseYear Release year as typed.
  * @property region Region.
- * @property condition Condition.
+ * @property draft Parts, wear, edition, purchase, storage, loan and sale of the copy, as typed.
  * @property status Status.
- * @property purchasePrice Purchase price as typed.
  * @property currentValue Manual value as typed (used when there is no eBay quote).
  * @property rating Personal rating (0 = none).
  * @property developer Developer.
  * @property publisher Publisher.
  * @property notes Notes.
  * @property coverUrl Cover URL.
- * @property collector Collector's edition.
- * @property limited Limited edition.
  * @property availablePlatforms Platforms of the IGDB game.
+ * @property play Backlog status and time played.
+ * @property playHours Hours played as typed.
  * @property remote IGDB game picked, if any.
  * @property isSaving Whether a save is running.
  * @property isSuccess Whether the game was saved (screen closes).
@@ -58,18 +59,17 @@ data class AddItemUiState(
     val genre: String = "",
     val releaseYear: String = "",
     val region: Region = Region.PAL,
-    val condition: ItemCondition = ItemCondition.CIB,
+    val draft: CopyDraft = CopyDraft(),
     val status: ItemStatus = ItemStatus.OWNED,
-    val purchasePrice: String = "",
     val currentValue: String = "",
     val rating: Int = 0,
     val developer: String = "",
     val publisher: String = "",
     val notes: String = "",
     val coverUrl: String? = null,
-    val collector: Boolean = false,
-    val limited: Boolean = false,
     val availablePlatforms: List<String> = emptyList(),
+    val play: PlayStatus? = null,
+    val playHours: String = "",
     val remote: RemoteGame? = null,
     val isSaving: Boolean = false,
     val isSuccess: Boolean = false,
@@ -78,7 +78,7 @@ data class AddItemUiState(
     val searchError: String? = null,
 ) {
     /** Whether the form can be saved. */
-    val canSave: Boolean get() = !isSaving && title.isNotBlank() && platform.isNotBlank()
+    val canSave: Boolean get() = !isSaving && title.isNotBlank() && platform.isNotBlank() && draft.datesValid
 }
 
 /** ViewModel of the full game form (add or edit). */
@@ -153,7 +153,7 @@ class AddItemViewModel(
         viewModelScope.launch {
             val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
             val base =
-                s.original ?: Game(Uuid.random().toString(), "", "", "", 0, s.region, s.condition, status = s.status, acquiredAt = today)
+                s.original ?: Game(Uuid.random().toString(), "", "", "", 0, s.region, status = s.status, acquiredAt = today)
             saveGame(s.applyTo(base))
             state.update { it.copy(isSaving = false, isSuccess = true) }
         }
@@ -174,19 +174,30 @@ private fun Game.toForm() =
         genre = genre.takeIf { it != "N/A" }.orEmpty(),
         releaseYear = releaseYear.takeIf { it > 0 }?.toString().orEmpty(),
         region = region,
-        condition = condition,
+        draft = CopyDraft.of(details, purchasePrice, acquiredAt),
         status = status,
-        purchasePrice = purchasePrice?.toPlain().orEmpty(),
         currentValue = currentValue?.toPlain().orEmpty(),
         rating = rating ?: 0,
         developer = developer.orEmpty(),
         publisher = publisher.orEmpty(),
         notes = notes.orEmpty(),
         coverUrl = coverUrl,
-        collector = isCollectorEdition,
-        limited = isLimitedEdition,
         availablePlatforms = listOf(platform),
+        play = play.status,
+        playHours =
+            play.minutes
+                ?.let { m ->
+                    if (m % MINUTES ==
+                        0
+                    ) {
+                        "${m / MINUTES}"
+                    } else {
+                        "${m / MINUTES},${m % MINUTES * 10 / MINUTES}"
+                    }
+                }.orEmpty(),
     )
+
+private const val MINUTES = 60
 
 /** Copies the form onto [base], keeping the fields the form does not show. */
 private fun AddItemUiState.applyTo(base: Game): Game =
@@ -196,10 +207,12 @@ private fun AddItemUiState.applyTo(base: Game): Game =
         genre = genre.ifBlank { "N/A" },
         releaseYear = releaseYear.toIntOrNull() ?: 0,
         region = region,
-        condition = condition,
+        details = draft.toDetails(),
+        play = PlayLog(play, playHours.toAmount()?.let { (it * MINUTES).toInt() }),
         status = status,
         coverUrl = coverUrl,
-        purchasePrice = purchasePrice.toAmount(),
+        purchasePrice = draft.purchasePrice,
+        acquiredAt = draft.purchaseDate ?: base.acquiredAt,
         currentValue = currentValue.toAmount(),
         rating = rating.takeIf { it > 0 },
         developer = developer.ifBlank { null },
@@ -207,8 +220,6 @@ private fun AddItemUiState.applyTo(base: Game): Game =
         gameModes = remote?.gameModes?.joinToString(", ")?.ifBlank { null } ?: base.gameModes,
         themes = remote?.themes?.joinToString(", ")?.ifBlank { null } ?: base.themes,
         notes = notes.ifBlank { null },
-        isCollectorEdition = collector,
-        isLimitedEdition = limited,
     )
 
 /** "12.5" → "12,5", "40.0" → "40". */

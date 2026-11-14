@@ -94,16 +94,20 @@ fun CollectionContent(
                 items(ItemKind.entries) { k ->
                     VaultChip(
                         k.label,
-                        k == kind,
+                        k == kind && !state.filters.showSold,
                         { viewModel.onKindSelected(k) },
                         count =
                             state.totals[k]?.count ?: 0,
                     )
                 }
+                if (state.sold.isNotEmpty()) {
+                    item { VaultChip("Vendus", state.filters.showSold, viewModel::onSoldSelected, count = state.sold.size) }
+                }
             }
         }
         when {
             state.isLoading -> fullWidth { LoadingBox() }
+            state.filters.showSold -> soldSection(state.sold, navigation)
             kind == ItemKind.Game -> gamesSection(state, viewModel, navigation)
             kind == ItemKind.Console -> consolesSection(state, viewModel, navigation)
             else -> accessoriesSection(state, viewModel, navigation)
@@ -127,9 +131,18 @@ internal fun LazyGridScope.cards(
     entries: List<CollectionEntry>,
     onClick: (CollectionEntry) -> Unit,
     missing: Boolean = false,
+    selection: Set<String>? = null,
+    onSelect: ((CollectionEntry) -> Unit)? = null,
 ) {
     items(entries, key = { "${it.kind}_${it.id}" }) { entry ->
-        CollectionCard(entry.card, { onClick(entry) }, missing = missing || entry.status == ItemStatus.WISHLIST)
+        val selecting = !selection.isNullOrEmpty()
+        CollectionCard(
+            entry.card,
+            { if (selecting && onSelect != null) onSelect(entry) else onClick(entry) },
+            missing = missing || entry.status == ItemStatus.WISHLIST,
+            selected = selection?.contains(entry.id) == true,
+            onLongClick = onSelect?.let { { it(entry) } },
+        )
     }
 }
 

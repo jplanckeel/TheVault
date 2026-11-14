@@ -94,6 +94,12 @@ val sharedModule =
         single<GameRemoteDataSource> { TheVaultBoRemoteDataSource(get(), ApiConfig.BASE_URL, ApiConfig.API_KEY) }
         single<ItemSyncRemoteDataSource> { TheVaultBoSyncDataSource(get(), ApiConfig.BASE_URL, ApiConfig.API_KEY) }
         single<PriceRemoteDataSource> { TheVaultBoPriceDataSource(get(), ApiConfig.BASE_URL, ApiConfig.API_KEY) }
+        single<com.thevault.data.remote.VaultRemoteDataSource> {
+            com.thevault.data.remote.TheVaultBoVaultDataSource(
+                get(),
+                ApiConfig.BASE_URL,
+            )
+        }
 
         // ─── Background work ─────────────────────────────────────────────────────
         single(AppScope) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
@@ -128,6 +134,18 @@ val sharedModule =
         factory { ObserveQuotesUseCase(get()) }
         factory { RefreshQuotesUseCase(get(), get()) }
         factory { GetPriceHistoryUseCase(get()) }
+        factory {
+            com.thevault.domain.usecase
+                .ObservePriceSnapshotsUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .RecordImportedPricesUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .GetImportedPricesUseCase(get())
+        }
         factory { ObserveValueHistoryUseCase(get()) }
         factory { RecordValueSnapshotUseCase(get()) }
         factory { ObserveAchievementUnlocksUseCase(get()) }
@@ -135,6 +153,47 @@ val sharedModule =
         factory { MarkAchievementSeenUseCase(get()) }
         factory { ObserveSettingUseCase(get()) }
         factory { SetSettingUseCase(get()) }
+        factory {
+            com.thevault.domain.usecase
+                .ObserveSetsUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .SaveSetUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .DeleteSetUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .EditSetEntryUseCase(get())
+        }
+
+        factory {
+            com.thevault.domain.usecase
+                .AccountUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .SignInUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .BackupVaultUseCase(get(), get(), get(), get(), get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .RestoreVaultUseCase(get(), get(), get(), get(), get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .ShareLinksUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .EditShareUseCase(get())
+        }
 
         // ─── Repositories ──────────────────────────────────────────────────────────
         single<VaultStatsRepository> { VaultStatsRepositoryImpl(get()) }
@@ -146,4 +205,12 @@ val sharedModule =
         single<AchievementRepository> { AchievementRepositoryImpl(get()) }
         single<SettingsRepository> { SettingsRepositoryImpl(get()) }
         single<CatalogSyncRepository> { CatalogSyncRepositoryImpl(get(), get()) }
+        single<com.thevault.domain.repository.VaultRepository> {
+            com.thevault.data.repository
+                .VaultRepositoryImpl(get(), get(), ApiConfig.BASE_URL.substringBefore("/api/"))
+        }
+        single<com.thevault.domain.repository.SetRepository> {
+            com.thevault.data.repository
+                .SetRepositoryImpl(get())
+        }
     }

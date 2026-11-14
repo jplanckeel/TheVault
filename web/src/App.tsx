@@ -11,6 +11,7 @@ import AdminDataPage from './pages/admin/AdminDataPage'
 import AdminSyncPage from './pages/admin/AdminSyncPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import SharePage from './pages/SharePage'
 import DashboardPage from './pages/DashboardPage'
 import CollectionPage from './pages/CollectionPage'
 import WishlistPage from './pages/WishlistPage'
@@ -54,6 +55,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/share/:token" element={<SharePage />} />
             <Route path="/" element={<AppLayout />}>
               <Route index element={<RequireAuth fallback="/catalogue"><DashboardPage /></RequireAuth>} />
               <Route path="collection" element={<RequireAuth><CollectionPage /></RequireAuth>} />

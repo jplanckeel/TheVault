@@ -36,7 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
 import com.thevault.ui.theme.Vault
 import com.thevault.ui.theme.VaultRadius
 import com.thevault.ui.theme.molded
@@ -120,7 +120,7 @@ fun ListRow(
     modifier: Modifier = Modifier,
     meta: String? = null,
     trailing: String? = null,
-    cover: Triple<String?, String, ItemCondition?>? = null,
+    cover: Triple<String?, String, Components?>? = null,
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
 ) {

@@ -8,6 +8,16 @@ import kotlin.math.roundToLong
 private const val NARROW_NBSP = ' '
 
 /**
+ * Privacy switch « Masquer les prix »: when on, [formatEuro] prints « ••• € ». Set by the
+ * app root from the user setting (the UI is recomposed when it changes); exports use their
+ * own formatting and are never masked.
+ */
+object PriceMask {
+    /** Whether amounts are hidden. */
+    var hidden: Boolean = false
+}
+
+/**
  * Formats an amount in euros using the fr-FR convention (`1 234 €`, `12,50 €`).
  * Implemented by hand because `String.format` is not available in common code.
  *
@@ -18,6 +28,7 @@ fun formatEuro(
     amount: Double,
     decimals: Int = 0,
 ): String {
+    if (PriceMask.hidden) return "•••${NARROW_NBSP}€"
     val factor = if (decimals == 2) 100L else 1L
     val scaled = (abs(amount) * factor).roundToLong()
     val integerPart = scaled / factor

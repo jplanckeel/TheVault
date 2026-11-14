@@ -2,6 +2,7 @@ package com.thevault.ui.screen.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.thevault.domain.usecase.ObservePriceSnapshotsUseCase
 import com.thevault.domain.usecase.ObserveSyncedIdsUseCase
 import com.thevault.domain.usecase.ObserveValueHistoryUseCase
 import com.thevault.ui.screen.collection.ChartPeriod
@@ -9,6 +10,8 @@ import com.thevault.ui.screen.collection.HomeSummary
 import com.thevault.ui.screen.collection.VaultEntriesSource
 import com.thevault.ui.screen.collection.buildHomeSummary
 import com.thevault.ui.screen.collection.window
+import com.thevault.ui.screen.report.QuoteReport
+import com.thevault.ui.screen.report.buildQuoteReport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,7 @@ import kotlin.time.Clock
  * @property points Daily values of the period, oldest first.
  * @property change Change over the period, null with fewer than two points.
  * @property pending Items not pushed to the catalogue yet.
+ * @property report What the last quote refresh changed, null before the second refresh.
  */
 data class HomeUiState(
     val summary: HomeSummary? = null,
@@ -33,6 +37,7 @@ data class HomeUiState(
     val points: List<Double> = emptyList(),
     val change: Double? = null,
     val pending: Int = 0,
+    val report: QuoteReport? = null,
 )
 
 /** ViewModel of the home screen. */
@@ -40,6 +45,7 @@ class HomeViewModel(
     source: VaultEntriesSource,
     observeHistory: ObserveValueHistoryUseCase,
     observeSynced: ObserveSyncedIdsUseCase,
+    observeSnapshots: ObservePriceSnapshotsUseCase,
 ) : ViewModel() {
     private val period = MutableStateFlow(ChartPeriod.Month)
 
@@ -55,7 +61,10 @@ class HomeViewModel(
                 change = if (points.size >= 2) points.last() - points.first() else null,
                 pending = entries.count { it.id !in synced },
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
+        }.combine(
+            combine(source.entries(), observeSnapshots()) { e, s -> buildQuoteReport(e, s) },
+        ) { state, report -> state.copy(report = report) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
     /** Selects the chart period. */
     fun onPeriodSelected(value: ChartPeriod) {

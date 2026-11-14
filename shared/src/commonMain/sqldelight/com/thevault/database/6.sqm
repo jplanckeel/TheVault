@@ -1,0 +1,26 @@
+-- Phase 3: wishlist preferences, play tracking, completion lists.
+
+ALTER TABLE game ADD COLUMN wish_priority INTEGER;
+ALTER TABLE game ADD COLUMN wish_max_price REAL;
+ALTER TABLE game ADD COLUMN wish_target TEXT;
+ALTER TABLE console ADD COLUMN wish_priority INTEGER;
+ALTER TABLE console ADD COLUMN wish_max_price REAL;
+ALTER TABLE console ADD COLUMN wish_target TEXT;
+ALTER TABLE accessory ADD COLUMN wish_priority INTEGER;
+ALTER TABLE accessory ADD COLUMN wish_max_price REAL;
+ALTER TABLE accessory ADD COLUMN wish_target TEXT;
+ALTER TABLE game ADD COLUMN play_status TEXT;
+ALTER TABLE game ADD COLUMN play_minutes INTEGER;
+
+CREATE TABLE item_set (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE set_entry (
+    set_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    PRIMARY KEY (set_id, title, platform)
+);

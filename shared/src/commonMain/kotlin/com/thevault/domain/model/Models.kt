@@ -13,23 +13,6 @@ enum class ItemStatus {
 }
 
 /**
- * Represents the physical condition of a collectible item.
- */
-enum class ItemCondition {
-    MINT,
-    VERY_GOOD,
-    GOOD,
-    FAIR,
-    POOR,
-
-    // Formats spécifiques de collection
-    LOOSE,
-    CIB_NO_MANUAL,
-    CIB,
-    NEW_SEALED,
-}
-
-/**
  * Represents the geographical region of a collectible item.
  */
 enum class Region {
@@ -48,13 +31,14 @@ enum class Region {
  * @property genre Main genre of the game.
  * @property releaseYear Year of release.
  * @property region Geographical region.
- * @property condition Physical condition of the cartridge/disc.
+ * @property details Parts, wear, purchase, storage, loan and sale of the copy.
  * @property coverUrl URL of the game cover image, or null if unknown.
  * @property status Current ownership status.
  * @property purchasePrice Price paid at acquisition, or null if unknown.
  * @property currentValue Estimated current market value, or null if unknown.
  * @property notes Optional personal notes about the game.
  * @property acquiredAt Date when the item was acquired.
+ * @property play Backlog status and time played (games only).
  */
 data class Game(
     val id: String,
@@ -63,7 +47,7 @@ data class Game(
     val genre: String,
     val releaseYear: Int,
     val region: Region,
-    val condition: ItemCondition,
+    val details: CopyDetails = CopyDetails(),
     val coverUrl: String? = null,
     val status: ItemStatus,
     val purchasePrice: Double? = null,
@@ -75,10 +59,7 @@ data class Game(
     val publisher: String? = null,
     val gameModes: String? = null,
     val themes: String? = null,
-    /** Whether this item is a collector's edition. */
-    val isCollectorEdition: Boolean = false,
-    /** Whether this item is a limited edition. */
-    val isLimitedEdition: Boolean = false,
+    val play: PlayLog = PlayLog(),
 )
 
 /**
@@ -89,7 +70,7 @@ data class Game(
  * @property manufacturer Manufacturer of the console (e.g., "Sony", "Nintendo").
  * @property region Geographical region variant.
  * @property color Color/edition of the console.
- * @property condition Physical condition.
+ * @property details Parts, wear, purchase, storage, loan and sale of the copy.
  * @property productionYear Year the console was produced.
  * @property status Current ownership status.
  * @property purchasePrice Price paid at acquisition, or null if unknown.
@@ -104,7 +85,7 @@ data class Console(
     val manufacturer: String,
     val region: Region,
     val color: String,
-    val condition: ItemCondition,
+    val details: CopyDetails = CopyDetails(),
     val productionYear: Int,
     val status: ItemStatus,
     val purchasePrice: Double? = null,
@@ -112,10 +93,6 @@ data class Console(
     val imageUrl: String? = null,
     val notes: String? = null,
     val acquiredAt: LocalDate? = null,
-    /** Whether this item is a collector's edition. */
-    val isCollectorEdition: Boolean = false,
-    /** Whether this item is a limited edition. */
-    val isLimitedEdition: Boolean = false,
 )
 
 /**
@@ -125,7 +102,7 @@ data class Console(
  * @property name Official name of the accessory.
  * @property type Type of accessory (e.g., "Controller", "Memory Card", "Cable").
  * @property compatibleConsole Name of the compatible console(s).
- * @property condition Physical condition.
+ * @property details Parts, wear, purchase, storage, loan and sale of the copy.
  * @property status Current ownership status.
  * @property purchasePrice Price paid at acquisition, or null if unknown.
  * @property currentValue Estimated current market value, or null if unknown.
@@ -138,17 +115,13 @@ data class Accessory(
     val name: String,
     val type: String,
     val compatibleConsole: String,
-    val condition: ItemCondition,
+    val details: CopyDetails = CopyDetails(),
     val status: ItemStatus,
     val purchasePrice: Double? = null,
     val currentValue: Double? = null,
     val imageUrl: String? = null,
     val notes: String? = null,
     val acquiredAt: LocalDate? = null,
-    /** Whether this item is a collector's edition. */
-    val isCollectorEdition: Boolean = false,
-    /** Whether this item is a limited edition. */
-    val isLimitedEdition: Boolean = false,
 )
 
 /**

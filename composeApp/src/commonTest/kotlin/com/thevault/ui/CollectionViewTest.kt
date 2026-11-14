@@ -1,6 +1,6 @@
 package com.thevault.ui
 
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import com.thevault.ui.component.FormatGroup
@@ -28,7 +28,7 @@ class CollectionViewTest {
         kind: ItemKind = ItemKind.Game,
         value: Double? = null,
         paid: Double? = null,
-        condition: ItemCondition = ItemCondition.CIB,
+        condition: Components = Components.CIB,
         status: ItemStatus = ItemStatus.OWNED,
         date: LocalDate? = null,
         subtype: String = "",
@@ -51,7 +51,7 @@ class CollectionViewTest {
     private val games =
         listOf(
             entry("a", value = 30.0, date = LocalDate(2024, 1, 1)),
-            entry("b", value = 250.0, condition = ItemCondition.LOOSE, date = LocalDate(2025, 6, 1)),
+            entry("b", value = 250.0, condition = Components.LOOSE, date = LocalDate(2025, 6, 1)),
             entry("c", platform = "Microsoft Xbox 360", value = 10.0),
             entry("d", platform = "Wii"),
         )
@@ -101,7 +101,7 @@ class CollectionViewTest {
 
     @Test
     fun statsCountFormatsAndPurchases() {
-        val stats = buildStatsSummary(games + entry("e", paid = 20.0, condition = ItemCondition.NEW_SEALED))
+        val stats = buildStatsSummary(games + entry("e", paid = 20.0, condition = Components.SEALED))
         assertEquals(3, stats.formats[FormatGroup.Complete])
         assertEquals(1, stats.formats[FormatGroup.Loose])
         assertEquals(1, stats.formats[FormatGroup.Sealed])

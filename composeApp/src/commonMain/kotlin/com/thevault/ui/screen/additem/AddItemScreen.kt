@@ -26,8 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.PlayStatus
 import com.thevault.domain.model.Region
 import com.thevault.ui.component.ButtonSize
 import com.thevault.ui.component.Engrave
@@ -40,21 +40,9 @@ import com.thevault.ui.component.VaultChip
 import com.thevault.ui.component.VaultTextField
 import com.thevault.ui.component.label
 import com.thevault.ui.component.shortPlatformName
+import com.thevault.ui.screen.copy.CopyFormSections
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
-
-private val FormConditions =
-    listOf(
-        ItemCondition.LOOSE,
-        ItemCondition.CIB_NO_MANUAL,
-        ItemCondition.CIB,
-        ItemCondition.MINT,
-        ItemCondition.NEW_SEALED,
-        ItemCondition.VERY_GOOD,
-        ItemCondition.GOOD,
-        ItemCondition.FAIR,
-        ItemCondition.POOR,
-    )
 
 /** Add (or edit when [gameId] is set) a game. */
 @Composable
@@ -169,13 +157,9 @@ private fun Choices(
     viewModel: AddItemViewModel,
 ) {
     ChipGroup("Statut", ItemStatus.entries, state.status, { it.label }) { s -> viewModel.update { it.copy(status = s) } }
-    ChipGroup("État", FormConditions, state.condition, { it.label }) { c -> viewModel.update { it.copy(condition = c) } }
     ChipGroup("Région", Region.entries, state.region, { it.label }) { r -> viewModel.update { it.copy(region = r) } }
-    Engrave("Édition")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        VaultChip("Collector", state.collector, { viewModel.update { it.copy(collector = !it.collector) } })
-        VaultChip("Limitée", state.limited, { viewModel.update { it.copy(limited = !it.limited) } })
-    }
+    CopyFormSections(state.draft, state.status) { d -> viewModel.update { it.copy(draft = d) } }
+    PlaySection(state, viewModel)
 }
 
 @Composable
@@ -197,21 +181,58 @@ private fun PriceFields(
     state: AddItemUiState,
     viewModel: AddItemViewModel,
 ) {
-    val decimal = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        VaultTextField("Prix payé", state.purchasePrice, { v ->
-            viewModel.update {
-                it.copy(purchasePrice = v)
-            }
-        }, Modifier.weight(1f), keyboardOptions = decimal, suffix = "€")
-        VaultTextField("Valeur manuelle", state.currentValue, { v ->
-            viewModel.update {
-                it.copy(currentValue = v)
-            }
-        }, Modifier.weight(1f), keyboardOptions = decimal, suffix = "€")
-    }
+    VaultTextField(
+        "Valeur manuelle",
+        state.currentValue,
+        { v -> viewModel.update { it.copy(currentValue = v) } },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        suffix = "€",
+    )
     Text("La cote eBay remplace la valeur manuelle dès qu'elle est disponible.", style = Vault.type.caption, color = Vault.colors.inkMuted)
 }
 
 private const val MAX_SUGGESTIONS = 5
 private const val YEAR_DIGITS = 4
+
+@Composable
+private fun PlaySection(
+    state: AddItemUiState,
+    viewModel: AddItemViewModel,
+) {
+    Engrave("Backlog")
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(PlayStatus.entries) { p ->
+            VaultChip(p.label, state.play == p, { viewModel.update { it.copy(play = if (it.play == p) null else p) } })
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        VaultTextField(
+            "Temps de jeu",
+            state.playHours,
+            { v -> viewModel.update { it.copy(playHours = v) } },
+            Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            suffix = "h",
+        )
+        VaultTextField(
+            "Note /10",
+            if (state.rating > 0) "${state.rating}" else "",
+            { v ->
+                viewModel.update {
+                    it.copy(
+                        rating =
+                            v
+                                .filter(Char::isDigit)
+                                .take(2)
+                                .toIntOrNull()
+                                ?.coerceIn(0, MAX_RATING) ?: 0,
+                    )
+                }
+            },
+            Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        )
+    }
+}
+
+private const val MAX_RATING = 10

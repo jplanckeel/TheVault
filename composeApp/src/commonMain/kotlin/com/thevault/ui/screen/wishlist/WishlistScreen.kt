@@ -35,6 +35,8 @@ import com.thevault.ui.component.shortPlatformName
 import com.thevault.ui.navigation.tabBarClearance
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.ItemKind
+import com.thevault.ui.screen.copy.WishPriorities
+import com.thevault.ui.screen.copy.label
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -77,6 +79,21 @@ private fun LazyListScope.content(
     state: WishlistUiState,
     onEntryClick: (CollectionEntry) -> Unit,
 ) {
+    if (state.underPrice.isNotEmpty()) {
+        item {
+            Panel(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                StatusLed(LedColor.Power, label = "${state.underPrice.size} sous ton prix")
+                Text(
+                    "La cote eBay PAL est passée sous le prix max que tu as fixé.",
+                    style = Vault.type.caption,
+                    color = Vault.colors.ink,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+        }
+        item { SectionHeader("Sous ton prix", Modifier.padding(top = 12.dp)) }
+        items(state.underPrice, key = { "under_${it.id}" }) { WishRow(it, onEntryClick) }
+    }
     if (state.dropping.isNotEmpty()) {
         item {
             Panel(Modifier.fillMaxWidth().padding(top = 8.dp)) {
@@ -111,7 +128,17 @@ private fun WishRow(
         }
     ListRow(
         title = entry.title,
-        meta = listOf(where, entry.condition.formatLabel).filter { it.isNotBlank() }.joinToString(" · "),
+        meta =
+            listOfNotNull(
+                where,
+                (
+                    entry.details.wish.target
+                        ?.label ?: entry.condition.formatLabel
+                ),
+                entry.details.wish.maxPrice
+                    ?.let { "max ${formatEuro(it)}" },
+                WishPriorities.find { it.first == entry.details.wish.priority }?.second?.let { "priorité $it" },
+            ).filter { it.isNotBlank() }.joinToString(" · "),
         trailing = formatEuroOrDash(entry.value),
         cover = Triple(entry.coverUrl, entry.platform, entry.condition),
         onClick = { onClick(entry) },

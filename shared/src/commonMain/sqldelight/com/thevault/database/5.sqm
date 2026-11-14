@@ -1,0 +1,15 @@
+-- Phase 2: price history per item and source.
+
+CREATE TABLE price_snapshot (
+    item_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    source TEXT NOT NULL,
+    price_loose REAL,
+    price_cib REAL,
+    price_new REAL,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    sample_size INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (item_id, day, source)
+);
+
+CREATE INDEX price_snapshot_source ON price_snapshot(source, day);

@@ -21,10 +21,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.thevault.domain.model.Edition
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemStatus
 import com.thevault.ui.component.ButtonVariant
 import com.thevault.ui.component.CopyPanel
+import com.thevault.ui.component.CopyPurchase
 import com.thevault.ui.component.DeleteConfirmDialog
 import com.thevault.ui.component.DetailHeader
 import com.thevault.ui.component.DetailTopBar
@@ -36,6 +38,8 @@ import com.thevault.ui.component.Panel
 import com.thevault.ui.component.StatusDialog
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.label
+import com.thevault.ui.component.needsDetails
+import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -65,7 +69,7 @@ fun GameDetailScreen(
         LoadingBox()
         return
     }
-    DetailDialogs(dialog, game, viewModel) { dialog = null }
+    DetailDialogs(dialog, game, viewModel, onEdit) { dialog = null }
     Column(
         Modifier
             .fillMaxSize()
@@ -88,17 +92,42 @@ fun GameDetailScreen(
             game.title,
             game.platform,
             game.region,
+            game.details.regionVariant,
             game.coverUrl,
             credits(game),
             fromIgdb = game.coverUrl != null,
         )
-        CopyPanel(game.condition, game.purchasePrice, state.value, game.acquiredAt, footer = editions(game))
-        MarketSection(state.quotes, state.grade, state.history, viewModel::onGradeSelected)
+        CopyPanel(
+            game.details,
+            CopyPurchase(game.purchasePrice, game.acquiredAt, state.value, state.valueSource == ValueSource.UsIndicative),
+        )
+        MarketSection(state.quotes, state.grade, state.history, viewModel::onGradeSelected, state.usPrice)
+        BacklogPanel(game)
         NotesPanel(game.notes)
         val wish = game.status == ItemStatus.WISHLIST
         DetailButtons(wish, { if (wish) viewModel.setStatus(ItemStatus.OWNED) else dialog = DetailDialog.Status }, onEdit)
     }
 }
+
+@Composable
+private fun BacklogPanel(game: Game) {
+    val parts =
+        listOfNotNull(
+            game.play.status?.label,
+            game.play.minutes?.let { m ->
+                "${m / MINUTES_PER_HOUR} h" +
+                    if (m % MINUTES_PER_HOUR != 0) " ${m % MINUTES_PER_HOUR} min" else ""
+            },
+            game.rating?.takeIf { it > 0 }?.let { "note $it/10" },
+        )
+    if (parts.isEmpty()) return
+    Panel(Modifier.fillMaxWidth()) {
+        Engrave("Backlog")
+        Text(parts.joinToString(" · "), style = Vault.type.bodyStrong, color = Vault.colors.ink, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+private const val MINUTES_PER_HOUR = 60
 
 @Composable
 private fun NotesPanel(notes: String?) {
@@ -126,10 +155,16 @@ private fun DetailDialogs(
     dialog: DetailDialog?,
     game: Game,
     viewModel: GameDetailViewModel,
+    onEdit: () -> Unit,
     onClose: () -> Unit,
 ) {
     when (dialog) {
-        DetailDialog.Status -> StatusDialog(game.status, { viewModel.setStatus(it).also { onClose() } }, { onClose() })
+        DetailDialog.Status ->
+            StatusDialog(game.status, {
+                viewModel.setStatus(it)
+                onClose()
+                if (it.needsDetails) onEdit()
+            }, { onClose() })
         DetailDialog.Delete ->
             DeleteConfirmDialog(game.title, {
                 onClose()
@@ -148,6 +183,7 @@ private fun credits(game: Game): String =
 
 private fun editions(game: Game): List<String> =
     listOfNotNull(
-        "Édition collector".takeIf { game.isCollectorEdition },
-        "Édition limitée".takeIf { game.isLimitedEdition },
+        game.details.edition
+            .takeIf { it != Edition.STANDARD }
+            ?.let { "Édition ${it.label.lowercase()}" },
     )

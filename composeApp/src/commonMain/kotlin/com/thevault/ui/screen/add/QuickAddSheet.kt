@@ -36,11 +36,13 @@ import com.thevault.ui.component.ButtonVariant
 import com.thevault.ui.component.CoverSize
 import com.thevault.ui.component.Engrave
 import com.thevault.ui.component.GameCover
+import com.thevault.ui.component.LedColor
 import com.thevault.ui.component.LinkText
 import com.thevault.ui.component.PlatformTag
 import com.thevault.ui.component.Segment
 import com.thevault.ui.component.SegmentedControl
 import com.thevault.ui.component.SourceBadge
+import com.thevault.ui.component.StatusLed
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.VaultChip
 import com.thevault.ui.component.VaultTextField
@@ -70,6 +72,7 @@ data class QuickAddActions(
  * @param candidate Item being added.
  * @param form Current choices.
  * @param actions Sheet callbacks.
+ * @param alreadyOwned Copies of this title on this platform already in the collection.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +80,7 @@ fun QuickAddSheet(
     candidate: AddCandidate,
     form: QuickAddForm,
     actions: QuickAddActions,
+    alreadyOwned: Int = 0,
 ) {
     val c = Vault.colors
     ModalBottomSheet(
@@ -98,6 +102,12 @@ fun QuickAddSheet(
         ) {
             Text(candidate.title, style = Vault.type.displayM.copy(fontSize = 20.sp), color = c.ink)
             SheetHeader(candidate, form)
+            if (alreadyOwned > 0) {
+                StatusLed(
+                    LedColor.Power,
+                    label = if (alreadyOwned > 1) "Déjà $alreadyOwned exemplaires dans le coffre" else "Déjà dans le coffre",
+                )
+            }
             if (candidate.kind == ItemKind.Accessory ||
                 (candidate.kind == ItemKind.Game && candidate.platforms.size > 1)
             ) {

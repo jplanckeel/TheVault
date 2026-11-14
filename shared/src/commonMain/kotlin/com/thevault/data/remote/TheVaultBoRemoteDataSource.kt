@@ -18,7 +18,7 @@ import io.ktor.client.request.parameter
  */
 class TheVaultBoRemoteDataSource(
     private val httpClient: HttpClient,
-    private val baseUrl: String = "https://thevault.bananaops.cloud/api/v1",
+    private val baseUrl: String,
     private val apiKey: String,
 ) : GameRemoteDataSource {
     override suspend fun searchGames(query: String): List<RemoteGame> {

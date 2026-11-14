@@ -1,22 +1,17 @@
 package com.thevault.ui.component
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.PriceGrade
 import com.thevault.domain.model.PricePoint
 import com.thevault.domain.model.PriceQuote
@@ -36,8 +30,6 @@ import com.thevault.domain.model.Region
 import com.thevault.ui.theme.Vault
 import com.thevault.ui.theme.VaultRadius
 import com.thevault.ui.theme.well
-import kotlinx.datetime.LocalDate
-import kotlin.math.abs
 import kotlin.time.Clock
 
 /**
@@ -76,6 +68,7 @@ fun DetailTopBar(
  * @param title Title.
  * @param platform Platform.
  * @param region Region.
+ * @param variant Region variant.
  * @param coverUrl Cover URL.
  * @param credits Credits line.
  * @param fromIgdb Shows « Fiche IGDB ».
@@ -86,6 +79,7 @@ fun DetailHeader(
     title: String,
     platform: String,
     region: Region?,
+    variant: String?,
     coverUrl: String?,
     credits: String,
     fromIgdb: Boolean,
@@ -93,7 +87,7 @@ fun DetailHeader(
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
         GameCover(coverUrl, title, platform, Modifier.width(132.dp), CoverSize.L)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlatformTag(platform, region = region)
+            PlatformTag(platform, region = region, variant = variant)
             val style =
                 if (title.length >
                     LONG_TITLE
@@ -106,113 +100,6 @@ fun DetailHeader(
             if (credits.isNotBlank()) Text(credits, style = Vault.type.caption, color = Vault.colors.inkMuted)
             if (fromIgdb) SourceBadge("Fiche IGDB")
         }
-    }
-}
-
-/**
- * « Mon exemplaire » panel: paid, quote, gain, parts and purchase line.
- *
- * @param condition Condition.
- * @param paid Purchase price.
- * @param value Effective value.
- * @param acquiredAt Purchase date.
- * @param footer Extra engraved footer parts (status…).
- */
-@Composable
-fun CopyPanel(
-    condition: ItemCondition,
-    paid: Double?,
-    value: Double?,
-    acquiredAt: LocalDate?,
-    footer: List<String> = emptyList(),
-) {
-    val c = Vault.colors
-    Panel(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Engrave("Mon exemplaire", Modifier.weight(1f))
-            ConditionTag(condition)
-        }
-        CopyFigures(paid, value)
-        condition.parts?.let { parts ->
-            Box(
-                Modifier
-                    .padding(top = 14.dp)
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(c.line),
-            )
-            Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                parts.forEach { (name, present) -> Part(name, present) }
-            }
-        }
-        val line = listOfNotNull(acquiredAt?.let { "Acheté le ${formatLongDate(it)}" }) + footer
-        if (line.isNotEmpty()) {
-            Text(
-                line.joinToString(" · ").uppercase(),
-                style = Vault.type.monoTag,
-                color = c.inkMuted,
-                modifier = Modifier.padding(top = 12.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun CopyFigures(
-    paid: Double?,
-    value: Double?,
-) {
-    val c = Vault.colors
-    Row(Modifier.padding(top = 14.dp)) {
-        Figure("Payé", formatEuroOrDash(paid), Modifier.weight(1f))
-        Figure("Cote", formatEuroOrDash(value), Modifier.weight(1f))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Plus-value", style = Vault.type.caption, color = c.inkMuted)
-            if (paid != null && value != null) {
-                val gain = value - paid
-                if (gain ==
-                    0.0
-                ) {
-                    Text(formatEuro(0.0), style = Vault.type.monoPrice, color = c.ink)
-                } else {
-                    PriceDelta(
-                        formatEuro(abs(gain)),
-                        gain > 0,
-                    )
-                }
-            } else {
-                Text("—", style = Vault.type.monoPrice, color = c.inkMuted)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Figure(
-    label: String,
-    value: String,
-    modifier: Modifier,
-) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = Vault.type.caption, color = Vault.colors.inkMuted)
-        Text(value, style = Vault.type.monoPrice, color = Vault.colors.ink)
-    }
-}
-
-@Composable
-private fun Part(
-    name: String,
-    present: Boolean,
-) {
-    val color = if (present) Vault.colors.indigoInk else Vault.colors.inkMuted
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(
-            if (present) Icons.Default.Check else Icons.Default.Close,
-            contentDescription = if (present) "Présent" else "Absent",
-            tint = color,
-            modifier = Modifier.size(14.dp),
-        )
-        Text(name, style = Vault.type.label, color = color)
     }
 }
 
@@ -233,6 +120,7 @@ val PriceGrade.label: String
  * @param selected Selected grade.
  * @param history Price history.
  * @param onSelect Grade callback.
+ * @param usPrice Indicative US price of the import, shown apart.
  */
 @Composable
 fun ColumnScope.MarketSection(
@@ -240,12 +128,20 @@ fun ColumnScope.MarketSection(
     selected: PriceGrade,
     history: List<PricePoint>,
     onSelect: (PriceGrade) -> Unit,
+    usPrice: Double? = null,
 ) {
     val c = Vault.colors
     val latest = quotes.maxOfOrNull { it.scrapedAt }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text("Cote eBay", style = Vault.type.displayM, color = c.ink, modifier = Modifier.weight(1f))
         if (latest != null) SourceBadge("eBay", updated = formatAge(Clock.System.now() - latest)) else SourceBadge("eBay", stale = true)
+    }
+    if (usPrice != null) {
+        Text(
+            "Cote US indicative (import Gameye) : ${formatEuro(usPrice, decimals = 2)} — prix américain, pas une cote PAL.",
+            style = Vault.type.caption,
+            color = c.inkMuted,
+        )
     }
     if (quotes.isEmpty()) {
         Text(

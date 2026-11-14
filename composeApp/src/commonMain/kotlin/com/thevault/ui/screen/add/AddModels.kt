@@ -1,6 +1,7 @@
 package com.thevault.ui.screen.add
 
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
+import com.thevault.domain.model.Grade
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import com.thevault.domain.model.RemoteGame
@@ -10,7 +11,13 @@ import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.ItemKind
 
 /** Formats offered by the quick add sheet. */
-val QuickFormats = listOf(ItemCondition.LOOSE, ItemCondition.CIB, ItemCondition.MINT, ItemCondition.NEW_SEALED)
+val QuickFormats =
+    listOf(
+        Components.LOOSE,
+        Components.CIB,
+        Components.CIB.copy(mediaGrade = Grade.MINT, boxGrade = Grade.MINT, manualGrade = Grade.MINT),
+        Components.SEALED,
+    )
 
 /** Regions offered by the quick add sheet. */
 val QuickRegions = listOf(Region.PAL, Region.NTSC_US, Region.NTSC_JP)
@@ -46,7 +53,7 @@ data class AddCandidate(
 data class QuickAddForm(
     val platform: String = "",
     val status: ItemStatus = ItemStatus.OWNED,
-    val condition: ItemCondition = ItemCondition.CIB,
+    val condition: Components = Components.CIB,
     val region: Region = Region.PAL,
     val price: String = "",
 )

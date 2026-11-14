@@ -1,6 +1,6 @@
 package com.thevault.ui
 
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import com.thevault.domain.model.RemoteGame
@@ -22,7 +22,7 @@ class AddModelsTest {
     private fun game(
         title: String,
         platform: String,
-        condition: ItemCondition = ItemCondition.CIB,
+        condition: Components = Components.CIB,
         region: Region = Region.PAL,
     ) = CollectionEntry(
         title,
@@ -48,7 +48,7 @@ class AddModelsTest {
 
     @Test
     fun computesHints() {
-        val entries = listOf(game("a", "x"), game("b", "x", ItemCondition.LOOSE, Region.NTSC_US), game("c", "x", region = Region.NTSC_US))
+        val entries = listOf(game("a", "x"), game("b", "x", Components.LOOSE, Region.NTSC_US), game("c", "x", region = Region.NTSC_US))
         assertEquals(66, cibShare(entries))
         assertEquals(Region.NTSC_US, preferredRegion(entries))
         assertNull(cibShare(emptyList()))
