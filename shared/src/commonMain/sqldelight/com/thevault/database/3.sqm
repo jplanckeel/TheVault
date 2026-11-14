@@ -1,0 +1,33 @@
+CREATE TABLE price_quote (
+    item_id TEXT NOT NULL,
+    grade TEXT NOT NULL,
+    median REAL NOT NULL,
+    price_min REAL NOT NULL,
+    price_max REAL NOT NULL,
+    samples INTEGER NOT NULL,
+    scraped_at TEXT NOT NULL,
+    median_past REAL,
+    PRIMARY KEY (item_id, grade)
+);
+
+CREATE TABLE value_snapshot (
+    day TEXT NOT NULL PRIMARY KEY,
+    total_value REAL NOT NULL,
+    invested REAL NOT NULL
+);
+
+CREATE TABLE achievement_unlock (
+    id TEXT NOT NULL PRIMARY KEY,
+    unlocked_at TEXT NOT NULL,
+    seen INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE app_setting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+CREATE TABLE sync_state (
+    item_id TEXT NOT NULL PRIMARY KEY,
+    synced_at TEXT NOT NULL
+);

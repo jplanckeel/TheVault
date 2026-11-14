@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS sync_events;
+DROP TABLE IF EXISTS item_tombstones;
+DROP TABLE IF EXISTS item_aliases;
+ALTER TABLE items DROP COLUMN IF EXISTS admin_edited;
+ALTER TABLE users DROP COLUMN IF EXISTS is_admin;

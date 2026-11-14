@@ -1,355 +1,162 @@
 package com.thevault.ui.screen.additem
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
-import com.thevault.domain.model.RemoteGame
-import com.thevault.ui.theme.*
-import com.thevault.ui.theme.Surface as VaultSurface
+import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.Region
+import com.thevault.ui.component.ButtonSize
+import com.thevault.ui.component.Engrave
+import com.thevault.ui.component.KeyButton
+import com.thevault.ui.component.ListRow
+import com.thevault.ui.component.Panel
+import com.thevault.ui.component.ScreenHeader
+import com.thevault.ui.component.VaultButton
+import com.thevault.ui.component.VaultChip
+import com.thevault.ui.component.VaultTextField
+import com.thevault.ui.component.label
+import com.thevault.ui.component.shortPlatformName
+import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val FormConditions =
+    listOf(
+        ItemCondition.LOOSE,
+        ItemCondition.CIB_NO_MANUAL,
+        ItemCondition.CIB,
+        ItemCondition.MINT,
+        ItemCondition.NEW_SEALED,
+        ItemCondition.VERY_GOOD,
+        ItemCondition.GOOD,
+        ItemCondition.FAIR,
+        ItemCondition.POOR,
+    )
+
+/** Add (or edit when [gameId] is set) a game. */
 @Composable
 fun AddItemScreen(
     gameId: String? = null,
     onBack: () -> Unit,
     viewModel: AddItemViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(gameId) {
-        if (gameId != null) {
-            viewModel.loadGame(gameId)
-        }
-    }
-
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
-            onBack()
-        }
-    }
-
-    Scaffold(
-        containerColor = VaultSurface,
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        text = if (gameId != null) "MODIFIER UN ITEM" else "AJOUTER UN ITEM", 
-                        style = MaterialTheme.typography.labelMedium, 
-                        letterSpacing = 2.sp
-                    ) 
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VaultSurface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    navigationIconContentColor = Color.White
-                )
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState()),
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    text = if (gameId != null) "Mise à jour" else "Nouvelle Acquisition",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Black,
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Title Search Section
-                VaultTextField(
-                    label = "TITRE DU JEU", 
-                    value = uiState.title, 
-                    onValueChange = viewModel::onTitleChange,
-                    trailingIcon = {
-                        if (uiState.isSearching) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
-                        } else {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                        }
-                    }
-                )
-            }
-
-            // Vignettes Selection (Horizontal Gallery)
-            if (uiState.searchResults.isNotEmpty()) {
-                Text(
-                    text = "RÉSULTATS IGDB",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Primary,
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    uiState.searchResults.forEach { result ->
-                        GameVignette(result) { viewModel.selectGame(result) }
-                    }
-                }
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                
-                if (uiState.availablePlatforms.isNotEmpty()) {
-                    Text(text = "PLATEFORME", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    PlatformSelector(
-                        platforms = uiState.availablePlatforms,
-                        selectedPlatform = uiState.platform,
-                        onPlatformSelected = viewModel::onPlatformChange
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                } else {
-                    VaultTextField(label = "PLATEFORME", value = uiState.platform, onValueChange = viewModel::onPlatformChange)
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-
-                if (uiState.developer.isNotBlank() || uiState.gameModes.isNotBlank()) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        if (uiState.developer.isNotBlank()) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("DÉVELOPPEUR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                                Text(uiState.developer, color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                        if (uiState.publisher.isNotBlank()) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("ÉDITEUR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                                Text(uiState.publisher, color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    if (uiState.gameModes.isNotBlank()) {
-                        Text("MODES", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                        Text(uiState.gameModes, color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                    if (uiState.themes.isNotBlank()) {
-                        Text("THÈMES", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                        Text(uiState.themes, color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
-                }
-
-                VaultTextField(label = "PRIX D'ACHAT (€)", value = uiState.purchasePrice, onValueChange = viewModel::onPriceChange, keyboardType = KeyboardType.Number)
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Text(text = "ÉTAT / FORMAT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-                CompletenessSelector(
-                    selectedCondition = uiState.condition,
-                    onConditionSelected = viewModel::onConditionChange
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Text(text = "ÉTAT PHYSIQUE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                StarRatingSelector(
-                    rating = uiState.rating,
-                    onRatingChanged = viewModel::onRatingChange
-                )
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                // CTA
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(PrimaryDim, Tertiary),
-                            )
-                        )
-                ) {
-                    Button(
-                        onClick = viewModel::saveItem,
-                        modifier = Modifier.fillMaxSize(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        enabled = !uiState.isSaving && uiState.title.isNotBlank()
-                    ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(color = OnPrimaryFixed, modifier = Modifier.size(24.dp))
-                        } else {
-                            Text("SCELLER DANS LE VAULT", color = OnPrimaryFixed, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(64.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun GameVignette(
-    game: RemoteGame,
-    onClick: () -> Unit
-) {
+    val state by viewModel.uiState.collectAsState()
+    LaunchedEffect(gameId) { if (gameId != null) viewModel.loadGame(gameId) }
+    LaunchedEffect(state.isSuccess) { if (state.isSuccess) onBack() }
     Column(
-        modifier = Modifier
-            .width(120.dp)
-            .clickable(onClick = onClick)
+        Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.75f)
-                .clip(RoundedCornerShape(8.dp))
-                .background(SurfaceContainerLowest)
-        ) {
-            if (game.coverUrl != null) {
-                AsyncImage(
-                    model = game.coverUrl,
-                    contentDescription = game.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Icon(
-                    Icons.Default.Search, 
-                    contentDescription = null, 
-                    modifier = Modifier.align(Alignment.Center).size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        ScreenHeader(
+            if (gameId != null) "Modifier" else "Nouveau jeu",
+            eyebrow = "Fiche jeu",
+            leading = { KeyButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", onBack) },
+        )
+        IdentityFields(state, viewModel)
+        Choices(state, viewModel)
+        PriceFields(state, viewModel)
+        VaultTextField("Notes", state.notes, { v ->
+            viewModel.update {
+                it.copy(notes = v)
+            }
+        }, placeholder = "Provenance, défauts…", singleLine = false)
+        VaultButton(
+            if (state.isSaving) "Enregistrement…" else "Enregistrer",
+            viewModel::saveItem,
+            Modifier.fillMaxWidth(),
+            size = ButtonSize.Large,
+            icon = Icons.Default.Check,
+            enabled = state.canSave,
+        )
+    }
+}
+
+@Composable
+private fun IdentityFields(
+    state: AddItemUiState,
+    viewModel: AddItemViewModel,
+) {
+    VaultTextField("Titre", state.title, viewModel::onTitleChange, placeholder = "Rechercher sur IGDB…")
+    if (state.isSearching) Text("Recherche…", style = Vault.type.caption, color = Vault.colors.inkMuted)
+    state.searchError?.let { Text(it, style = Vault.type.caption, color = Vault.colors.loss) }
+    Suggestions(state, viewModel)
+    if (state.availablePlatforms.size > 1) {
+        Engrave("Plateforme")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(state.availablePlatforms) { p ->
+                VaultChip(shortPlatformName(p), state.platform == p, {
+                    viewModel.update { it.copy(platform = p) }
+                })
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = game.title,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+    } else {
+        VaultTextField(
+            "Plateforme",
+            state.platform,
+            { v -> viewModel.update { it.copy(platform = v) } },
+            placeholder = "Super Nintendo, PS2…",
         )
-        Text(
-            text = game.platformNames.firstOrNull() ?: "Platform",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        VaultTextField("Genre", state.genre, { v -> viewModel.update { it.copy(genre = v) } }, Modifier.weight(1f))
+        VaultTextField(
+            "Année",
+            state.releaseYear,
+            { v -> viewModel.update { it.copy(releaseYear = v.filter(Char::isDigit).take(YEAR_DIGITS)) } },
+            Modifier.weight(0.6f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
     }
 }
 
 @Composable
-fun VaultTextField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    trailingIcon: @Composable (() -> Unit)? = null
+private fun Suggestions(
+    state: AddItemUiState,
+    viewModel: AddItemViewModel,
 ) {
-    Column(modifier = modifier) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = SurfaceContainerLowest,
-                unfocusedContainerColor = SurfaceContainerLowest,
-                disabledContainerColor = SurfaceContainerLowest,
-                focusedIndicatorColor = Primary,
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
-            ),
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            singleLine = true,
-            trailingIcon = trailingIcon
-        )
-    }
-}
-
-@Composable
-fun CompletenessSelector(
-    selectedCondition: com.thevault.domain.model.ItemCondition,
-    onConditionSelected: (com.thevault.domain.model.ItemCondition) -> Unit
-) {
-    val formats = listOf(
-        com.thevault.domain.model.ItemCondition.LOOSE to "En loose",
-        com.thevault.domain.model.ItemCondition.CIB_NO_MANUAL to "Boîte sans notice",
-        com.thevault.domain.model.ItemCondition.CIB to "Complet (CIB)",
-        com.thevault.domain.model.ItemCondition.NEW_SEALED to "Neuf (Scellé)"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        formats.forEach { (condition, label) ->
-            val isSelected = selectedCondition == condition
-            val bgColor = if (isSelected) Primary.copy(alpha = 0.2f) else SurfaceContainerLowest
-            val borderColor = if (isSelected) Primary else Color.Transparent
-            val textColor = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(bgColor)
-                    .clickable { onConditionSelected(condition) }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = textColor,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+    if (state.searchResults.isNotEmpty()) {
+        Panel(Modifier.fillMaxWidth()) {
+            state.searchResults.take(MAX_SUGGESTIONS).forEach { r ->
+                val platform = r.platformNames.firstOrNull().orEmpty()
+                ListRow(
+                    r.title,
+                    meta =
+                        listOfNotNull(
+                            shortPlatformName(platform),
+                            r.releaseYear?.toString(),
+                        ).joinToString(" · "),
+                    cover = Triple(r.coverUrl, platform, null),
+                    onClick = {
+                        viewModel.selectGame(r)
+                    },
                 )
             }
         }
@@ -357,64 +164,54 @@ fun CompletenessSelector(
 }
 
 @Composable
-fun StarRatingSelector(
-    rating: Int,
-    onRatingChanged: (Int) -> Unit
+private fun Choices(
+    state: AddItemUiState,
+    viewModel: AddItemViewModel,
 ) {
+    ChipGroup("Statut", ItemStatus.entries, state.status, { it.label }) { s -> viewModel.update { it.copy(status = s) } }
+    ChipGroup("État", FormConditions, state.condition, { it.label }) { c -> viewModel.update { it.copy(condition = c) } }
+    ChipGroup("Région", Region.entries, state.region, { it.label }) { r -> viewModel.update { it.copy(region = r) } }
+    Engrave("Édition")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (i in 1..5) {
-            val isFilled = i <= rating
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (isFilled) Primary.copy(alpha = 0.2f) else SurfaceContainerLowest)
-                    .clickable { onRatingChanged(i) },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Star,
-                    contentDescription = "$i Etoiles",
-                    modifier = Modifier.size(24.dp),
-                    tint = if (isFilled) Primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-            }
-        }
+        VaultChip("Collector", state.collector, { viewModel.update { it.copy(collector = !it.collector) } })
+        VaultChip("Limitée", state.limited, { viewModel.update { it.copy(limited = !it.limited) } })
     }
 }
 
 @Composable
-fun PlatformSelector(
-    platforms: List<String>,
-    selectedPlatform: String,
-    onPlatformSelected: (String) -> Unit
+private fun <T> ChipGroup(
+    label: String,
+    options: List<T>,
+    selected: T,
+    text: (T) -> String,
+    onSelect: (T) -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        platforms.forEach { platform ->
-            val isSelected = selectedPlatform == platform
-            val bgColor = if (isSelected) Primary.copy(alpha = 0.2f) else SurfaceContainerLowest
-            val textColor = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(bgColor)
-                    .clickable { onPlatformSelected(platform) }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = platform,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = textColor,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
-            }
-        }
+    Engrave(label)
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(options) { o -> VaultChip(text(o), o == selected, { onSelect(o) }) }
     }
 }
+
+@Composable
+private fun PriceFields(
+    state: AddItemUiState,
+    viewModel: AddItemViewModel,
+) {
+    val decimal = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        VaultTextField("Prix payé", state.purchasePrice, { v ->
+            viewModel.update {
+                it.copy(purchasePrice = v)
+            }
+        }, Modifier.weight(1f), keyboardOptions = decimal, suffix = "€")
+        VaultTextField("Valeur manuelle", state.currentValue, { v ->
+            viewModel.update {
+                it.copy(currentValue = v)
+            }
+        }, Modifier.weight(1f), keyboardOptions = decimal, suffix = "€")
+    }
+    Text("La cote eBay remplace la valeur manuelle dès qu'elle est disponible.", style = Vault.type.caption, color = Vault.colors.inkMuted)
+}
+
+private const val MAX_SUGGESTIONS = 5
+private const val YEAR_DIGITS = 4

@@ -2,165 +2,156 @@ package com.thevault.ui.screen.collection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.thevault.domain.model.Accessory
-import com.thevault.domain.model.Console
-import com.thevault.domain.model.Game
-import com.thevault.domain.usecase.ObserveAccessoriesUseCase
-import com.thevault.domain.usecase.ObserveConsolesUseCase
-import com.thevault.domain.model.IgdbPlatformCatalog
-import com.thevault.domain.usecase.ObserveGamesUseCase
+import com.thevault.ui.component.Manufacturer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 /**
- * A platform entry shown in the collection overview.
+ * Accessory filter of the collection.
  *
- * @property name Platform name (e.g. "PlayStation 5").
- * @property manufacturer Console manufacturer (e.g. "Sony").
- * @property productionYear Year used for sorting within a manufacturer group.
- * @property gameCount Number of games owned on this platform.
- * @property coverUrls Up to 4 cover URLs used as a mosaic background.
- * @property console Matching console entity, if any (provides image).
+ * @property label Chip label.
  */
-data class PlatformEntry(
-    val name: String,
-    val manufacturer: String,
-    val productionYear: Int,
-    val gameCount: Int,
-    val coverUrls: List<String>,
-    val console: Console?,
+enum class AccessoryFilter(
+    val label: String,
+) {
+    /** Every accessory. */
+    All("Tous"),
+
+    /** Controllers. */
+    Controllers("Manettes"),
+
+    /** Everything else. */
+    Others("Autres"),
+}
+
+/**
+ * Order of the platform list.
+ *
+ * @property label Toggle label.
+ * @property comparator Sort order.
+ */
+enum class PlatformSort(
+    val label: String,
+    val comparator: Comparator<PlatformSummary>,
+) {
+    /** Highest value first. */
+    Value("Valeur", compareByDescending { it.value }),
+
+    /** Most games first. */
+    Count("Nombre", compareByDescending { it.count }),
+
+    /** Alphabetical. */
+    Name("A → Z", compareBy { it.platform.lowercase() }),
+}
+
+/**
+ * Filters of the collection screen.
+ *
+ * @property kind Selected category.
+ * @property platformSort Order of the platform list.
+ * @property query Search among games.
+ * @property consoleMaker Console manufacturer filter, or null for all.
+ * @property accessoryFilter Accessory filter.
+ */
+data class CollectionFilters(
+    val kind: ItemKind = ItemKind.Game,
+    val platformSort: PlatformSort = PlatformSort.Value,
+    val query: String = "",
+    val consoleMaker: Manufacturer? = null,
+    val accessoryFilter: AccessoryFilter = AccessoryFilter.All,
 )
 
 /**
- * A manufacturer group containing its platforms sorted newest-first.
+ * UI state of the collection screen.
  *
- * @property manufacturer Manufacturer name (e.g. "Sony").
- * @property platforms Platforms sorted by [PlatformEntry.productionYear] descending.
- */
-data class ManufacturerGroup(
-    val manufacturer: String,
-    val platforms: List<PlatformEntry>,
-)
-
-/**
- * UI state for the Collection screen.
- *
- * @property manufacturerGroups Platform entries grouped by manufacturer, newest-first within each group.
- * @property games Games filtered by selected platform and search query.
- * @property accessories Accessories compatible with the selected platform's console.
- * @property searchQuery Current search query string.
- * @property selectedPlatform Currently selected platform name, or null for the overview.
- * @property isLoading Whether data is being loaded.
+ * @property filters Current filters.
+ * @property totals Count and value per category.
+ * @property groups Game platforms grouped by manufacturer.
+ * @property platforms Game platforms in the chosen order.
+ * @property platformCount Number of game platforms.
+ * @property gameResults Games matching the search (empty without query).
+ * @property consoles Consoles matching the filter, most valuable first.
+ * @property consoleMakers Manufacturers present among consoles.
+ * @property accessories Accessories matching the filter, most valuable first.
+ * @property isLoading Whether data is still loading.
  */
 data class CollectionUiState(
-    val manufacturerGroups: List<ManufacturerGroup> = emptyList(),
-    val games: List<Game> = emptyList(),
-    val accessories: List<Accessory> = emptyList(),
-    val searchQuery: String = "",
-    val selectedPlatform: String? = null,
+    val filters: CollectionFilters = CollectionFilters(),
+    val totals: Map<ItemKind, KindTotal> = emptyMap(),
+    val groups: List<ManufacturerGroup> = emptyList(),
+    val platforms: List<PlatformSummary> = emptyList(),
+    val platformCount: Int = 0,
+    val gameResults: List<CollectionEntry> = emptyList(),
+    val consoles: List<CollectionEntry> = emptyList(),
+    val consoleMakers: List<Manufacturer> = emptyList(),
+    val accessories: List<CollectionEntry> = emptyList(),
     val isLoading: Boolean = false,
 )
 
-/**
- * ViewModel for the Collection screen.
- * Combines games, consoles and accessories into a single reactive UI state.
- */
+/** ViewModel of the collection screen (games by platform, consoles, accessories). */
 class CollectionViewModel(
-    private val observeGamesUseCase: ObserveGamesUseCase,
-    private val observeConsolesUseCase: ObserveConsolesUseCase,
-    private val observeAccessoriesUseCase: ObserveAccessoriesUseCase,
+    source: VaultEntriesSource,
 ) : ViewModel() {
+    private val filters = MutableStateFlow(CollectionFilters())
 
-    private val _searchQuery = MutableStateFlow("")
-    private val _selectedPlatform = MutableStateFlow<String?>(null)
+    /** Observable UI state. */
+    val uiState: StateFlow<CollectionUiState> =
+        combine(source.entries(), filters) { all, f -> buildCollectionState(all.owned(), f) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CollectionUiState(isLoading = true))
 
-    val uiState: StateFlow<CollectionUiState> = combine(
-        observeGamesUseCase(),
-        observeConsolesUseCase(),
-        observeAccessoriesUseCase(),
-        _searchQuery,
-        _selectedPlatform,
-    ) { games, consoles, accessories, query, platform ->
+    /** Selects a category. */
+    fun onKindSelected(kind: ItemKind) = filters.update { it.copy(kind = kind) }
 
-        // Build platform entries — enrich with catalog when no Console entity exists
-        val platformEntries = games
-            .groupBy { it.platform }
-            .map { (name, platformGames) ->
-                val console = consoles.find { it.name.equals(name, ignoreCase = true) }
-                val catalogInfo = IgdbPlatformCatalog.find(name)
-                PlatformEntry(
-                    name = name,
-                    manufacturer = console?.manufacturer
-                        ?: catalogInfo?.manufacturer
-                        ?: "Autre",
-                    productionYear = console?.productionYear
-                        ?: catalogInfo?.releaseYear
-                        ?: 0,
-                    gameCount = platformGames.size,
-                    coverUrls = platformGames.mapNotNull { it.coverUrl }.take(4),
-                    console = console,
-                )
-            }
+    /** Updates the game search. */
+    fun onQueryChanged(query: String) = filters.update { it.copy(query = query) }
 
-        // Group by manufacturer, sort groups alphabetically, platforms newest-first within each
-        val manufacturerGroups = platformEntries
-            .groupBy { it.manufacturer }
-            .map { (manufacturer, entries) ->
-                ManufacturerGroup(
-                    manufacturer = manufacturer,
-                    platforms = entries.sortedByDescending { it.productionYear },
-                )
-            }
-            .sortedBy { it.manufacturer }
+    /** Filters consoles by manufacturer (null = all). */
+    fun onConsoleMakerSelected(maker: Manufacturer?) = filters.update { it.copy(consoleMaker = maker) }
 
-        val filteredGames = if (platform != null) {
-            games.filter { game ->
-                game.platform.equals(platform, ignoreCase = true) &&
-                    game.title.contains(query, ignoreCase = true)
-            }
-        } else {
-            emptyList()
-        }
+    /** Cycles the order of the platform list. */
+    fun onPlatformSortToggled() =
+        filters.update { it.copy(platformSort = PlatformSort.entries[(it.platformSort.ordinal + 1) % PlatformSort.entries.size]) }
 
-        val selectedConsole = consoles.find { it.name.equals(platform ?: "", ignoreCase = true) }
-        val filteredAccessories = if (selectedConsole != null) {
-            accessories.filter { acc ->
-                acc.compatibleConsole.contains(selectedConsole.name, ignoreCase = true)
-            }
-        } else {
-            emptyList()
-        }
+    /** Filters accessories. */
+    fun onAccessoryFilterSelected(filter: AccessoryFilter) = filters.update { it.copy(accessoryFilter = filter) }
 
-        CollectionUiState(
-            manufacturerGroups = manufacturerGroups,
-            games = filteredGames,
-            accessories = filteredAccessories,
-            searchQuery = query,
-            selectedPlatform = platform,
-            isLoading = false,
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = CollectionUiState(isLoading = true),
-    )
-
-    /** Updates the search query used to filter games. */
-    fun onSearchQueryChanged(query: String) {
-        _searchQuery.value = query
-    }
-
-    /** Selects a platform to drill into its game list, or null to return to the overview. */
-    fun onPlatformSelected(platform: String?) {
-        _selectedPlatform.value = platform
-        _searchQuery.value = ""
-    }
-
-    /** Legacy — kept for compatibility, delegates to [onPlatformSelected]. */
-    fun onConsoleSelected(consoleId: String?) {
-        // no-op: navigation is now platform-based
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
     }
 }
+
+/** Builds the collection state from owned entries. Pure function, unit-tested. */
+fun buildCollectionState(
+    owned: List<CollectionEntry>,
+    filters: CollectionFilters,
+): CollectionUiState {
+    val games = owned.filter { it.kind == ItemKind.Game }
+    val consoles = owned.filter { it.kind == ItemKind.Console }
+    val accessories = owned.filter { it.kind == ItemKind.Accessory }
+    val byValue = sortComparator(GameSort.Value)
+    return CollectionUiState(
+        filters = filters,
+        totals = kindTotals(owned),
+        groups = manufacturerGroups(games),
+        platforms = platformSummaries(games).sortedWith(filters.platformSort.comparator),
+        platformCount = platformSummaries(games).size,
+        gameResults = if (filters.query.isBlank()) emptyList() else filterGames(games, GameFilters(query = filters.query)),
+        consoles = consoles.filter { filters.consoleMaker == null || it.manufacturer == filters.consoleMaker }.sortedWith(byValue),
+        consoleMakers = consoles.map { it.manufacturer }.distinct().sortedBy { it.order },
+        accessories =
+            accessories
+                .filter { it.matches(filters.accessoryFilter) }
+                .sortedWith(byValue),
+    )
+}
+
+private fun CollectionEntry.matches(filter: AccessoryFilter): Boolean =
+    when (filter) {
+        AccessoryFilter.All -> true
+        AccessoryFilter.Controllers -> isController()
+        AccessoryFilter.Others -> !isController()
+    }

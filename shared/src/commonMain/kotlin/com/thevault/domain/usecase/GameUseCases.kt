@@ -1,13 +1,14 @@
 package com.thevault.domain.usecase
 
 import com.thevault.domain.model.Game
+import com.thevault.domain.repository.CatalogSyncRepository
 import com.thevault.domain.repository.GameRepository
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Use case to observe all games in the user collection.
  *
- * @property repository The [GameRepository] to fetch data from.
+ * @param repository The [GameRepository] to fetch data from.
  */
 class ObserveGamesUseCase(
     private val repository: GameRepository,
@@ -23,7 +24,7 @@ class ObserveGamesUseCase(
 /**
  * Use case to retrieve a single game by its ID.
  *
- * @property repository The [GameRepository] to fetch data from.
+ * @param repository The [GameRepository] to fetch data from.
  */
 class GetGameByIdUseCase(
     private val repository: GameRepository,
@@ -38,25 +39,34 @@ class GetGameByIdUseCase(
 }
 
 /**
- * Use case to save (insert or update) a game in the collection.
+ * Use case to save (insert or update) a game, then push it to the catalogue in the
+ * background — saving never waits for the network.
  *
- * @property repository The [GameRepository] to persist data to.
+ * @param repository The [GameRepository] to persist data to.
+ * @param sync Queue of the items to push.
+ * @param scheduler Background synchronisation.
  */
 class SaveGameUseCase(
     private val repository: GameRepository,
+    private val sync: CatalogSyncRepository,
+    private val scheduler: SyncScheduler,
 ) {
     /**
      * Executes the use case.
      *
      * @param game The [Game] to save.
      */
-    suspend operator fun invoke(game: Game): Unit = repository.save(game)
+    suspend operator fun invoke(game: Game) {
+        repository.save(game)
+        sync.markDirty(game.id)
+        scheduler.request()
+    }
 }
 
 /**
  * Use case to permanently delete a game from the collection.
  *
- * @property repository The [GameRepository] to delete data from.
+ * @param repository The [GameRepository] to delete data from.
  */
 class DeleteGameUseCase(
     private val repository: GameRepository,
@@ -72,7 +82,7 @@ class DeleteGameUseCase(
 /**
  * Use case to search games by title or platform.
  *
- * @property repository The [GameRepository] to search data from.
+ * @param repository The [GameRepository] to search data from.
  */
 class SearchGamesUseCase(
     private val repository: GameRepository,

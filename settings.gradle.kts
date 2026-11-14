@@ -31,5 +31,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "TheVault"
+include(":androidApp")
 include(":composeApp")
 include(":shared")

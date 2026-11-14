@@ -1,6 +1,57 @@
 # TheVault
 
-**Application mobile Kotlin Multiplatform pour gérer une collection de jeux vidéo, consoles et accessoires.**
+**Application mobile Kotlin Multiplatform, backend Go et back-office web pour gérer une collection de jeux vidéo, consoles et accessoires.**
+
+## Structure du monorepo
+
+| Dossier | Contenu |
+|---|---|
+| `androidApp/` | Point d'entrée Android (Activity, manifeste, icônes) |
+| `composeApp/`, `shared/` | UI Compose et logique partagées (bibliothèques Kotlin Multiplatform) |
+| `backend/` | API Go (PostgreSQL, scraping eBay, IGDB) — ex-TheVaultBO |
+| `web/` | Back-office web React + Vite, servi par le backend en production |
+| `design/stitch/` | Maquettes Stitch exportées |
+| `docs/`, `scripts/` | Documentation et scripts d'import |
+
+```bash
+./gradlew :androidApp:assembleDebug   # app mobile (Android Studio : configuration « androidApp »)
+task dev                  # backend (Air) + web (Vite)
+task test                 # tests Go
+task docker:release       # image Docker backend + web
+```
+
+L'app mobile lit la clé API du backend dans `local.properties` (non versionné) :
+
+```properties
+thevault.api.key=<API_KEY du backend>
+# optionnel, par défaut https://thevault.bananaops.cloud/api/v1
+thevault.api.baseUrl=http://10.0.2.2:8080/api/v1
+```
+
+## Back-office (admin)
+
+Le back-office est dans l'app web, section **Back-office** de la sidebar (visible uniquement des admins) :
+
+- **Données** (`/admin/data`) : catalogue partagé avec détection des problèmes (doublons, sans plateforme, sans jaquette, sans IGDB, sans prix), édition des jeux / consoles / accessoires, fusion des doublons, suppression, relance IGDB ou du prix d'un objet.
+- **Synchronisations** (`/admin/sync`) : journal des envois de l'app mobile et du web, des corrections admin, et tâches eBay / IGDB.
+
+Le rôle admin est porté par le compte utilisateur : listez les e-mails dans `ADMIN_EMAILS` (séparés par des virgules) côté backend, puis connectez-vous normalement. Les corrections sont durables : un objet corrigé n'est plus écrasé par les synchros, un objet fusionné est redirigé vers celui conservé, et un objet supprimé est refusé (HTTP 410) s'il revient d'une synchro.
+
+## Sécurité
+
+Variables d'environnement du backend (voir `.env.example`) :
+
+| Variable | Rôle |
+|---|---|
+| `JWT_SECRET` | **Obligatoire**, ≥ 32 caractères (`openssl rand -hex 32`). Le serveur refuse de démarrer sinon. |
+| `API_KEY` | Clé de l'app mobile, ≥ 16 caractères. Vide = synchro mobile désactivée. |
+| `ADMIN_EMAILS` | Comptes ayant accès au back-office. |
+| `TRUST_PROXY` | `true` uniquement si l'app n'est joignable que via le reverse proxy (Traefik) : active `X-Forwarded-For` pour la limitation de débit. |
+| `CORS_ORIGINS` | Origines navigateur supplémentaires autorisées. Vide = même origine uniquement. |
+
+Protections en place : en-têtes de sécurité (CSP, HSTS derrière HTTPS, nosniff, frame-ancestors), limitation de débit (connexion, recherche IGDB, écritures catalogue), taille maximale des requêtes, timeouts HTTP, validation des entrées et des URLs de jaquettes, type d'image détecté à l'upload, conteneur non-root. La CI exécute `govulncheck`, `gosec` et `npm audit`.
+
+La clé `API_KEY` est embarquée dans l'APK et peut en être extraite : elle ne donne accès qu'à l'ajout au catalogue partagé et à la recherche IGDB, protégés par la limitation de débit et le back-office (correction, suppression définitive).
 
 ## Documentation Agent
 

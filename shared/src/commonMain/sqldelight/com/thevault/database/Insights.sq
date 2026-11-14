@@ -1,0 +1,83 @@
+-- Market quotes, value history, achievements, settings and sync state.
+-- Added by migration 3.sqm.
+
+CREATE TABLE price_quote (
+    item_id TEXT NOT NULL,
+    grade TEXT NOT NULL,
+    median REAL NOT NULL,
+    price_min REAL NOT NULL,
+    price_max REAL NOT NULL,
+    samples INTEGER NOT NULL,
+    scraped_at TEXT NOT NULL,
+    median_past REAL,
+    PRIMARY KEY (item_id, grade)
+);
+
+selectAllQuotes:
+SELECT * FROM price_quote;
+
+insertQuote:
+INSERT OR REPLACE INTO price_quote VALUES ?;
+
+deleteAllQuotes:
+DELETE FROM price_quote;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE value_snapshot (
+    day TEXT NOT NULL PRIMARY KEY,
+    total_value REAL NOT NULL,
+    invested REAL NOT NULL
+);
+
+selectSnapshots:
+SELECT * FROM value_snapshot ORDER BY day ASC;
+
+upsertSnapshot:
+INSERT OR REPLACE INTO value_snapshot VALUES ?;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE achievement_unlock (
+    id TEXT NOT NULL PRIMARY KEY,
+    unlocked_at TEXT NOT NULL,
+    seen INTEGER NOT NULL DEFAULT 0
+);
+
+selectUnlocks:
+SELECT * FROM achievement_unlock ORDER BY unlocked_at ASC;
+
+insertUnlock:
+INSERT OR IGNORE INTO achievement_unlock VALUES ?;
+
+markUnlockSeen:
+UPDATE achievement_unlock SET seen = 1 WHERE id = :id;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE app_setting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+selectSetting:
+SELECT value FROM app_setting WHERE key = :key;
+
+upsertSetting:
+INSERT OR REPLACE INTO app_setting VALUES ?;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE sync_state (
+    item_id TEXT NOT NULL PRIMARY KEY,
+    synced_at TEXT NOT NULL
+);
+
+selectSyncedIds:
+SELECT item_id FROM sync_state;
+
+markSynced:
+INSERT OR REPLACE INTO sync_state VALUES ?;
+
+markDirty:
+DELETE FROM sync_state WHERE item_id = :itemId;

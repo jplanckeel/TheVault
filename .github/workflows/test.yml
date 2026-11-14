@@ -1,0 +1,81 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop, feat/* ]
+    paths:
+      - 'backend/**'
+      - 'web/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - 'web/**'
+      - '.github/workflows/test.yml'
+
+# Least privilege: the jobs only read the repository.
+permissions:
+  contents: read
+
+jobs:
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Build backend
+        working-directory: backend
+        run: go build -v ./...
+
+      - name: Run tests
+        working-directory: backend
+        run: go test -race ./...
+
+      - name: Vulnerability scan (govulncheck)
+        working-directory: backend
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: Static security analysis (gosec)
+        working-directory: backend
+        run: go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet ./...
+
+  test-web:
+    name: Test Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci --ignore-scripts
+
+      - name: Audit dependencies
+        working-directory: web
+        run: npm audit --audit-level=high
+
+      - name: Lint
+        working-directory: web
+        run: npm run lint
+
+      - name: Build web app
+        working-directory: web
+        run: npm run build

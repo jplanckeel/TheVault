@@ -1,3 +1,5 @@
+> ⚠️ **Obsolète** — le thème « Radiant Obsidian Vault » n'est plus utilisé. La référence est `design/DESIGN_SYSTEM.md` (thème « Premium Security », commun au web et au mobile).
+
 # TheVault — Design System
 > Source: Stitch MCP — Project ID `10534585831624995760`
 > Thème : **"The Radiant Obsidian Vault"** — Dark Mode, Mobile, Plus Jakarta Sans

@@ -1,24 +1,30 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// Shared Compose UI (screens, navigation, theme). The Android app itself lives in :androidApp.
 plugins {
-    alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
 }
 
 kotlin {
-    androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    android {
+        namespace = "com.thevault.composeapp"
+        compileSdk = 36
+        minSdk = 24
+
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
+        // Compose Multiplatform resources (fonts) are packaged as Android resources.
+        androidResources { enable = true }
+        // Runs commonTest on the JVM host (former testDebugUnitTest).
+        withHostTest {}
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64(),
     ).forEach { iosTarget ->
@@ -65,8 +71,8 @@ kotlin {
 
         androidMain.dependencies {
             implementation(compose.preview)
+            // rememberLauncherForActivityResult (CSV import / export)
             implementation(libs.androidx.activity.compose)
-            implementation(libs.koin.android)
         }
 
         commonTest.dependencies {
@@ -75,46 +81,4 @@ kotlin {
             implementation(libs.turbine)
         }
     }
-}
-
-android {
-    namespace = "com.thevault"
-    compileSdk = 35
-
-    defaultConfig {
-        applicationId = "com.thevault.app"
-        minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    buildFeatures {
-        compose = true
-    }
-}
-
-dependencies {
-    debugImplementation(compose.uiTooling)
 }

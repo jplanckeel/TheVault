@@ -1,8 +1,5 @@
 package com.thevault.domain.usecase
 
-import com.thevault.domain.model.Accessory
-import com.thevault.domain.model.Console
-import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
@@ -10,129 +7,107 @@ import com.thevault.domain.repository.AccessoryRepository
 import com.thevault.domain.repository.ConsoleRepository
 import com.thevault.domain.repository.GameRepository
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
+/**
+ * Import / export of the collection in the GameEye CSV format.
+ *
+ * @param gameRepository Games.
+ * @param consoleRepository Consoles.
+ * @param accessoryRepository Accessories.
+ */
 class CsvService(
     private val gameRepository: GameRepository,
     private val consoleRepository: ConsoleRepository,
     private val accessoryRepository: AccessoryRepository,
 ) {
-    suspend fun importCsv(csvContent: String): Result<Unit> {
-        return try {
-            val rows = CsvUtils.parseCsv(csvContent)
-            if (rows.isEmpty()) return Result.failure(Exception("Fichier CSV vide"))
-            
-            // Skip the header (first row)
-            for (row in rows.drop(1)) {
-                if (row.size < 21) continue // Skip invalid rows
-                
-                val platform = row.getOrNull(0) ?: ""
-                val category = row.getOrNull(1) ?: ""
-                val statusString = row.getOrNull(2) ?: ""
-                val title = row.getOrNull(3) ?: "Unknown"
-                val country = row.getOrNull(4) ?: ""
-                val publisher = row.getOrNull(6) ?: ""
-                val developer = row.getOrNull(7) ?: ""
-                val genre = row.getOrNull(8) ?: ""
-                // Row 9 is CreatedAt
-                val ownershipCondition = row.getOrNull(10) ?: ""
-                val currentValueString = row.getOrNull(14)
-                val purchasePriceString = row.getOrNull(15)
-                val notes = row.getOrNull(19) ?: ""
-                val tags = row.getOrNull(20) ?: ""
-                val rating = row.getOrNull(21)?.toIntOrNull()
-
-                val status = parseStatus(statusString)
-                val condition = parseCondition(ownershipCondition)
-                val region = parseRegion(country)
-                
-                val currentValue = parseDouble(currentValueString)
-                val purchasePrice = parseDouble(purchasePriceString)
-
-                // Generate a random ID (or unique based on title + platform)
-                val id = (title + platform + category).hashCode().toString() + Clock.System.now().toEpochMilliseconds()
-
-                when (category.lowercase()) {
-                    "games" -> {
-                        val game = Game(
-                            id = id,
-                            title = title,
-                            platform = platform,
-                            genre = genre,
-                            releaseYear = 0,
-                            region = region,
-                            condition = condition,
-                            status = status,
-                            purchasePrice = purchasePrice,
-                            currentValue = currentValue,
-                            notes = notes,
-                            rating = rating,
-                            developer = developer,
-                            publisher = publisher,
-                            themes = tags,
-                            isCollectorEdition = notes.contains("collector", ignoreCase = true),
-                            isLimitedEdition = notes.contains("limited", ignoreCase = true) || notes.contains("limitée", ignoreCase = true)
-                        )
-                        gameRepository.save(game)
-                    }
-                    "systems" -> {
-                        val console = Console(
-                            id = id,
-                            name = title,
-                            manufacturer = publisher.ifEmpty { "Unknown" },
-                            region = region,
-                            color = "Unknown",
-                            condition = condition,
-                            productionYear = 0,
-                            status = status,
-                            purchasePrice = purchasePrice,
-                            currentValue = currentValue,
-                            notes = notes,
-                            isCollectorEdition = notes.contains("collector", ignoreCase = true),
-                            isLimitedEdition = notes.contains("limited", ignoreCase = true) || notes.contains("limitée", ignoreCase = true)
-                        )
-                        consoleRepository.save(console)
-                    }
-                    else -> { // Accessories, Controllers, Strategy Guide...
-                        val accessory = Accessory(
-                            id = id,
-                            name = title,
-                            type = category,
-                            compatibleConsole = platform,
-                            condition = condition,
-                            status = status,
-                            purchasePrice = purchasePrice,
-                            currentValue = currentValue,
-                            notes = notes,
-                            isCollectorEdition = notes.contains("collector", ignoreCase = true),
-                            isLimitedEdition = notes.contains("limited", ignoreCase = true) || notes.contains("limitée", ignoreCase = true)
-                        )
-                        accessoryRepository.save(accessory)
-                    }
-                }
+    /**
+     * Imports a GameEye CSV export. Importing the same file again updates the items instead
+     * of duplicating them, and keeps what the app added since (covers, years…).
+     *
+     * @return Number of imported rows.
+     */
+    suspend fun importCsv(csvContent: String): Result<Int> =
+        try {
+            val rows = CsvUtils.parseCsv(csvContent).drop(1).filter { it.size >= MIN_COLUMNS }
+            if (rows.isEmpty()) {
+                Result.failure(IllegalArgumentException("Fichier CSV vide"))
+            } else {
+                val ids =
+                    ExistingIds(
+                        gameRepository.observeAll().first(),
+                        consoleRepository.observeAll().first(),
+                        accessoryRepository.observeAll().first(),
+                    )
+                rows.forEach { importRow(it, ids) }
+                Result.success(rows.size)
             }
-            Result.success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
-            e.printStackTrace()
             Result.failure(e)
+        }
+
+    private suspend fun importRow(
+        row: List<String>,
+        ids: ExistingIds,
+    ) {
+        val r =
+            CsvRow.of(
+                row,
+                parseStatus(row[2]),
+                parseCondition(row[10]),
+                parseRegion(row[4]),
+                parseDouble(row.getOrNull(14)),
+                parseDouble(row.getOrNull(15)),
+            )
+        when (r.category.lowercase()) {
+            "games" -> {
+                val existing = ids.take("game", r)?.let { gameRepository.getById(it) }
+                gameRepository.save(r.toGame(existing ?: r.newGame(ids.newId("game", r))))
+            }
+            "systems" -> {
+                val existing = ids.take("console", r)?.let { consoleRepository.getById(it) }
+                consoleRepository.save(r.toConsole(existing ?: r.newConsole(ids.newId("console", r))))
+            }
+            else -> {
+                val existing = ids.take("accessory", r)?.let { accessoryRepository.getById(it) }
+                accessoryRepository.save(r.toAccessory(existing ?: r.newAccessory(ids.newId("accessory", r))))
+            }
         }
     }
 
-    suspend fun exportCsv(): Result<String> {
-        return try {
+    /** Exports the whole collection in the GameEye CSV format. */
+    suspend fun exportCsv(): Result<String> =
+        try {
             val games = gameRepository.observeAll().first()
             val consoles = consoleRepository.observeAll().first()
             val accessories = accessoryRepository.observeAll().first()
 
-            val headers = listOf(
-                "Platform", "Category", "UserRecordType", "Title", "Country",
-                "ReleaseType", "Publisher", "Developer", "Genre", "CreatedAt",
-                "Ownership", "PriceLoose", "PriceCIB", "PriceNew", "YourPrice",
-                "PricePaid", "ItemCondition", "BoxCondition", "ManualCondition", "Notes",
-                "Tags", "metacritic"
-            )
+            val headers =
+                listOf(
+                    "Platform",
+                    "Category",
+                    "UserRecordType",
+                    "Title",
+                    "Country",
+                    "ReleaseType",
+                    "Publisher",
+                    "Developer",
+                    "Genre",
+                    "CreatedAt",
+                    "Ownership",
+                    "PriceLoose",
+                    "PriceCIB",
+                    "PriceNew",
+                    "YourPrice",
+                    "PricePaid",
+                    "ItemCondition",
+                    "BoxCondition",
+                    "ManualCondition",
+                    "Notes",
+                    "Tags",
+                    "metacritic",
+                )
 
             val rows = mutableListOf<List<String>>()
 
@@ -191,7 +166,6 @@ class CsvService(
             e.printStackTrace()
             Result.failure(e)
         }
-    }
 
     private fun createEmptyRow(size: Int): MutableList<String> {
         val list = mutableListOf<String>()
@@ -199,68 +173,70 @@ class CsvService(
         return list
     }
 
-    private fun parseStatus(status: String): ItemStatus {
-        return when (status.lowercase()) {
+    private fun parseStatus(status: String): ItemStatus =
+        when (status.lowercase()) {
             "wishlist" -> ItemStatus.WISHLIST
             "sold" -> ItemStatus.SOLD
             "loaned" -> ItemStatus.LOANED
             else -> ItemStatus.OWNED
         }
-    }
 
-    private fun exportStatus(status: ItemStatus): String {
-        return when (status) {
+    private fun exportStatus(status: ItemStatus): String =
+        when (status) {
             ItemStatus.WISHLIST -> "Wishlist"
             ItemStatus.SOLD -> "Sold"
             ItemStatus.LOANED -> "Loaned"
             ItemStatus.OWNED -> "Owned"
         }
-    }
 
-    private fun parseCondition(condition: String): ItemCondition {
-        return when (condition.lowercase()) {
+    private fun parseCondition(condition: String): ItemCondition =
+        when (condition.lowercase()) {
             "loose" -> ItemCondition.LOOSE
             "new", "sealed" -> ItemCondition.NEW_SEALED
             "boxed", "o", "cib+" -> ItemCondition.CIB_NO_MANUAL
             "dématérialisé", "digital" -> ItemCondition.GOOD // Fallback
             else -> ItemCondition.CIB
         }
-    }
 
-    private fun exportCondition(condition: ItemCondition): String {
-        return when (condition) {
+    private fun exportCondition(condition: ItemCondition): String =
+        when (condition) {
             ItemCondition.LOOSE -> "Loose"
             ItemCondition.NEW_SEALED -> "New"
             ItemCondition.CIB_NO_MANUAL -> "Boxed"
             ItemCondition.CIB -> "CIB"
             else -> "CIB"
         }
-    }
 
-    private fun parseRegion(region: String): Region {
-        return when (region.lowercase()) {
+    private fun parseRegion(region: String): Region =
+        when (region.lowercase()) {
             "united kingdom", "europe", "france" -> Region.PAL
             "united states of america", "usa", "us" -> Region.NTSC_US
             "japan", "jp" -> Region.NTSC_JP
             else -> Region.OTHER
         }
-    }
 
-    private fun exportRegion(region: Region): String {
-        return when (region) {
+    private fun exportRegion(region: Region): String =
+        when (region) {
             Region.PAL -> "United Kingdom"
             Region.NTSC_US -> "United States of America"
             Region.NTSC_JP -> "Japan"
             Region.OTHER -> "World"
         }
-    }
 
     private fun parseDouble(value: String?): Double? {
         if (value.isNullOrBlank() || value == "?" || value == "-1.0" || value == "-1,0" || value == "Missing Field") return null
-        return value.replace(" ", "").replace(" ", "").replace(",", ".").toDoubleOrNull()
+        return value
+            .replace(" ", "")
+            .replace(" ", "")
+            .replace(",", ".")
+            .toDoubleOrNull()
     }
 
     private fun formatDouble(value: Double): String {
         return value.toString().replace(".", ",") // format for french Excel
+    }
+
+    private companion object {
+        const val MIN_COLUMNS = 21
     }
 }

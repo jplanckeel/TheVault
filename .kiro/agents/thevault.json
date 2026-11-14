@@ -1,0 +1,52 @@
+{
+  "name": "thevault",
+  "description": "Agent for TheVault — video game collection manager (Go backend + React frontend + mobile app, IGDB sync, eBay price scraping)",
+  "prompt": "file://.kiro/PROJECT.md",
+  "tools": [
+    "fs_read",
+    "fs_write",
+    "execute_bash",
+    "grep",
+    "glob",
+    "code"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "grep",
+    "glob",
+    "code"
+  ],
+  "toolsSettings": {
+    "execute_bash": {
+      "allowedCommands": [
+        "go build ./...",
+        "go test ./...",
+        "go vet ./...",
+        "go mod tidy",
+        "npm run build",
+        "npm run lint",
+        "task --list"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "resources": [
+    "file://.kiro/PROJECT.md",
+    "file://backend/go.mod",
+    "file://backend/internal/domain/models.go",
+    "file://backend/internal/store/store.go",
+    "file://backend/internal/api/router.go",
+    "file://backend/internal/api/middleware.go",
+    "file://backend/migrations/*.sql",
+    "file://frontend/package.json",
+    "file://frontend/src/types.ts",
+    "file://frontend/src/api.ts",
+    "file://frontend/src/App.tsx",
+    "file://frontend/src/AuthContext.tsx",
+    "file://frontend/src/index.css",
+    "file://docker-compose.yml",
+    "file://Taskfile.yml",
+    "file://.env.example"
+  ],
+  "welcomeMessage": "TheVault agent ready — gestion de collection de jeux vidéo avec IGDB et scraping eBay. Que veux-tu faire ?"
+}

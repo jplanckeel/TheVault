@@ -1,0 +1,251 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   TheVault — Design tokens (palette Stitch "Premium Security")
+   Source: stitch_thevault_gaming_collection/thevault/DESIGN.md
+   ============================================================================= */
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Montserrat", system-ui, sans-serif;
+
+  /* Surfaces — Deep obsidian foundation */
+  --color-vault-bg: #0f0f12;
+  --color-vault-surface-lowest: #0e0e11;
+  --color-vault-surface-low: #1b1b1e;
+  --color-vault-surface: #1f1f22;
+  --color-vault-surface-high: #2a2a2d;
+  --color-vault-surface-highest: #353438;
+  --color-vault-bright: #39393c;
+
+  /* Accents — Amethyst / Electric Purple */
+  --color-vault-primary: #d8b9ff;
+  --color-vault-primary-dim: #ae72ff;
+  --color-vault-primary-deep: #7e28df;
+  --color-vault-on-primary: #450086;
+  --color-vault-secondary: #e2b5ff;
+  --color-vault-secondary-container: #60377c;
+  --color-vault-on-secondary-container: #d5a6f4;
+  --color-vault-tertiary: #cfc0e5;
+
+  /* Text */
+  --color-vault-on-surface: #e4e1e6;
+  --color-vault-on-surface-variant: #cec2d7;
+  --color-vault-outline: #978da0;
+  --color-vault-outline-variant: #4c4355;
+
+  /* Semantic */
+  --color-vault-error: #ffb4ab;
+  --color-vault-error-container: #93000a;
+  --color-vault-success: #34d399;
+  --color-vault-warning: #fbbf24;
+  --color-vault-info: #60a5fa;
+
+  /* Prix par condition — conservé pour ItemDetail */
+  --color-price-loose: #60a5fa;
+  --color-price-cib: #d8b9ff;
+  --color-price-new: #34d399;
+
+  /* Radii — Squircle inspired */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+/* =============================================================================
+   Base
+   ============================================================================= */
+html,
+body {
+  background-color: var(--color-vault-bg);
+  color: var(--color-vault-on-surface);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(216, 185, 255, 0.3);
+  color: #fff;
+}
+
+/* =============================================================================
+   Custom scrollbar
+   ============================================================================= */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-vault-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-vault-outline-variant);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-vault-outline);
+}
+
+/* =============================================================================
+   Utilities — Glassmorphism & glow
+   Réutilisable avec className="glass" / "glass-active" / "glow-purple"
+   ============================================================================= */
+.glass {
+  background: rgba(36, 26, 54, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.glass-active {
+  background: rgba(36, 26, 54, 0.8);
+  border: 1px solid rgba(207, 192, 229, 0.2);
+}
+.glow-purple {
+  box-shadow: 0 0 15px rgba(216, 185, 255, 0.3);
+}
+.glow-purple-strong {
+  box-shadow: 0 0 24px rgba(216, 185, 255, 0.45);
+}
+.glow-text-primary {
+  text-shadow: 0 0 10px rgba(216, 185, 255, 0.5);
+}
+
+/* Gradient text helper */
+.text-gradient-primary {
+  background: linear-gradient(135deg, #d8b9ff 0%, #ae72ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Chart helpers (used by recharts area/line gradients) */
+.chart-gradient-area {
+  background: linear-gradient(180deg, rgba(174, 114, 255, 0.18) 0%, rgba(174, 114, 255, 0) 100%);
+}
+
+/* =============================================================================
+   Material Symbols — wrapper class
+   Use: <span class="material-symbols-outlined">dashboard</span>
+   ============================================================================= */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+  user-select: none;
+}
+.material-symbols-outlined.filled {
+  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+/* =============================================================================
+   Display typography (Montserrat) — apply with .font-display
+   ============================================================================= */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Display sizes from DESIGN.md */
+.text-display-lg {
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+}
+@media (max-width: 768px) {
+  .text-display-lg {
+    font-size: 32px;
+    line-height: 40px;
+  }
+}
+.text-headline-md {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+.text-headline-sm {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+/* Label-bold (uppercase tracking) */
+.text-label-bold {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.text-label-mono {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* =============================================================================
+   Animations
+   ============================================================================= */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    /* `none` (not translateY(0)): a lingering transform would become the containing
+       block of position: fixed descendants and clip drawers / dialogs. */
+    transform: none;
+  }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(216, 185, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(216, 185, 255, 0.5);
+  }
+}
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+/* Reduce motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =============================================================================
+   Focus ring (accessibility) — applied via class on interactive elements
+   ============================================================================= */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-vault-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}

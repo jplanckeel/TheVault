@@ -21,6 +21,7 @@ enum class ItemCondition {
     GOOD,
     FAIR,
     POOR,
+
     // Formats spécifiques de collection
     LOOSE,
     CIB_NO_MANUAL,
