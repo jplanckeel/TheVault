@@ -28,17 +28,14 @@ enum class PriceGrade(
     }
 }
 
-/**
- * Grade whose quote applies to an item in this condition, or null for conditions graded
- * by wear (« Très bon », « Correct »…) that eBay quotes cannot price reliably.
- */
-val ItemCondition.priceGrade: PriceGrade?
+/** Grade whose quote applies to a copy with these components (digital copies have none). */
+val Components.priceGrade: PriceGrade?
     get() =
-        when (this) {
-            ItemCondition.LOOSE -> PriceGrade.LOOSE
-            ItemCondition.CIB, ItemCondition.CIB_NO_MANUAL -> PriceGrade.CIB
-            ItemCondition.NEW_SEALED, ItemCondition.MINT -> PriceGrade.NEW
-            else -> null
+        when {
+            digital -> null
+            completeness == Completeness.NEW -> PriceGrade.NEW
+            completeness == Completeness.CIB -> PriceGrade.CIB
+            else -> PriceGrade.LOOSE
         }
 
 /**

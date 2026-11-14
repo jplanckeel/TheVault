@@ -1,13 +1,17 @@
 package com.thevault.ui
 
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
+import com.thevault.domain.model.Grade
 import com.thevault.ui.component.FormatGroup
 import com.thevault.ui.component.Manufacturer
 import com.thevault.ui.component.formatGroup
+import com.thevault.ui.component.formatLabel
 import com.thevault.ui.component.manufacturerOf
+import com.thevault.ui.component.parts
 import com.thevault.ui.component.shortPlatformName
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class PlatformsTest {
     @Test
@@ -44,10 +48,18 @@ class PlatformsTest {
 
     @Test
     fun groupsFormats() {
-        assertEquals(FormatGroup.Complete, ItemCondition.CIB_NO_MANUAL.formatGroup)
-        assertEquals(FormatGroup.New, ItemCondition.MINT.formatGroup)
-        assertEquals(FormatGroup.Loose, ItemCondition.LOOSE.formatGroup)
-        assertEquals(FormatGroup.Other, ItemCondition.GOOD.formatGroup)
+        assertEquals(FormatGroup.Complete, Components(box = true).formatGroup)
+        assertEquals("Sans notice", Components(box = true).formatLabel)
+        assertEquals("Complet+", Components.CIB.copy(extras = true).formatLabel)
+        assertEquals(
+            FormatGroup.New,
+            Components.CIB.copy(mediaGrade = Grade.MINT, boxGrade = Grade.MINT, manualGrade = Grade.MINT).formatGroup,
+        )
+        assertEquals(FormatGroup.Loose, Components.LOOSE.formatGroup)
+        assertEquals(FormatGroup.Sealed, Components.SEALED.formatGroup)
+        assertEquals(FormatGroup.Digital, Components.DIGITAL.formatGroup)
+        assertEquals(listOf("Support", "Boîte", "Notice"), Components.CIB.parts.map { it.name })
+        assertTrue(Components.DIGITAL.parts.isEmpty())
     }
 }
 

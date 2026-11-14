@@ -1,6 +1,11 @@
 package com.thevault.domain
 
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Completeness
+import com.thevault.domain.model.Components
+import com.thevault.domain.model.CopyDetails
+import com.thevault.domain.model.Grade
+import com.thevault.domain.model.componentsOfLegacy
+import com.thevault.domain.model.legacyCode
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.PriceGrade
 import com.thevault.domain.model.PricePoint
@@ -30,12 +35,25 @@ import kotlin.time.Instant
 class InsightsTest {
     @Test
     fun mapsConditionsToPriceGrades() {
-        assertEquals(PriceGrade.LOOSE, ItemCondition.LOOSE.priceGrade)
-        assertEquals(PriceGrade.CIB, ItemCondition.CIB_NO_MANUAL.priceGrade)
-        assertEquals(PriceGrade.NEW, ItemCondition.NEW_SEALED.priceGrade)
-        assertNull(ItemCondition.GOOD.priceGrade)
+        assertEquals(PriceGrade.LOOSE, Components.LOOSE.priceGrade)
+        assertEquals(PriceGrade.CIB, Components(box = true).priceGrade)
+        assertEquals(PriceGrade.NEW, Components.SEALED.priceGrade)
+        assertNull(Components.DIGITAL.priceGrade)
         assertEquals(PriceGrade.CIB, PriceGrade.fromApi("CIB"))
         assertNull(PriceGrade.fromApi("graded"))
+    }
+
+    @Test
+    fun derivesCompletenessAndLegacyCodes() {
+        assertEquals(Completeness.LOOSE, Components(extras = true).completeness)
+        assertEquals(Completeness.CIB, Components(box = true).completeness)
+        assertEquals(Completeness.NEW, Components.SEALED.completeness)
+        assertTrue(Components.CIB.copy(mediaGrade = Grade.MINT, boxGrade = Grade.MINT).isMintComplete)
+        assertFalse(Components.CIB.isMintComplete)
+        listOf("LOOSE", "CIB_NO_MANUAL", "CIB", "NEW_SEALED").forEach { assertEquals(it, componentsOfLegacy(it).legacyCode) }
+        assertEquals(Grade.FAIR, componentsOfLegacy("FAIR").mediaGrade)
+        assertEquals(15.0, CopyDetails(shippingCost = 5.0).totalCost(10.0))
+        assertNull(CopyDetails().totalCost(null))
     }
 
     @Test
@@ -58,7 +76,7 @@ class InsightsTest {
             "",
             null,
             ItemStatus.OWNED,
-            ItemCondition.CIB,
+            Components.CIB,
             Region.PAL,
             null,
             30.0,

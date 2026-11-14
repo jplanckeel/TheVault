@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.PriceGrade
 import com.thevault.domain.model.PricePoint
 import com.thevault.domain.model.PriceQuote
@@ -120,7 +121,7 @@ fun DetailHeader(
  */
 @Composable
 fun CopyPanel(
-    condition: ItemCondition,
+    condition: Components,
     paid: Double?,
     value: Double?,
     acquiredAt: LocalDate?,
@@ -133,7 +134,7 @@ fun CopyPanel(
             ConditionTag(condition)
         }
         CopyFigures(paid, value)
-        condition.parts?.let { parts ->
+        condition.parts.takeIf { it.isNotEmpty() }?.let { parts ->
             Box(
                 Modifier
                     .padding(top = 14.dp)
@@ -141,8 +142,12 @@ fun CopyPanel(
                     .height(1.dp)
                     .background(c.line),
             )
-            Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                parts.forEach { (name, present) -> Part(name, present) }
+            FlowRow(
+                Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                parts.forEach { Part(it) }
             }
         }
         val line = listOfNotNull(acquiredAt?.let { "Acheté le ${formatLongDate(it)}" }) + footer
@@ -200,19 +205,17 @@ private fun Figure(
 }
 
 @Composable
-private fun Part(
-    name: String,
-    present: Boolean,
-) {
-    val color = if (present) Vault.colors.indigoInk else Vault.colors.inkMuted
+private fun Part(part: CopyPart) {
+    val color = if (part.present) Vault.colors.indigoInk else Vault.colors.inkMuted
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(
-            if (present) Icons.Default.Check else Icons.Default.Close,
-            contentDescription = if (present) "Présent" else "Absent",
+            if (part.present) Icons.Default.Check else Icons.Default.Close,
+            contentDescription = if (part.present) "Présent" else "Absent",
             tint = color,
             modifier = Modifier.size(14.dp),
         )
-        Text(name, style = Vault.type.label, color = color)
+        Text(part.name, style = Vault.type.label, color = color)
+        part.grade?.takeIf { part.present }?.let { Text(it.label, style = Vault.type.caption, color = Vault.colors.inkMuted) }
     }
 }
 

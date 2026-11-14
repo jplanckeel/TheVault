@@ -1,6 +1,6 @@
 package com.thevault.ui
 
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.PriceGrade
 import com.thevault.domain.model.PriceQuote
@@ -32,7 +32,7 @@ class InsightsUiTest {
     private fun entry(
         id: String,
         value: Double? = null,
-        condition: ItemCondition = ItemCondition.CIB,
+        condition: Components = Components.CIB,
         status: ItemStatus = ItemStatus.OWNED,
         platform: String = "Super Nintendo",
     ) = CollectionEntry(
@@ -61,7 +61,7 @@ class InsightsUiTest {
     @Test
     fun reliableQuoteOfTheConditionReplacesTheManualValue() {
         val entries =
-            listOf(entry("a", 10.0), entry("b", 10.0), entry("c", 10.0, ItemCondition.LOOSE)).withQuotes(
+            listOf(entry("a", 10.0), entry("b", 10.0), entry("c", 10.0, Components.LOOSE)).withQuotes(
                 mapOf(
                     "a" to listOf(quote("a", 50.0, past = 40.0)),
                     "b" to listOf(quote("b", 99.0, samples = 1)),

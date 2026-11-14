@@ -141,7 +141,7 @@ private fun Platforms(s: StatsSummary) {
 
 @Composable
 private fun Conditions(s: StatsSummary) {
-    val groups = FormatGroup.entries.filter { it != FormatGroup.Other || s.formats[it] ?: 0 > 0 }
+    val groups = FormatGroup.entries.filter { it != FormatGroup.Digital || s.formats[it] ?: 0 > 0 }
     Panel(Modifier.fillMaxWidth()) {
         Engrave("Objets par état")
         Row(Modifier.padding(top = 14.dp)) {

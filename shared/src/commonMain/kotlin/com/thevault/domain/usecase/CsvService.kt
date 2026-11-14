@@ -1,6 +1,7 @@
 package com.thevault.domain.usecase
 
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Completeness
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import com.thevault.domain.repository.AccessoryRepository
@@ -122,7 +123,7 @@ class CsvService(
                 row[7] = game.developer ?: ""
                 row[8] = game.genre
                 row[9] = game.acquiredAt?.toString() ?: ""
-                row[10] = exportCondition(game.condition)
+                row[10] = exportCondition(game.details.components)
                 row[14] = game.currentValue?.let { formatDouble(it) } ?: ""
                 row[15] = game.purchasePrice?.let { formatDouble(it) } ?: ""
                 row[19] = game.notes ?: ""
@@ -140,7 +141,7 @@ class CsvService(
                 row[4] = exportRegion(console.region)
                 row[6] = console.manufacturer
                 row[9] = console.acquiredAt?.toString() ?: ""
-                row[10] = exportCondition(console.condition)
+                row[10] = exportCondition(console.details.components)
                 row[14] = console.currentValue?.let { formatDouble(it) } ?: ""
                 row[15] = console.purchasePrice?.let { formatDouble(it) } ?: ""
                 row[19] = console.notes ?: ""
@@ -154,7 +155,7 @@ class CsvService(
                 row[2] = exportStatus(acc.status)
                 row[3] = acc.name
                 row[9] = acc.acquiredAt?.toString() ?: ""
-                row[10] = exportCondition(acc.condition)
+                row[10] = exportCondition(acc.details.components)
                 row[14] = acc.currentValue?.let { formatDouble(it) } ?: ""
                 row[15] = acc.purchasePrice?.let { formatDouble(it) } ?: ""
                 row[19] = acc.notes ?: ""
@@ -189,22 +190,24 @@ class CsvService(
             ItemStatus.OWNED -> "Owned"
         }
 
-    private fun parseCondition(condition: String): ItemCondition =
-        when (condition.lowercase()) {
-            "loose" -> ItemCondition.LOOSE
-            "new", "sealed" -> ItemCondition.NEW_SEALED
-            "boxed", "o", "cib+" -> ItemCondition.CIB_NO_MANUAL
-            "dématérialisé", "digital" -> ItemCondition.GOOD // Fallback
-            else -> ItemCondition.CIB
+    private fun parseCondition(condition: String): Components =
+        when (condition.trim().lowercase()) {
+            "loose" -> Components.LOOSE
+            "loose+" -> Components(extras = true)
+            "new", "sealed" -> Components.SEALED
+            "boxed" -> Components(box = true)
+            "cib+" -> Components(box = true, manual = true, extras = true)
+            "dématérialisé", "digital" -> Components.DIGITAL
+            else -> Components.CIB
         }
 
-    private fun exportCondition(condition: ItemCondition): String =
-        when (condition) {
-            ItemCondition.LOOSE -> "Loose"
-            ItemCondition.NEW_SEALED -> "New"
-            ItemCondition.CIB_NO_MANUAL -> "Boxed"
-            ItemCondition.CIB -> "CIB"
-            else -> "CIB"
+    private fun exportCondition(components: Components): String =
+        when {
+            components.digital -> "Dématérialisé"
+            components.completeness == Completeness.NEW -> "New"
+            components.box && components.manual -> if (components.extras) "CIB+" else "CIB"
+            components.box -> "Boxed"
+            else -> if (components.extras) "Loose+" else "Loose"
         }
 
     private fun parseRegion(region: String): Region =

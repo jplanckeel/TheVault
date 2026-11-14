@@ -23,7 +23,27 @@ CREATE TABLE game (
     game_modes TEXT,
     themes TEXT,
     is_collector_edition INTEGER NOT NULL DEFAULT 0,
-    is_limited_edition INTEGER NOT NULL DEFAULT 0
+    is_limited_edition INTEGER NOT NULL DEFAULT 0,
+    has_media INTEGER NOT NULL DEFAULT 1,
+    has_box INTEGER NOT NULL DEFAULT 0,
+    has_manual INTEGER NOT NULL DEFAULT 0,
+    has_extras INTEGER NOT NULL DEFAULT 0,
+    media_grade TEXT,
+    box_grade TEXT,
+    manual_grade TEXT,
+    is_sealed INTEGER NOT NULL DEFAULT 0,
+    is_digital INTEGER NOT NULL DEFAULT 0,
+    region_variant TEXT,
+    edition TEXT NOT NULL DEFAULT 'STANDARD',
+    barcode TEXT,
+    product_code TEXT,
+    shipping_cost REAL,
+    acquired_from TEXT,
+    location TEXT,
+    loaned_to TEXT,
+    loan_due_at TEXT,
+    sold_price REAL,
+    sold_at TEXT
 );
 
 CREATE INDEX game_status ON game(status);
@@ -68,7 +88,27 @@ CREATE TABLE console (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     is_collector_edition INTEGER NOT NULL DEFAULT 0,
-    is_limited_edition INTEGER NOT NULL DEFAULT 0
+    is_limited_edition INTEGER NOT NULL DEFAULT 0,
+    has_media INTEGER NOT NULL DEFAULT 1,
+    has_box INTEGER NOT NULL DEFAULT 0,
+    has_manual INTEGER NOT NULL DEFAULT 0,
+    has_extras INTEGER NOT NULL DEFAULT 0,
+    media_grade TEXT,
+    box_grade TEXT,
+    manual_grade TEXT,
+    is_sealed INTEGER NOT NULL DEFAULT 0,
+    is_digital INTEGER NOT NULL DEFAULT 0,
+    region_variant TEXT,
+    edition TEXT NOT NULL DEFAULT 'STANDARD',
+    barcode TEXT,
+    product_code TEXT,
+    shipping_cost REAL,
+    acquired_from TEXT,
+    location TEXT,
+    loaned_to TEXT,
+    loan_due_at TEXT,
+    sold_price REAL,
+    sold_at TEXT
 );
 
 CREATE INDEX console_status ON console(status);
@@ -102,7 +142,27 @@ CREATE TABLE accessory (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     is_collector_edition INTEGER NOT NULL DEFAULT 0,
-    is_limited_edition INTEGER NOT NULL DEFAULT 0
+    is_limited_edition INTEGER NOT NULL DEFAULT 0,
+    has_media INTEGER NOT NULL DEFAULT 1,
+    has_box INTEGER NOT NULL DEFAULT 0,
+    has_manual INTEGER NOT NULL DEFAULT 0,
+    has_extras INTEGER NOT NULL DEFAULT 0,
+    media_grade TEXT,
+    box_grade TEXT,
+    manual_grade TEXT,
+    is_sealed INTEGER NOT NULL DEFAULT 0,
+    is_digital INTEGER NOT NULL DEFAULT 0,
+    region_variant TEXT,
+    edition TEXT NOT NULL DEFAULT 'STANDARD',
+    barcode TEXT,
+    product_code TEXT,
+    shipping_cost REAL,
+    acquired_from TEXT,
+    location TEXT,
+    loaned_to TEXT,
+    loan_due_at TEXT,
+    sold_price REAL,
+    sold_at TEXT
 );
 
 CREATE INDEX accessory_status ON accessory(status);
@@ -157,3 +217,39 @@ SELECT
     COALESCE((SELECT SUM(purchase_price) FROM console WHERE status = 'OWNED'), 0.0) +
     COALESCE((SELECT SUM(purchase_price) FROM accessory WHERE status = 'OWNED'), 0.0)
 AS total_invested;
+
+-- Tags and photos of any item (game, console, accessory)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE item_tag (
+    item_id TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (item_id, tag)
+);
+
+CREATE TABLE item_photo (
+    id TEXT NOT NULL PRIMARY KEY,
+    item_id TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX item_photo_item ON item_photo(item_id);
+
+selectAllTags:
+SELECT * FROM item_tag ORDER BY tag ASC;
+
+insertTag:
+INSERT OR IGNORE INTO item_tag VALUES ?;
+
+deleteTagsOf:
+DELETE FROM item_tag WHERE item_id = :itemId;
+
+selectPhotosOf:
+SELECT * FROM item_photo WHERE item_id = :itemId ORDER BY created_at ASC;
+
+insertPhoto:
+INSERT OR REPLACE INTO item_photo VALUES ?;
+
+deletePhoto:
+DELETE FROM item_photo WHERE id = :id;

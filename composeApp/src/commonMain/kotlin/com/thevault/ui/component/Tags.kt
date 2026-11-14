@@ -27,7 +27,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.Region
 import com.thevault.ui.theme.OverlayColors
 import com.thevault.ui.theme.Vault
@@ -187,7 +187,7 @@ fun Pips(
  */
 @Composable
 fun ConditionTag(
-    condition: ItemCondition,
+    condition: Components,
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
     compact: Boolean = false,

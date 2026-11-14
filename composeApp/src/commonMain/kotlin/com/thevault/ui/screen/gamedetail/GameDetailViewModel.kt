@@ -68,8 +68,8 @@ class GameDetailViewModel(
                 game = game,
                 isLoading = gameId == null,
                 quotes = itemQuotes,
-                value = game?.let { effectiveValue(it.currentValue, quoteFor(it.condition, itemQuotes)) },
-                grade = g ?: game?.condition?.priceGrade ?: PriceGrade.CIB,
+                value = game?.let { effectiveValue(it.currentValue, quoteFor(it.details.components, itemQuotes)) },
+                grade = g ?: game?.details?.components?.priceGrade ?: PriceGrade.CIB,
                 history = h,
             )
         }.combine(deleted) { s, d -> s.copy(isDeleted = d) }

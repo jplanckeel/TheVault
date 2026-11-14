@@ -12,11 +12,15 @@ import com.thevault.domain.repository.GameRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
+/**
+ * [GameRepository] stored in SQLite, tags included.
+ *
+ * @param database Local database.
+ */
 class GameRepositoryImpl(
-    private val database: TheVaultDatabase,
+    database: TheVaultDatabase,
 ) : GameRepository {
     private val queries = database.theVaultQueries
 
@@ -24,28 +28,38 @@ class GameRepositoryImpl(
         queries
             .selectAll()
             .asFlow()
-            .mapToList(Dispatchers.IO)
-            .map { entities -> entities.map { it.toDomain() } }
+            .mapToList(
+                Dispatchers.IO,
+            ).withTags(queries.observeTags(), { it.id }) { row, tags -> row.toDomain(tags) }
 
-    override suspend fun getById(id: String): Game? = queries.selectById(id).executeAsOneOrNull()?.toDomain()
+    override suspend fun getById(id: String): Game? =
+        withContext(Dispatchers.IO) { queries.selectById(id).executeAsOneOrNull()?.toDomain(queries.tagsOf(id)) }
 
     override fun observeByStatus(status: ItemStatus): Flow<List<Game>> =
         queries
             .selectByStatus(status.name)
             .asFlow()
             .mapToList(Dispatchers.IO)
-            .map { entities -> entities.map { it.toDomain() } }
+            .withTags(queries.observeTags(), { it.id }) { row, tags -> row.toDomain(tags) }
 
     override suspend fun save(game: Game) {
         withContext(Dispatchers.IO) {
-            val now = nowTimestamp()
-            val createdAt = queries.selectById(game.id).executeAsOneOrNull()?.created_at ?: now
-            queries.upsert(game.toEntity(createdAt, now))
+            queries.transaction {
+                val now = nowTimestamp()
+                val createdAt = queries.selectById(game.id).executeAsOneOrNull()?.created_at ?: now
+                queries.upsert(game.toEntity(createdAt, now))
+                queries.replaceTags(game.id, game.details.tags)
+            }
         }
     }
 
     override suspend fun delete(id: String) {
-        queries.deleteById(id)
+        withContext(Dispatchers.IO) {
+            queries.transaction {
+                queries.deleteById(id)
+                queries.forgetItem(id)
+            }
+        }
     }
 
     override fun search(query: String): Flow<List<Game>> =
@@ -53,5 +67,5 @@ class GameRepositoryImpl(
             .search("%$query%")
             .asFlow()
             .mapToList(Dispatchers.IO)
-            .map { entities -> entities.map { it.toDomain() } }
+            .withTags(queries.observeTags(), { it.id }) { row, tags -> row.toDomain(tags) }
 }

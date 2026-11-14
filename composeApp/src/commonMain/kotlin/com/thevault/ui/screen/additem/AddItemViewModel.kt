@@ -2,8 +2,8 @@ package com.thevault.ui.screen.additem
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.thevault.domain.model.CopyDetails
 import com.thevault.domain.model.Game
-import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import com.thevault.domain.model.RemoteGame
@@ -32,7 +32,7 @@ import kotlin.uuid.Uuid
  * @property genre Genre.
  * @property releaseYear Release year as typed.
  * @property region Region.
- * @property condition Condition.
+ * @property details Parts, wear, edition, purchase, storage, loan and sale of the copy.
  * @property status Status.
  * @property purchasePrice Purchase price as typed.
  * @property currentValue Manual value as typed (used when there is no eBay quote).
@@ -41,8 +41,6 @@ import kotlin.uuid.Uuid
  * @property publisher Publisher.
  * @property notes Notes.
  * @property coverUrl Cover URL.
- * @property collector Collector's edition.
- * @property limited Limited edition.
  * @property availablePlatforms Platforms of the IGDB game.
  * @property remote IGDB game picked, if any.
  * @property isSaving Whether a save is running.
@@ -58,7 +56,7 @@ data class AddItemUiState(
     val genre: String = "",
     val releaseYear: String = "",
     val region: Region = Region.PAL,
-    val condition: ItemCondition = ItemCondition.CIB,
+    val details: CopyDetails = CopyDetails(),
     val status: ItemStatus = ItemStatus.OWNED,
     val purchasePrice: String = "",
     val currentValue: String = "",
@@ -67,8 +65,6 @@ data class AddItemUiState(
     val publisher: String = "",
     val notes: String = "",
     val coverUrl: String? = null,
-    val collector: Boolean = false,
-    val limited: Boolean = false,
     val availablePlatforms: List<String> = emptyList(),
     val remote: RemoteGame? = null,
     val isSaving: Boolean = false,
@@ -153,7 +149,7 @@ class AddItemViewModel(
         viewModelScope.launch {
             val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
             val base =
-                s.original ?: Game(Uuid.random().toString(), "", "", "", 0, s.region, s.condition, status = s.status, acquiredAt = today)
+                s.original ?: Game(Uuid.random().toString(), "", "", "", 0, s.region, s.details, status = s.status, acquiredAt = today)
             saveGame(s.applyTo(base))
             state.update { it.copy(isSaving = false, isSuccess = true) }
         }
@@ -174,7 +170,7 @@ private fun Game.toForm() =
         genre = genre.takeIf { it != "N/A" }.orEmpty(),
         releaseYear = releaseYear.takeIf { it > 0 }?.toString().orEmpty(),
         region = region,
-        condition = condition,
+        details = details,
         status = status,
         purchasePrice = purchasePrice?.toPlain().orEmpty(),
         currentValue = currentValue?.toPlain().orEmpty(),
@@ -183,8 +179,6 @@ private fun Game.toForm() =
         publisher = publisher.orEmpty(),
         notes = notes.orEmpty(),
         coverUrl = coverUrl,
-        collector = isCollectorEdition,
-        limited = isLimitedEdition,
         availablePlatforms = listOf(platform),
     )
 
@@ -196,7 +190,7 @@ private fun AddItemUiState.applyTo(base: Game): Game =
         genre = genre.ifBlank { "N/A" },
         releaseYear = releaseYear.toIntOrNull() ?: 0,
         region = region,
-        condition = condition,
+        details = details,
         status = status,
         coverUrl = coverUrl,
         purchasePrice = purchasePrice.toAmount(),
@@ -207,8 +201,6 @@ private fun AddItemUiState.applyTo(base: Game): Game =
         gameModes = remote?.gameModes?.joinToString(", ")?.ifBlank { null } ?: base.gameModes,
         themes = remote?.themes?.joinToString(", ")?.ifBlank { null } ?: base.themes,
         notes = notes.ifBlank { null },
-        isCollectorEdition = collector,
-        isLimitedEdition = limited,
     )
 
 /** "12.5" → "12,5", "40.0" → "40". */

@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.SubcomposeAsyncImage
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
 import com.thevault.ui.theme.OverlayColors
 import com.thevault.ui.theme.Vault
 
@@ -119,7 +119,7 @@ fun GameCover(
     platform: String,
     modifier: Modifier = Modifier,
     size: CoverSize = CoverSize.M,
-    condition: ItemCondition? = null,
+    condition: Components? = null,
     missing: Boolean = false,
 ) {
     val shape = remember(size) { CartridgeShape(size.radius, size.chamfer) }
@@ -195,7 +195,7 @@ data class CardData(
     val title: String,
     val platform: String,
     val coverUrl: String?,
-    val condition: ItemCondition,
+    val condition: Components,
     val value: Double?,
     val changePercent: Double? = null,
     val caption: String = shortPlatformName(platform),

@@ -12,11 +12,15 @@ import com.thevault.domain.repository.AccessoryRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
+/**
+ * [AccessoryRepository] stored in SQLite, tags included.
+ *
+ * @param database Local database.
+ */
 class AccessoryRepositoryImpl(
-    private val database: TheVaultDatabase,
+    database: TheVaultDatabase,
 ) : AccessoryRepository {
     private val queries = database.theVaultQueries
 
@@ -25,26 +29,35 @@ class AccessoryRepositoryImpl(
             .selectAllAccessories()
             .asFlow()
             .mapToList(Dispatchers.IO)
-            .map { entities -> entities.map { it.toDomain() } }
+            .withTags(queries.observeTags(), { it.id }) { row, tags -> row.toDomain(tags) }
 
-    override suspend fun getById(id: String): Accessory? = queries.selectAccessoryById(id).executeAsOneOrNull()?.toDomain()
+    override suspend fun getById(id: String): Accessory? =
+        withContext(Dispatchers.IO) { queries.selectAccessoryById(id).executeAsOneOrNull()?.toDomain(queries.tagsOf(id)) }
 
     override fun observeByStatus(status: ItemStatus): Flow<List<Accessory>> =
         queries
             .selectAccessoryByStatus(status.name)
             .asFlow()
             .mapToList(Dispatchers.IO)
-            .map { entities -> entities.map { it.toDomain() } }
+            .withTags(queries.observeTags(), { it.id }) { row, tags -> row.toDomain(tags) }
 
     override suspend fun save(accessory: Accessory) {
         withContext(Dispatchers.IO) {
-            val now = nowTimestamp()
-            val createdAt = queries.selectAccessoryById(accessory.id).executeAsOneOrNull()?.created_at ?: now
-            queries.upsertAccessory(accessory.toEntity(createdAt, now))
+            queries.transaction {
+                val now = nowTimestamp()
+                val createdAt = queries.selectAccessoryById(accessory.id).executeAsOneOrNull()?.created_at ?: now
+                queries.upsertAccessory(accessory.toEntity(createdAt, now))
+                queries.replaceTags(accessory.id, accessory.details.tags)
+            }
         }
     }
 
     override suspend fun delete(id: String) {
-        queries.deleteAccessoryById(id)
+        withContext(Dispatchers.IO) {
+            queries.transaction {
+                queries.deleteAccessoryById(id)
+                queries.forgetItem(id)
+            }
+        }
     }
 }

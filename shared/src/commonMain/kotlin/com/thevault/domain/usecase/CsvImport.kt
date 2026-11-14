@@ -1,9 +1,11 @@
 package com.thevault.domain.usecase
 
 import com.thevault.domain.model.Accessory
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.Console
+import com.thevault.domain.model.CopyDetails
+import com.thevault.domain.model.Edition
 import com.thevault.domain.model.Game
-import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import kotlinx.datetime.LocalDate
@@ -22,7 +24,7 @@ import kotlinx.datetime.LocalDate
  * @property tags Tags.
  * @property rating Rating.
  * @property status Status.
- * @property condition Condition.
+ * @property components Parts of the copy.
  * @property region Region.
  * @property value Value.
  * @property price Purchase price.
@@ -39,7 +41,7 @@ internal data class CsvRow(
     val tags: String,
     val rating: Int?,
     val status: ItemStatus,
-    val condition: ItemCondition,
+    val components: Components,
     val region: Region,
     val value: Double?,
     val price: Double?,
@@ -47,18 +49,31 @@ internal data class CsvRow(
     private val collector get() = notes.contains("collector", ignoreCase = true)
     private val limited get() = notes.contains("limited", ignoreCase = true) || notes.contains("limitée", ignoreCase = true)
 
+    private fun edition(): Edition =
+        when {
+            collector -> Edition.COLLECTOR
+            limited -> Edition.LIMITED
+            else -> Edition.STANDARD
+        }
+
+    private fun details() = CopyDetails(components = components, edition = edition())
+
+    /** Keeps what the app added (tags, location…) and applies the CSV parts and edition. */
+    private fun merged(base: CopyDetails) =
+        base.copy(components = components, edition = if (base.edition == Edition.STANDARD) edition() else base.edition)
+
     /** Identity of the row, shared by the copies of the same item. */
     fun key(kind: String): String = listOf(kind, title, platform).joinToString("|") { it.trim().lowercase() }
 
     /** Blank game with [id]. */
-    fun newGame(id: String) = Game(id, title, platform, genre, 0, region, condition, status = status, acquiredAt = createdAt)
+    fun newGame(id: String) = Game(id, title, platform, genre, 0, region, details(), status = status, acquiredAt = createdAt)
 
     /** Blank console with [id]. */
     fun newConsole(id: String) =
-        Console(id, title, publisher.ifEmpty { "Unknown" }, region, "", condition, 0, status, acquiredAt = createdAt)
+        Console(id, title, publisher.ifEmpty { "Unknown" }, region, "", details(), 0, status, acquiredAt = createdAt)
 
     /** Blank accessory with [id]. */
-    fun newAccessory(id: String) = Accessory(id, title, category, platform, condition, status, acquiredAt = createdAt)
+    fun newAccessory(id: String) = Accessory(id, title, category, platform, details(), status, acquiredAt = createdAt)
 
     /** CSV fields applied to [base]; cover, year and app-only fields are kept. */
     fun toGame(base: Game) =
@@ -67,7 +82,7 @@ internal data class CsvRow(
             platform = platform,
             genre = genre.ifBlank { base.genre },
             region = region,
-            condition = condition,
+            details = merged(base.details),
             status = status,
             purchasePrice = price ?: base.purchasePrice,
             currentValue = value ?: base.currentValue,
@@ -77,8 +92,6 @@ internal data class CsvRow(
             publisher = publisher.ifBlank { base.publisher },
             themes = tags.ifBlank { base.themes },
             acquiredAt = base.acquiredAt ?: createdAt,
-            isCollectorEdition = base.isCollectorEdition || collector,
-            isLimitedEdition = base.isLimitedEdition || limited,
         )
 
     /** CSV fields applied to [base]. */
@@ -86,14 +99,12 @@ internal data class CsvRow(
         base.copy(
             name = title,
             region = region,
-            condition = condition,
+            details = merged(base.details),
             status = status,
             purchasePrice = price ?: base.purchasePrice,
             currentValue = value ?: base.currentValue,
             notes = notes.ifBlank { base.notes },
             acquiredAt = base.acquiredAt ?: createdAt,
-            isCollectorEdition = base.isCollectorEdition || collector,
-            isLimitedEdition = base.isLimitedEdition || limited,
         )
 
     /** CSV fields applied to [base]. */
@@ -102,7 +113,7 @@ internal data class CsvRow(
             name = title,
             type = category,
             compatibleConsole = platform,
-            condition = condition,
+            details = merged(base.details),
             status = status,
             purchasePrice = price ?: base.purchasePrice,
             currentValue = value ?: base.currentValue,
@@ -117,7 +128,7 @@ internal data class CsvRow(
         fun of(
             row: List<String>,
             status: ItemStatus,
-            condition: ItemCondition,
+            components: Components,
             region: Region,
             value: Double?,
             price: Double?,
@@ -133,7 +144,7 @@ internal data class CsvRow(
             tags = row.getOrNull(20).orEmpty(),
             rating = row.getOrNull(21)?.toIntOrNull(),
             status = status,
-            condition = condition,
+            components = components,
             region = region,
             value = value,
             price = price,

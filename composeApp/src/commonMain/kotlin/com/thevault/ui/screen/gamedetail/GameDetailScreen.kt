@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.thevault.domain.model.Edition
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemStatus
 import com.thevault.ui.component.ButtonVariant
@@ -92,7 +93,7 @@ fun GameDetailScreen(
             credits(game),
             fromIgdb = game.coverUrl != null,
         )
-        CopyPanel(game.condition, game.purchasePrice, state.value, game.acquiredAt, footer = editions(game))
+        CopyPanel(game.details.components, game.purchasePrice, state.value, game.acquiredAt, footer = editions(game))
         MarketSection(state.quotes, state.grade, state.history, viewModel::onGradeSelected)
         NotesPanel(game.notes)
         val wish = game.status == ItemStatus.WISHLIST
@@ -148,6 +149,7 @@ private fun credits(game: Game): String =
 
 private fun editions(game: Game): List<String> =
     listOfNotNull(
-        "Édition collector".takeIf { game.isCollectorEdition },
-        "Édition limitée".takeIf { game.isLimitedEdition },
+        game.details.edition
+            .takeIf { it != Edition.STANDARD }
+            ?.let { "Édition ${it.label.lowercase()}" },
     )

@@ -1,0 +1,100 @@
+-- Phase 1: copy components, purchase / storage / loan / sale details, tags and photos.
+
+ALTER TABLE game ADD COLUMN has_media INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE game ADD COLUMN has_box INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE game ADD COLUMN has_manual INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE game ADD COLUMN has_extras INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE game ADD COLUMN media_grade TEXT;
+ALTER TABLE game ADD COLUMN box_grade TEXT;
+ALTER TABLE game ADD COLUMN manual_grade TEXT;
+ALTER TABLE game ADD COLUMN is_sealed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE game ADD COLUMN is_digital INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE game ADD COLUMN region_variant TEXT;
+ALTER TABLE game ADD COLUMN edition TEXT NOT NULL DEFAULT 'STANDARD';
+ALTER TABLE game ADD COLUMN barcode TEXT;
+ALTER TABLE game ADD COLUMN product_code TEXT;
+ALTER TABLE game ADD COLUMN shipping_cost REAL;
+ALTER TABLE game ADD COLUMN acquired_from TEXT;
+ALTER TABLE game ADD COLUMN location TEXT;
+ALTER TABLE game ADD COLUMN loaned_to TEXT;
+ALTER TABLE game ADD COLUMN loan_due_at TEXT;
+ALTER TABLE game ADD COLUMN sold_price REAL;
+ALTER TABLE game ADD COLUMN sold_at TEXT;
+ALTER TABLE console ADD COLUMN has_media INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE console ADD COLUMN has_box INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE console ADD COLUMN has_manual INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE console ADD COLUMN has_extras INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE console ADD COLUMN media_grade TEXT;
+ALTER TABLE console ADD COLUMN box_grade TEXT;
+ALTER TABLE console ADD COLUMN manual_grade TEXT;
+ALTER TABLE console ADD COLUMN is_sealed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE console ADD COLUMN is_digital INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE console ADD COLUMN region_variant TEXT;
+ALTER TABLE console ADD COLUMN edition TEXT NOT NULL DEFAULT 'STANDARD';
+ALTER TABLE console ADD COLUMN barcode TEXT;
+ALTER TABLE console ADD COLUMN product_code TEXT;
+ALTER TABLE console ADD COLUMN shipping_cost REAL;
+ALTER TABLE console ADD COLUMN acquired_from TEXT;
+ALTER TABLE console ADD COLUMN location TEXT;
+ALTER TABLE console ADD COLUMN loaned_to TEXT;
+ALTER TABLE console ADD COLUMN loan_due_at TEXT;
+ALTER TABLE console ADD COLUMN sold_price REAL;
+ALTER TABLE console ADD COLUMN sold_at TEXT;
+ALTER TABLE accessory ADD COLUMN has_media INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE accessory ADD COLUMN has_box INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE accessory ADD COLUMN has_manual INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE accessory ADD COLUMN has_extras INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE accessory ADD COLUMN media_grade TEXT;
+ALTER TABLE accessory ADD COLUMN box_grade TEXT;
+ALTER TABLE accessory ADD COLUMN manual_grade TEXT;
+ALTER TABLE accessory ADD COLUMN is_sealed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE accessory ADD COLUMN is_digital INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE accessory ADD COLUMN region_variant TEXT;
+ALTER TABLE accessory ADD COLUMN edition TEXT NOT NULL DEFAULT 'STANDARD';
+ALTER TABLE accessory ADD COLUMN barcode TEXT;
+ALTER TABLE accessory ADD COLUMN product_code TEXT;
+ALTER TABLE accessory ADD COLUMN shipping_cost REAL;
+ALTER TABLE accessory ADD COLUMN acquired_from TEXT;
+ALTER TABLE accessory ADD COLUMN location TEXT;
+ALTER TABLE accessory ADD COLUMN loaned_to TEXT;
+ALTER TABLE accessory ADD COLUMN loan_due_at TEXT;
+ALTER TABLE accessory ADD COLUMN sold_price REAL;
+ALTER TABLE accessory ADD COLUMN sold_at TEXT;
+
+-- Convert the legacy single condition into components.
+UPDATE game SET has_media = 1, has_box = 0, has_manual = 0 WHERE condition_ = 'LOOSE';
+UPDATE game SET has_media = 1, has_box = 1, has_manual = 0 WHERE condition_ = 'CIB_NO_MANUAL';
+UPDATE game SET has_media = 1, has_box = 1, has_manual = 1 WHERE condition_ = 'CIB';
+UPDATE game SET has_media = 1, has_box = 1, has_manual = 1, is_sealed = 1 WHERE condition_ = 'NEW_SEALED';
+UPDATE game SET has_media = 1, media_grade = condition_ WHERE condition_ IN ('MINT', 'VERY_GOOD', 'GOOD', 'FAIR', 'POOR');
+UPDATE game SET edition = 'COLLECTOR' WHERE is_collector_edition = 1;
+UPDATE game SET edition = 'LIMITED' WHERE is_limited_edition = 1 AND is_collector_edition = 0;
+UPDATE console SET has_media = 1, has_box = 0, has_manual = 0 WHERE condition_ = 'LOOSE';
+UPDATE console SET has_media = 1, has_box = 1, has_manual = 0 WHERE condition_ = 'CIB_NO_MANUAL';
+UPDATE console SET has_media = 1, has_box = 1, has_manual = 1 WHERE condition_ = 'CIB';
+UPDATE console SET has_media = 1, has_box = 1, has_manual = 1, is_sealed = 1 WHERE condition_ = 'NEW_SEALED';
+UPDATE console SET has_media = 1, media_grade = condition_ WHERE condition_ IN ('MINT', 'VERY_GOOD', 'GOOD', 'FAIR', 'POOR');
+UPDATE console SET edition = 'COLLECTOR' WHERE is_collector_edition = 1;
+UPDATE console SET edition = 'LIMITED' WHERE is_limited_edition = 1 AND is_collector_edition = 0;
+UPDATE accessory SET has_media = 1, has_box = 0, has_manual = 0 WHERE condition_ = 'LOOSE';
+UPDATE accessory SET has_media = 1, has_box = 1, has_manual = 0 WHERE condition_ = 'CIB_NO_MANUAL';
+UPDATE accessory SET has_media = 1, has_box = 1, has_manual = 1 WHERE condition_ = 'CIB';
+UPDATE accessory SET has_media = 1, has_box = 1, has_manual = 1, is_sealed = 1 WHERE condition_ = 'NEW_SEALED';
+UPDATE accessory SET has_media = 1, media_grade = condition_ WHERE condition_ IN ('MINT', 'VERY_GOOD', 'GOOD', 'FAIR', 'POOR');
+UPDATE accessory SET edition = 'COLLECTOR' WHERE is_collector_edition = 1;
+UPDATE accessory SET edition = 'LIMITED' WHERE is_limited_edition = 1 AND is_collector_edition = 0;
+
+CREATE TABLE item_tag (
+    item_id TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (item_id, tag)
+);
+
+CREATE TABLE item_photo (
+    id TEXT NOT NULL PRIMARY KEY,
+    item_id TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX item_photo_item ON item_photo(item_id);

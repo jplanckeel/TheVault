@@ -3,8 +3,9 @@ package com.thevault.ui.component
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import com.thevault.domain.model.Components
+import com.thevault.domain.model.Grade
 import com.thevault.domain.model.IgdbPlatformCatalog
-import com.thevault.domain.model.ItemCondition
 import com.thevault.ui.theme.Vault
 
 /**
@@ -120,7 +121,7 @@ val Manufacturer.color: Color
 fun platformColor(platform: String): Color = manufacturerOf(platform).color
 
 /**
- * Condition family, as shown by the 4-pip tag and the filters.
+ * Condition family, as shown by the 4-pip tag and the filters, derived from the parts.
  *
  * @property label Display label.
  * @property pips Lit pips out of 4.
@@ -129,51 +130,67 @@ enum class FormatGroup(
     val label: String,
     val pips: Int,
 ) {
-    /** Cartridge / disc only. */
+    /** Media only. */
     Loose("Loose", 1),
 
-    /** Complete in box (with or without manual). */
+    /** Boxed (with or without manual). */
     Complete("Complet", 2),
 
-    /** New / mint. */
+    /** Complete with every part graded mint. */
     New("Neuf", 3),
 
     /** Sealed. */
     Sealed("Scellé", 4),
 
-    /** Graded by wear (« Très bon »…). */
-    Other("Autres", 0),
+    /** Digital copy. */
+    Digital("Démat.", 0),
 }
 
-/** Condition family of a condition. */
-val ItemCondition.formatGroup: FormatGroup
+/** Condition family of a copy. */
+val Components.formatGroup: FormatGroup
     get() =
-        when (this) {
-            ItemCondition.LOOSE -> FormatGroup.Loose
-            ItemCondition.CIB, ItemCondition.CIB_NO_MANUAL -> FormatGroup.Complete
-            ItemCondition.MINT -> FormatGroup.New
-            ItemCondition.NEW_SEALED -> FormatGroup.Sealed
-            else -> FormatGroup.Other
+        when {
+            digital -> FormatGroup.Digital
+            sealed -> FormatGroup.Sealed
+            isMintComplete -> FormatGroup.New
+            box -> FormatGroup.Complete
+            else -> FormatGroup.Loose
         }
 
-/** Short label of the condition tag ("Loose", "Complet", "Sans notice", "Scellé"…). */
-val ItemCondition.formatLabel: String
+/** Short label of the condition tag ("Loose", "Complet", "Sans notice", "Complet+"…). */
+val Components.formatLabel: String
     get() =
-        if (this == ItemCondition.CIB_NO_MANUAL) "Sans notice" else formatGroup.takeIf { it != FormatGroup.Other }?.label ?: label
+        when {
+            box && !manual && !sealed -> "Sans notice"
+            else -> formatGroup.label + if (extras && formatGroup != FormatGroup.Sealed) "+" else ""
+        }
 
 /** Lit pips of the condition tag. */
-val ItemCondition.pips: Int get() = formatGroup.pips
+val Components.pips: Int get() = formatGroup.pips
 
 /**
- * Parts of the copy: cartridge, box, manual — derived from the condition, null when the
- * condition does not tell (wear grades).
+ * One physical part of a copy for the « Mon exemplaire » panel.
+ *
+ * @property name Part name.
+ * @property present Whether it is there.
+ * @property grade Its wear, when known.
  */
-val ItemCondition.parts: List<Pair<String, Boolean>>?
+data class CopyPart(
+    val name: String,
+    val present: Boolean,
+    val grade: Grade? = null,
+)
+
+/** Parts of a copy (none for a digital copy); extras only when present. */
+val Components.parts: List<CopyPart>
     get() =
-        when (this) {
-            ItemCondition.LOOSE -> listOf("Cartouche" to true, "Boîte" to false, "Notice" to false)
-            ItemCondition.CIB_NO_MANUAL -> listOf("Cartouche" to true, "Boîte" to true, "Notice" to false)
-            ItemCondition.CIB, ItemCondition.MINT, ItemCondition.NEW_SEALED ->
-                listOf("Cartouche" to true, "Boîte" to true, "Notice" to true)
-            else -> null
+        if (digital) {
+            emptyList()
+        } else {
+            listOfNotNull(
+                CopyPart("Support", media, mediaGrade),
+                CopyPart("Boîte", box, boxGrade),
+                CopyPart("Notice", manual, manualGrade),
+                CopyPart("Extras", true).takeIf { extras },
+            )
         }

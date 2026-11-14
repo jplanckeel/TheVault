@@ -1,9 +1,10 @@
 package com.thevault.ui.screen.collection
 
 import com.thevault.domain.model.Accessory
+import com.thevault.domain.model.Components
 import com.thevault.domain.model.Console
+import com.thevault.domain.model.CopyDetails
 import com.thevault.domain.model.Game
-import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.PriceQuote
 import com.thevault.domain.model.Region
@@ -52,6 +53,7 @@ enum class ItemKind(
  * @property purchasePrice Purchase price.
  * @property acquiredAt Acquisition date.
  * @property subtype Accessory type ("Manette"…), empty otherwise.
+ * @property details Everything else about the copy (purchase, storage, loan, sale, tags).
  * @property quote eBay quote used for [value], null when the value was typed by hand.
  * @property quotes Every eBay quote of the item (all grades).
  */
@@ -62,13 +64,14 @@ data class CollectionEntry(
     val platform: String,
     val manufacturer: Manufacturer,
     val coverUrl: String?,
-    val condition: ItemCondition,
+    val condition: Components,
     val region: Region,
     val status: ItemStatus,
     val value: Double?,
     val purchasePrice: Double?,
     val acquiredAt: LocalDate?,
     val subtype: String = "",
+    val details: CopyDetails = CopyDetails(),
     val quote: PriceQuote? = null,
     val quotes: List<PriceQuote> = emptyList(),
 ) {
@@ -103,7 +106,7 @@ fun effectiveValue(
 
 /** Quote matching [condition] among [quotes], when reliable. */
 fun quoteFor(
-    condition: ItemCondition,
+    condition: Components,
     quotes: List<PriceQuote>,
 ): PriceQuote? {
     val grade = condition.priceGrade ?: return null
@@ -128,12 +131,13 @@ fun Game.toEntry() =
         platform,
         manufacturerOf(platform),
         coverUrl,
-        condition,
+        details.components,
         region,
         status,
         currentValue,
         purchasePrice,
         acquiredAt,
+        details = details,
     )
 
 /** Maps a console; the console name gives its platform tint. */
@@ -145,12 +149,13 @@ fun Console.toEntry() =
         name,
         manufacturerFromLabel(manufacturer, name),
         imageUrl,
-        condition,
+        details.components,
         region,
         status,
         currentValue,
         purchasePrice,
         acquiredAt,
+        details = details,
     )
 
 /** Maps an accessory; its compatible console gives its platform. */
@@ -162,13 +167,14 @@ fun Accessory.toEntry() =
         compatibleConsole,
         manufacturerOf(compatibleConsole),
         imageUrl,
-        condition,
+        details.components,
         Region.OTHER,
         status,
         currentValue,
         purchasePrice,
         acquiredAt,
         subtype = type,
+        details = details,
     )
 
 private fun manufacturerFromLabel(

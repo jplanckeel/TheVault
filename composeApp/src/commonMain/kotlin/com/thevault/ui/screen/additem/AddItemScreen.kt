@@ -26,7 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.thevault.domain.model.ItemCondition
+import com.thevault.domain.model.Components
+import com.thevault.domain.model.Edition
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import com.thevault.ui.component.ButtonSize
@@ -38,23 +39,13 @@ import com.thevault.ui.component.ScreenHeader
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.VaultChip
 import com.thevault.ui.component.VaultTextField
+import com.thevault.ui.component.formatLabel
 import com.thevault.ui.component.label
 import com.thevault.ui.component.shortPlatformName
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 
-private val FormConditions =
-    listOf(
-        ItemCondition.LOOSE,
-        ItemCondition.CIB_NO_MANUAL,
-        ItemCondition.CIB,
-        ItemCondition.MINT,
-        ItemCondition.NEW_SEALED,
-        ItemCondition.VERY_GOOD,
-        ItemCondition.GOOD,
-        ItemCondition.FAIR,
-        ItemCondition.POOR,
-    )
+private val FormConditions = com.thevault.ui.screen.add.QuickFormats + Components(box = true)
 
 /** Add (or edit when [gameId] is set) a game. */
 @Composable
@@ -169,12 +160,18 @@ private fun Choices(
     viewModel: AddItemViewModel,
 ) {
     ChipGroup("Statut", ItemStatus.entries, state.status, { it.label }) { s -> viewModel.update { it.copy(status = s) } }
-    ChipGroup("État", FormConditions, state.condition, { it.label }) { c -> viewModel.update { it.copy(condition = c) } }
+    ChipGroup("État", FormConditions, state.details.components, {
+        it.formatLabel
+    }) { c -> viewModel.update { it.copy(details = it.details.copy(components = c)) } }
     ChipGroup("Région", Region.entries, state.region, { it.label }) { r -> viewModel.update { it.copy(region = r) } }
     Engrave("Édition")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        VaultChip("Collector", state.collector, { viewModel.update { it.copy(collector = !it.collector) } })
-        VaultChip("Limitée", state.limited, { viewModel.update { it.copy(limited = !it.limited) } })
+        VaultChip("Collector", state.details.edition == Edition.COLLECTOR, {
+            viewModel.update { it.copy(details = it.details.copy(edition = Edition.COLLECTOR)) }
+        })
+        VaultChip("Limitée", state.details.edition == Edition.LIMITED, {
+            viewModel.update { it.copy(details = it.details.copy(edition = Edition.LIMITED)) }
+        })
     }
 }
 
