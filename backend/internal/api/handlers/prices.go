@@ -54,3 +54,55 @@ func (h *PricesHandler) GetTopMovers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(movers)
 }
+
+// quotesRequest is the body of POST /api/v1/prices/quotes.
+type quotesRequest struct {
+	ExternalIDs []string `json:"external_ids"`
+	Days        int      `json:"days"`
+}
+
+// GetQuotes handles POST /api/v1/prices/quotes — the latest eBay quote per condition of
+// the items the app owns, with the median quoted `days` (default 30) ago.
+func (h *PricesHandler) GetQuotes(w http.ResponseWriter, r *http.Request) {
+	var req quotesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if err := domain.ValidateExternalIDs(req.ExternalIDs); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	days := domain.ClampDays(req.Days, domain.DefaultQuoteDays)
+	quotes, err := h.prices.QuotesByExternalIDs(r.Context(), req.ExternalIDs, days)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if quotes == nil {
+		quotes = []domain.ExternalQuote{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(quotes)
+}
+
+// GetHistory handles GET /api/v1/prices/history?external_id=…&days=365 — the price
+// snapshots of one item, newest first.
+func (h *PricesHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
+	externalID := r.URL.Query().Get("external_id")
+	if err := domain.ValidateExternalIDs([]string{externalID}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	snaps, err := h.prices.HistoryByExternalID(r.Context(), externalID, domain.ClampDays(days, domain.MaxHistoryDays))
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if snaps == nil {
+		snaps = []domain.PriceSnapshot{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(snaps)
+}

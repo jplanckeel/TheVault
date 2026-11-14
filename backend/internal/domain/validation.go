@@ -58,3 +58,37 @@ func (i Item) ValidateSync() error {
 	}
 	return nil
 }
+
+// Limits of the price endpoints used by the apps.
+const (
+	MaxQuoteIDs      = 2000
+	DefaultQuoteDays = 30
+	MaxHistoryDays   = 730
+)
+
+// ValidateExternalIDs checks the external IDs of a quotes request.
+func ValidateExternalIDs(ids []string) error {
+	switch {
+	case len(ids) == 0:
+		return fmt.Errorf("external_ids is required")
+	case len(ids) > MaxQuoteIDs:
+		return fmt.Errorf("at most %d external_ids", MaxQuoteIDs)
+	}
+	for _, id := range ids {
+		if strings.TrimSpace(id) == "" || tooLong(id, MaxTitleLen) {
+			return fmt.Errorf("invalid external_id")
+		}
+	}
+	return nil
+}
+
+// ClampDays bounds a `days` query parameter to [1, MaxHistoryDays], using def when unset.
+func ClampDays(days, def int) int {
+	switch {
+	case days <= 0:
+		return def
+	case days > MaxHistoryDays:
+		return MaxHistoryDays
+	}
+	return days
+}

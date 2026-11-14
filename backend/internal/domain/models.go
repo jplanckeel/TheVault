@@ -97,3 +97,18 @@ type TopMover struct {
 	DeltaAbs  float64 `json:"delta_abs"`
 	DeltaPct  float64 `json:"delta_pct"`
 }
+
+// ExternalQuote is the latest eBay quote of an item for one condition, addressed by
+// the external_id the apps know it by (POST /prices/quotes).
+type ExternalQuote struct {
+	ExternalID  string    `json:"external_id"`
+	Condition   string    `json:"condition"`
+	PriceMin    float64   `json:"price_min"`
+	PriceMax    float64   `json:"price_max"`
+	PriceMedian float64   `json:"price_median"`
+	SampleCount int       `json:"sample_count"`
+	ScrapedAt   time.Time `json:"scraped_at"`
+	// PricePast is the median quoted `days` ago (the latest snapshot at or before that
+	// date), or nil when the item has no snapshot that old.
+	PricePast *float64 `json:"price_past"`
+}

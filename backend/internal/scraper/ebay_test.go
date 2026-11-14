@@ -49,6 +49,13 @@ func (m *memPriceStore) TopMovers(_ context.Context, _, _ int) ([]domain.TopMove
 	return nil, nil
 }
 
+func (m *memPriceStore) QuotesByExternalIDs(_ context.Context, _ []string, _ int) ([]domain.ExternalQuote, error) {
+	return nil, nil
+}
+func (m *memPriceStore) HistoryByExternalID(_ context.Context, _ string, _ int) ([]domain.PriceSnapshot, error) {
+	return nil, nil
+}
+
 type memJobStore struct{ jobs map[string]domain.ScrapeJob }
 
 func newMemJobStore() *memJobStore { return &memJobStore{jobs: make(map[string]domain.ScrapeJob)} }

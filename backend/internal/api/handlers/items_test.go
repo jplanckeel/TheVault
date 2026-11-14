@@ -77,6 +77,13 @@ func (m *mockPriceStore) TopMovers(_ context.Context, _, _ int) ([]domain.TopMov
 	return []domain.TopMover{}, nil
 }
 
+func (m *mockPriceStore) QuotesByExternalIDs(_ context.Context, _ []string, _ int) ([]domain.ExternalQuote, error) {
+	return nil, nil
+}
+func (m *mockPriceStore) HistoryByExternalID(_ context.Context, _ string, _ int) ([]domain.PriceSnapshot, error) {
+	return nil, nil
+}
+
 func TestUpsertItem_Returns201(t *testing.T) {
 	store := newMockItemStore()
 	h := handlers.NewItemsHandler(store, &mockPriceStore{})

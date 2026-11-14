@@ -51,6 +51,7 @@ func NewRouter(
 	authLimit := NewRateLimiter(10, time.Minute)    // login / register: slows brute force
 	searchLimit := NewRateLimiter(60, time.Minute)  // IGDB proxy: protects our IGDB quota
 	writeLimit := NewRateLimiter(1000, time.Minute) // catalogue upserts: allows a full CSV import
+	priceLimit := NewRateLimiter(120, time.Minute)  // quotes and price history read by the apps
 
 	ih := handlers.NewItemsHandler(items, prices, uploadDir).WithSyncEvents(events)
 	ph := handlers.NewPricesHandler(prices)
@@ -123,6 +124,8 @@ func NewRouter(
 				r.Use(AnyAuthMiddleware)
 				r.With(writeLimit.Middleware).Post("/items", ih.UpsertItem)
 				r.With(searchLimit.Middleware).Get("/search", srch.Search)
+				r.With(priceLimit.Middleware).Post("/prices/quotes", ph.GetQuotes)
+				r.With(priceLimit.Middleware).Get("/prices/history", ph.GetHistory)
 			})
 
 			// Admin-only routes: the caller's account must have the admin role.

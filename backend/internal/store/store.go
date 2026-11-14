@@ -29,6 +29,8 @@ type PriceStore interface {
 	ListByItemID(ctx context.Context, itemID string) ([]domain.PriceSnapshot, error)
 	LatestPerItem(ctx context.Context) ([]domain.PriceSnapshot, error)
 	TopMovers(ctx context.Context, days, limit int) ([]domain.TopMover, error)
+	QuotesByExternalIDs(ctx context.Context, externalIDs []string, days int) ([]domain.ExternalQuote, error)
+	HistoryByExternalID(ctx context.Context, externalID string, days int) ([]domain.PriceSnapshot, error)
 }
 
 // JobStore defines persistence operations for scrape jobs.
