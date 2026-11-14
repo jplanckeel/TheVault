@@ -58,8 +58,8 @@ func (h *VaultHandler) GetBackup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(payload)
+	// RawMessage is re-validated by the JSON encoder before it is written.
+	writeJSON(w, http.StatusOK, json.RawMessage(payload))
 }
 
 // CreateShare handles POST /api/v1/shares — creates a read-only public link.
