@@ -97,3 +97,25 @@
 1. Une branche par sous-étape (`feat/condition-components`, `feat/migration-3`, `feat/gameye-import`…).
 2. Suivre `.agent/workflows/new_feature.md`, puis `/check_quality`.
 3. Commencer par 1.1 → 1.2 → 1.3 ; ne pas toucher à l'UI avant que la migration soit testée.
+
+---
+
+## État d'avancement (14 nov. 2026)
+
+Implémenté sur `feat/collection-tracking`, sauf le scan de codes-barres et le mode inventaire par scan.
+
+| Étape | Commit | Notes |
+| --- | --- | --- |
+| 1.1 + 1.2 Modèle et migration | `d58f6b5` | Migration `4.sqm` (la `3.sqm` existait déjà), tests de migration sur SQLite JVM |
+| 1.3 Import Gameye | `3107023` | Aller-retour sans perte testé sur le CSV de référence ; `PricePaid = -1.0` n'est plus importé comme −1 € |
+| 1.4 UI minimale | `e2e9468` | Formulaire par composant, édition des consoles / accessoires |
+| 2 Backend eBay | `79fef97` | API Browse = **annonces en cours** (pas de ventes conclues : Marketplace Insights est sur demande) |
+| 2 Valeur suivie | `62c3378` | Historique, plus-value avec port, rapport, onglet « Vendus » |
+| 3 Données | `c09e8af` | Migration `6.sqm` : envies, backlog, listes |
+| 3 Envies / backlog | `e429a7c` | Alerte Android uniquement |
+| 3 Listes de complétion | `b462817` | Listes personnelles (pas de catalogue complet par plateforme) |
+| 3 Lot, « Je l'ai déjà ? » | `c038d22` | |
+| 3 Sauvegarde / partage | `a86d537`, `b154034` | Migration backend `000010` ; export assurance PDF sur Android, CSV ; iOS : pas de sélecteur de fichiers |
+| Couverture | `cf29d24` | domain + data : 83,8 % |
+
+**Réponse à la question ouverte :** le backend de scraping est dans ce dépôt (`backend/internal/scraper`).

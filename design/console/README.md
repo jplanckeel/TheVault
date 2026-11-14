@@ -56,12 +56,13 @@ Navigation : barre flottante *Accueil · Collection · + · Envies · Profil* ; 
 
 Jamais de chiffre inventé : ce qui manque s'affiche « — » ou est masqué.
 
-| Élément de la maquette | Source |
+| Élément | Source |
 |---|---|
-| Cote eBay (Loose / Complet / Neuf), « Plus fortes hausses », variations 30 j | Backend : `POST /api/v1/prices/quotes`, `GET /api/v1/prices/history` (relevés eBay) |
-| Valeur d'un objet | Cote eBay fiable (≥ 3 annonces) de son état, sinon la valeur saisie |
-| Courbe 1M / 6M / 1A / TOUT | Instantané quotidien enregistré sur le téléphone (`value_snapshot`) |
+| Cote eBay (Loose / Complet / Neuf), « Plus fortes hausses », variations 30 j, rapport de mise à jour | Backend : annonces eBay FR + DE (UK si un taux `fx_gbp_eur` est configuré), lots / pour pièces / repros / NTSC exclus, médiane + nombre d'annonces (`ebay_pal`) |
+| Valeur d'un exemplaire | Cote PAL fiable (≥ 3 annonces) de sa complétude dérivée, sinon valeur saisie, sinon prix US de l'import Gameye affiché « ≈ … cote US indicative » |
+| Courbes | Valeur du coffre : instantané quotidien local (`value_snapshot`) ; fiche : historique backend complété par les relevés locaux (`price_snapshot`) |
+| Plus-value | Valeur − prix payé − port |
 | Niveau, XP, succès | Calculés depuis la collection (`screen/profile/Achievements.kt`) |
-| LED « Sync » | File locale des objets à envoyer au catalogue (`sync_state`) |
+| Envies « sous ton prix » | Cote PAL de l'état visé ≤ prix max ; notification Android (WorkManager, toutes les 12 h) |
 
-Non repris (choix produit) : scanner de codes-barres, prix cible et alertes de la liste d'envies (remplacées par « En baisse sur eBay »), jeux « manquants » par plateforme (pas de catalogue complet), numéro de série « SN ».
+Non repris : scanner de codes-barres et mode inventaire par scan, numéro de série « SN », jeux « manquants » d'un catalogue complet de plateforme (remplacé par les listes de complétion personnelles).

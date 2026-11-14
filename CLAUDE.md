@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Security** — `JWT_SECRET` (≥ 32 chars) is mandatory, never add a fallback secret. Validate user input in `internal/domain/validation.go`, keep the rate limits / body limits / security headers of `internal/api/security.go`, and keep `govulncheck`, `gosec` and `npm audit` green.
 - **Back-office** — web only (`web/src/pages/admin/`, API `/api/v1/admin/*`). Access requires `users.is_admin`, granted through the `ADMIN_EMAILS` env var and checked in DB by `AdminMiddleware`. Every catalogue write is logged in `sync_events`; admin edits set `items.admin_edited` (sync no longer overwrites catalogue fields), merges add `item_aliases`, deletes add `item_tombstones` (sync gets 410).
 
-The mobile app talks to the backend through `shared/.../data/remote/TheVaultBo*DataSource.kt`. The API key and base URL come from `local.properties` (`thevault.api.key`, `thevault.api.baseUrl`) via the generated `com.thevault.config.ApiConfig` — never hardcode them.
+The mobile app talks to the backend through `shared/.../data/remote/TheVaultBo*DataSource.kt` (IGDB search proxy, catalogue sync, eBay quotes `/prices/quotes` + `/prices/history`, account `/auth/login`, `/backup`, `/shares`; public pages `/share/{token}` read `/public/shares/{token}`). The API key and base URL come from `local.properties` (`thevault.api.key`, `thevault.api.baseUrl`) via the generated `com.thevault.config.ApiConfig` — never hardcode them.
 
 ## Architecture
 
@@ -63,7 +63,7 @@ shared/commonMain
   ├── data/
   │   ├── repository/   # RepositoryImpl
   │   ├── local/        # SQLDelight data sources
-  │   ├── remote/       # Ktor data sources (IGDB, RAWG APIs)
+  │   ├── remote/       # Ktor data sources (back-office: search, sync, quotes, account / backup / shares)
   │   ├── dto/          # @Serializable data classes
   │   └── mapper/       # Extension functions: fun FooDto.toDomain(): Foo
   └── di/               # Koin modules (SharedModule.kt)
@@ -92,6 +92,9 @@ Mobile rules:
 - Fonts: Archivo (display, Expanded for engraved labels), IBM Plex Sans (text), IBM Plex Mono (prices) — bundled in `composeResources/font/`
 - Reuse the shared components (`ui/component/`) instead of styling screens ad hoc
 - Never display invented figures: unknown values render as `—`; values come from eBay quotes (backend) or what the user typed
+- Each copy is described by `Components` (media / box / manual / extras, grade per part, sealed, digital); completeness (Loose / CIB / Neuf) is always derived, never typed
+- Value of a copy: reliable PAL eBay quote (`ebay_pal`) → value typed by the user → Gameye US price (`gameye_import_us`, always shown as « ≈ … cote US indicative »)
+- The collection is PAL: the Gameye `Country` column is ignored on import
 
 ## Dependency Management
 
