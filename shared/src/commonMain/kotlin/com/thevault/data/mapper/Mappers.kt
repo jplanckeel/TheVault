@@ -1,6 +1,7 @@
 package com.thevault.data.mapper
 
 import com.thevault.domain.model.Accessory
+import com.thevault.domain.model.Completeness
 import com.thevault.domain.model.Components
 import com.thevault.domain.model.Console
 import com.thevault.domain.model.CopyDetails
@@ -8,7 +9,10 @@ import com.thevault.domain.model.Edition
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.Grade
 import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.PlayLog
+import com.thevault.domain.model.PlayStatus
 import com.thevault.domain.model.Region
+import com.thevault.domain.model.WishPrefs
 import com.thevault.domain.model.legacyCode
 import kotlinx.datetime.LocalDate
 import com.thevault.database.Accessory as AccessoryEntity
@@ -40,6 +44,9 @@ internal data class CopyColumns(
     val loanDueAt: String?,
     val soldPrice: Double?,
     val soldAt: String?,
+    val wishPriority: Long?,
+    val wishMaxPrice: Double?,
+    val wishTarget: String?,
 ) {
     /** Domain details, with the [tags] loaded separately. */
     fun toDetails(tags: List<String>) =
@@ -68,6 +75,7 @@ internal data class CopyColumns(
             loanDueAt = date(loanDueAt),
             soldPrice = soldPrice,
             soldAt = date(soldAt),
+            wish = WishPrefs(wishPriority?.toInt(), wishMaxPrice, wishTarget?.let { t -> Completeness.entries.find { it.name == t } }),
         )
 
     /** Companion helpers. */
@@ -96,6 +104,9 @@ internal data class CopyColumns(
                 details.loanDueAt?.toString(),
                 details.soldPrice,
                 details.soldAt?.toString(),
+                details.wish.priority?.toLong(),
+                details.wish.maxPrice,
+                details.wish.target?.name,
             )
         }
 
@@ -143,6 +154,9 @@ fun GameEntity.toDomain(tags: List<String> = emptyList()): Game =
                 loan_due_at,
                 sold_price,
                 sold_at,
+                wish_priority,
+                wish_max_price,
+                wish_target,
             ).toDetails(tags),
         coverUrl = cover_url,
         status = status(status),
@@ -155,6 +169,7 @@ fun GameEntity.toDomain(tags: List<String> = emptyList()): Game =
         publisher = publisher,
         gameModes = game_modes,
         themes = themes,
+        play = PlayLog(play_status?.let { p -> PlayStatus.entries.find { it.name == p } }, play_minutes?.toInt()),
     )
 
 /** Maps a console row. */
@@ -187,6 +202,9 @@ fun ConsoleEntity.toDomain(tags: List<String> = emptyList()): Console =
                 loan_due_at,
                 sold_price,
                 sold_at,
+                wish_priority,
+                wish_max_price,
+                wish_target,
             ).toDetails(tags),
         productionYear = production_year.toInt(),
         status = status(status),
@@ -226,6 +244,9 @@ fun AccessoryEntity.toDomain(tags: List<String> = emptyList()): Accessory =
                 loan_due_at,
                 sold_price,
                 sold_at,
+                wish_priority,
+                wish_max_price,
+                wish_target,
             ).toDetails(tags),
         status = status(status),
         purchasePrice = purchase_price,
@@ -288,6 +309,11 @@ fun Game.toEntity(
         c.loanDueAt,
         c.soldPrice,
         c.soldAt,
+        c.wishPriority,
+        c.wishMaxPrice,
+        c.wishTarget,
+        play.status?.name,
+        play.minutes?.toLong(),
     )
 }
 
@@ -335,6 +361,9 @@ fun Console.toEntity(
         c.loanDueAt,
         c.soldPrice,
         c.soldAt,
+        c.wishPriority,
+        c.wishMaxPrice,
+        c.wishTarget,
     )
 }
 
@@ -380,6 +409,9 @@ fun Accessory.toEntity(
         c.loanDueAt,
         c.soldPrice,
         c.soldAt,
+        c.wishPriority,
+        c.wishMaxPrice,
+        c.wishTarget,
     )
 }
 

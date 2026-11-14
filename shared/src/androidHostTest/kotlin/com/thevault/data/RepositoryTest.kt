@@ -136,3 +136,82 @@ class PriceSnapshotTest {
         override suspend fun history(externalId: String) = emptyList<com.thevault.data.remote.dto.PriceSnapshotDto>()
     }
 }
+
+/** Completion lists, wishlist preferences and play tracking survive SQLite. */
+class Phase3StorageTest {
+    private fun db() = TheVaultDatabase(JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { TheVaultDatabase.Schema.create(it) })
+
+    @Test
+    fun setsKeepTheirEntries() =
+        runTest {
+            val repo =
+                com.thevault.data.repository
+                    .SetRepositoryImpl(db())
+            val set =
+                com.thevault.domain.model
+                    .ItemSet(
+                        "s",
+                        "Zelda",
+                        listOf(
+                            com.thevault.domain.model
+                                .SetEntry("Wind Waker", "GameCube"),
+                        ),
+                    )
+            repo.save(set)
+            repo.addEntry(
+                "s",
+                com.thevault.domain.model
+                    .SetEntry("Minish Cap", "GBA"),
+            )
+            assertEquals(
+                listOf("Minish Cap", "Wind Waker"),
+                repo
+                    .observe()
+                    .first()
+                    .single()
+                    .entries
+                    .map { it.title },
+            )
+            repo.removeEntry(
+                "s",
+                com.thevault.domain.model
+                    .SetEntry("Wind Waker", "GameCube"),
+            )
+            assertEquals(
+                1,
+                repo
+                    .observe()
+                    .first()
+                    .single()
+                    .entries.size,
+            )
+            repo.delete("s")
+            assertEquals(emptyList(), repo.observe().first())
+        }
+
+    @Test
+    fun wishAndPlayAreStored() =
+        runTest {
+            val repo = GameRepositoryImpl(db())
+            val game =
+                Game(
+                    "g",
+                    "Zelda",
+                    "GameCube",
+                    "Action",
+                    2003,
+                    Region.PAL,
+                    CopyDetails(
+                        wish =
+                            com.thevault.domain.model
+                                .WishPrefs(1, 25.0, com.thevault.domain.model.Completeness.CIB),
+                    ),
+                    status = ItemStatus.WISHLIST,
+                    play =
+                        com.thevault.domain.model
+                            .PlayLog(com.thevault.domain.model.PlayStatus.PLAYING, 90),
+                )
+            repo.save(game)
+            assertEquals(game, repo.getById("g"))
+        }
+}

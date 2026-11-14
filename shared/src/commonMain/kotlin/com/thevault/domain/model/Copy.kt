@@ -127,6 +127,7 @@ enum class Edition {
  * @property loanDueAt Expected return date.
  * @property soldPrice Sale price, when sold.
  * @property soldAt Sale date.
+ * @property wish Wishlist preferences (priority, max price, wanted state).
  */
 data class CopyDetails(
     val components: Components = Components.CIB,
@@ -142,6 +143,7 @@ data class CopyDetails(
     val loanDueAt: LocalDate? = null,
     val soldPrice: Double? = null,
     val soldAt: LocalDate? = null,
+    val wish: WishPrefs = WishPrefs(),
 ) {
     /** Total cost of the copy (price + shipping), null when the price is unknown. */
     fun totalCost(purchasePrice: Double?): Double? = purchasePrice?.let { it + (shippingCost ?: 0.0) }
@@ -169,3 +171,69 @@ fun componentsOfLegacy(code: String): Components =
         "NEW_SEALED" -> Components.SEALED
         else -> Components(mediaGrade = Grade.entries.find { it.name == code })
     }
+
+/**
+ * Wishlist preferences of an item.
+ *
+ * @property priority 1 (high) to 3 (low), null when not set.
+ * @property maxPrice Price under which the item is worth buying.
+ * @property target Wanted completeness.
+ */
+data class WishPrefs(
+    val priority: Int? = null,
+    val maxPrice: Double? = null,
+    val target: Completeness? = null,
+)
+
+/** Where a game stands in the backlog. */
+enum class PlayStatus {
+    /** Not started. */
+    TO_PLAY,
+
+    /** In progress. */
+    PLAYING,
+
+    /** Finished. */
+    FINISHED,
+
+    /** Completed at 100 %. */
+    COMPLETED,
+
+    /** Dropped. */
+    DROPPED,
+}
+
+/**
+ * Play tracking of a game.
+ *
+ * @property status Backlog status, null when not tracked.
+ * @property minutes Time played.
+ */
+data class PlayLog(
+    val status: PlayStatus? = null,
+    val minutes: Int? = null,
+)
+
+/**
+ * Completion list: a platform, a series or any personal list of wanted titles.
+ *
+ * @property id Identifier.
+ * @property name Name.
+ * @property entries Titles of the list.
+ */
+data class ItemSet(
+    val id: String,
+    val name: String,
+    val entries: List<SetEntry> = emptyList(),
+)
+
+/**
+ * Title of a completion list.
+ *
+ * @property title Title.
+ * @property platform Platform.
+ */
+data class SetEntry(
+    val title: String,
+    val platform: String,
+)

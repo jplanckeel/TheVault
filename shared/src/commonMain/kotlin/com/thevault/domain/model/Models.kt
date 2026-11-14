@@ -38,6 +38,7 @@ enum class Region {
  * @property currentValue Estimated current market value, or null if unknown.
  * @property notes Optional personal notes about the game.
  * @property acquiredAt Date when the item was acquired.
+ * @property play Backlog status and time played (games only).
  */
 data class Game(
     val id: String,
@@ -58,6 +59,7 @@ data class Game(
     val publisher: String? = null,
     val gameModes: String? = null,
     val themes: String? = null,
+    val play: PlayLog = PlayLog(),
 )
 
 /**

@@ -147,6 +147,22 @@ val sharedModule =
         factory { MarkAchievementSeenUseCase(get()) }
         factory { ObserveSettingUseCase(get()) }
         factory { SetSettingUseCase(get()) }
+        factory {
+            com.thevault.domain.usecase
+                .ObserveSetsUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .SaveSetUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .DeleteSetUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .EditSetEntryUseCase(get())
+        }
 
         // ─── Repositories ──────────────────────────────────────────────────────────
         single<VaultStatsRepository> { VaultStatsRepositoryImpl(get()) }
@@ -158,4 +174,8 @@ val sharedModule =
         single<AchievementRepository> { AchievementRepositoryImpl(get()) }
         single<SettingsRepository> { SettingsRepositoryImpl(get()) }
         single<CatalogSyncRepository> { CatalogSyncRepositoryImpl(get(), get()) }
+        single<com.thevault.domain.repository.SetRepository> {
+            com.thevault.data.repository
+                .SetRepositoryImpl(get())
+        }
     }

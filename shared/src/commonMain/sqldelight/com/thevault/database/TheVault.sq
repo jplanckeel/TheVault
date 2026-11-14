@@ -43,7 +43,12 @@ CREATE TABLE game (
     loaned_to TEXT,
     loan_due_at TEXT,
     sold_price REAL,
-    sold_at TEXT
+    sold_at TEXT,
+    wish_priority INTEGER,
+    wish_max_price REAL,
+    wish_target TEXT,
+    play_status TEXT,
+    play_minutes INTEGER
 );
 
 CREATE INDEX game_status ON game(status);
@@ -108,7 +113,10 @@ CREATE TABLE console (
     loaned_to TEXT,
     loan_due_at TEXT,
     sold_price REAL,
-    sold_at TEXT
+    sold_at TEXT,
+    wish_priority INTEGER,
+    wish_max_price REAL,
+    wish_target TEXT
 );
 
 CREATE INDEX console_status ON console(status);
@@ -162,7 +170,10 @@ CREATE TABLE accessory (
     loaned_to TEXT,
     loan_due_at TEXT,
     sold_price REAL,
-    sold_at TEXT
+    sold_at TEXT,
+    wish_priority INTEGER,
+    wish_max_price REAL,
+    wish_target TEXT
 );
 
 CREATE INDEX accessory_status ON accessory(status);
@@ -253,3 +264,40 @@ INSERT OR REPLACE INTO item_photo VALUES ?;
 
 deletePhoto:
 DELETE FROM item_photo WHERE id = :id;
+
+-- Completion lists (sets): a platform, a series or any personal list of wanted titles.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE item_set (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE set_entry (
+    set_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    PRIMARY KEY (set_id, title, platform)
+);
+
+selectSets:
+SELECT * FROM item_set ORDER BY name ASC;
+
+upsertSet:
+INSERT OR REPLACE INTO item_set VALUES ?;
+
+deleteSet:
+DELETE FROM item_set WHERE id = :id;
+
+selectSetEntries:
+SELECT * FROM set_entry;
+
+insertSetEntry:
+INSERT OR IGNORE INTO set_entry VALUES ?;
+
+deleteSetEntry:
+DELETE FROM set_entry WHERE set_id = :setId AND title = :title AND platform = :platform;
+
+deleteEntriesOfSet:
+DELETE FROM set_entry WHERE set_id = :setId;
