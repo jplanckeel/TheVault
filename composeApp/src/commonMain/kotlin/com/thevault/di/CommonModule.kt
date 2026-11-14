@@ -36,6 +36,14 @@ val commonModule =
         viewModel { PlatformGamesViewModel(get()) }
         viewModel { WishlistViewModel(get()) }
         viewModel { ProfileViewModel(get()) }
+        viewModel {
+            com.thevault.ui.screen.sets
+                .SetsViewModel(get(), get(), get())
+        }
+        viewModel {
+            com.thevault.ui.screen.sets
+                .SetDetailViewModel(get(), get(), get(), get(), get(), get(), get())
+        }
         viewModel { StatsViewModel(get()) }
         viewModel { AddViewModel(get(), get(), get(), get(), get()) }
         viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }

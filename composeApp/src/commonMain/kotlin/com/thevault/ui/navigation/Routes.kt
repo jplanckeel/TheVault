@@ -21,6 +21,12 @@ object Routes {
     /** Wishlist tab. */
     const val WISHLIST = "wishlist"
 
+    /** Completion lists. */
+    const val SETS = "sets"
+
+    /** One completion list. */
+    const val SET_DETAIL = "set/{id}"
+
     /** Report of the last quote refresh. */
     const val REPORT = "report"
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Settings
@@ -39,6 +40,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ProfileScreen(
     onStats: () -> Unit,
     onSettings: () -> Unit,
+    onSets: () -> Unit,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -63,7 +65,8 @@ fun ProfileScreen(
                 StatTile("${s.platforms}", "Plateformes", Modifier.weight(1f))
             }
         }
-        item { StatsLink(onStats) }
+        item { StatsLink("Voir mes statistiques", Icons.AutoMirrored.Filled.TrendingUp, onStats) }
+        item { StatsLink("Listes de complétion", Icons.AutoMirrored.Filled.FormatListBulleted, onSets) }
         item { SectionHeader("Succès", Modifier.padding(top = 8.dp), action = "${s.unlocked} / ${s.achievements.size}") }
         items(s.achievements, key = { it.def.id }) { a ->
             AchievementBadge(a.def.title, a.def.description, a.unlocked, a.def.xp, a.progress, a.def.target)
@@ -72,12 +75,16 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun StatsLink(onStats: () -> Unit) {
+private fun StatsLink(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onStats: () -> Unit,
+) {
     val c = Vault.colors
     Panel(Modifier.fillMaxWidth(), PaddingValues(horizontal = 16.dp, vertical = 14.dp), color = c.lavender, onClick = onStats) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = c.onLavender, modifier = Modifier.size(20.dp))
-            Text("Voir mes statistiques", style = Vault.type.bodyStrong, color = c.onLavender, modifier = Modifier.weight(1f))
+            Icon(icon, contentDescription = null, tint = c.onLavender, modifier = Modifier.size(20.dp))
+            Text(label, style = Vault.type.bodyStrong, color = c.onLavender, modifier = Modifier.weight(1f))
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = c.onLavender)
         }
     }

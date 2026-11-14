@@ -33,6 +33,8 @@ import com.thevault.ui.screen.item.ItemDetailScreen
 import com.thevault.ui.screen.item.ItemEditScreen
 import com.thevault.ui.screen.profile.ProfileScreen
 import com.thevault.ui.screen.report.QuoteReportScreen
+import com.thevault.ui.screen.sets.SetDetailScreen
+import com.thevault.ui.screen.sets.SetsScreen
 import com.thevault.ui.screen.settings.SettingsScreen
 import com.thevault.ui.screen.stats.StatsScreen
 import com.thevault.ui.screen.wishlist.WishlistScreen
@@ -100,7 +102,9 @@ private fun NavGraphBuilder.tabDestinations(
     }
     composable(Routes.WISHLIST) { WishlistScreen(onEntryClick = openEntry, onAdd = openAdd) }
     composable(Routes.PROFILE) {
-        ProfileScreen(onStats = { nav.navigate(Routes.STATS) }, onSettings = { nav.navigate(Routes.SETTINGS) })
+        ProfileScreen(onStats = {
+            nav.navigate(Routes.STATS)
+        }, onSettings = { nav.navigate(Routes.SETTINGS) }, onSets = { nav.navigate(Routes.SETS) })
     }
     composable(Routes.STATS) {
         StatsScreen(onBack = { nav.popBackStack() }, onEntryClick = openEntry, onExport = { nav.navigate(Routes.SETTINGS) })
@@ -113,6 +117,11 @@ private fun NavGraphBuilder.detailDestinations(
     app: AppViewModel,
 ) {
     val back: () -> Unit = { nav.popBackStack() }
+    composable(Routes.SETS) { SetsScreen(onBack = back, onOpen = { nav.navigate("set/$it") }) }
+    composable(Routes.SET_DETAIL) { entry ->
+        val id = entry.stringArg("id") ?: return@composable
+        SetDetailScreen(id, back)
+    }
     composable(Routes.REPORT) { QuoteReportScreen(onBack = back, onEntryClick = { nav.navigate(Routes.detail(it)) }) }
     composable(Routes.SETTINGS) { SettingsScreen(app = app, onBack = back) }
     composable(Routes.GAME_DETAIL) { entry ->
