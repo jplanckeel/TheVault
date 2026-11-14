@@ -1,11 +1,11 @@
 package com.thevault.ui.component
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.graphics.Color
 import com.thevault.domain.model.IgdbPlatformCatalog
 import com.thevault.domain.model.ItemCondition
-import com.thevault.ui.theme.BadgeColors
-import com.thevault.ui.theme.CoverTints
-import com.thevault.ui.theme.FormatBadgeColors
-import com.thevault.ui.theme.PlatformBadgeColors
+import com.thevault.ui.theme.Vault
 
 /**
  * Console manufacturer, used to group platforms and tint their badges.
@@ -102,73 +102,78 @@ fun shortPlatformName(platform: String): String {
         .ifBlank { trimmed }
 }
 
-/** Badge colors of a platform, one tint per manufacturer. */
-fun platformBadgeColors(platform: String): BadgeColors =
-    when (manufacturerOf(platform)) {
-        Manufacturer.Nintendo -> PlatformBadgeColors.Nintendo
-        Manufacturer.Microsoft -> PlatformBadgeColors.Microsoft
-        Manufacturer.Sony -> PlatformBadgeColors.Sony
-        else -> PlatformBadgeColors.Other
-    }
+/** Band color of a manufacturer (« familles constructeur »). */
+val Manufacturer.color: Color
+    @Composable @ReadOnlyComposable
+    get() =
+        when (this) {
+            Manufacturer.Nintendo -> Vault.colors.platNintendo
+            Manufacturer.Microsoft -> Vault.colors.platXbox
+            Manufacturer.Sony -> Vault.colors.platSony
+            Manufacturer.Sega -> Vault.colors.platSega
+            Manufacturer.Other -> Vault.colors.platOther
+        }
 
-/** Placeholder tint of a cover, per manufacturer. */
-fun coverTint(platform: String) =
-    when (manufacturerOf(platform)) {
-        Manufacturer.Nintendo -> CoverTints.Nintendo
-        Manufacturer.Microsoft -> CoverTints.Microsoft
-        Manufacturer.Sony -> CoverTints.Sony
-        else -> CoverTints.Other
-    }
+/** Band color of a platform. */
+@Composable
+@ReadOnlyComposable
+fun platformColor(platform: String): Color = manufacturerOf(platform).color
 
 /**
- * Format family of a condition (« Format » in the design).
+ * Condition family, as shown by the 4-pip tag and the filters.
  *
- * @property label Filter / stats label.
+ * @property label Display label.
+ * @property pips Lit pips out of 4.
  */
 enum class FormatGroup(
     val label: String,
+    val pips: Int,
 ) {
-    /** Complete in box (with or without manual). */
-    Cib("CIB"),
-
     /** Cartridge / disc only. */
-    Loose("Loose"),
+    Loose("Loose", 1),
 
-    /** New, sealed or mint. */
-    New("Neuf"),
+    /** Complete in box (with or without manual). */
+    Complete("Complet", 2),
 
-    /** Graded by state (very good, good…). */
-    Other("Autres"),
+    /** New / mint. */
+    New("Neuf", 3),
+
+    /** Sealed. */
+    Sealed("Scellé", 4),
+
+    /** Graded by wear (« Très bon »…). */
+    Other("Autres", 0),
 }
 
-/** Format family of a condition. */
+/** Condition family of a condition. */
 val ItemCondition.formatGroup: FormatGroup
     get() =
         when (this) {
-            ItemCondition.CIB, ItemCondition.CIB_NO_MANUAL -> FormatGroup.Cib
             ItemCondition.LOOSE -> FormatGroup.Loose
-            ItemCondition.NEW_SEALED, ItemCondition.MINT -> FormatGroup.New
+            ItemCondition.CIB, ItemCondition.CIB_NO_MANUAL -> FormatGroup.Complete
+            ItemCondition.MINT -> FormatGroup.New
+            ItemCondition.NEW_SEALED -> FormatGroup.Sealed
             else -> FormatGroup.Other
         }
 
-/** Short format label used in badges ("CIB", "CIB−", "Loose", "Neuf"…). */
+/** Short label of the condition tag ("Loose", "Complet", "Sans notice", "Scellé"…). */
 val ItemCondition.formatLabel: String
     get() =
-        when (this) {
-            ItemCondition.CIB -> "CIB"
-            ItemCondition.CIB_NO_MANUAL -> "CIB−"
-            ItemCondition.LOOSE -> "Loose"
-            ItemCondition.NEW_SEALED -> "Neuf"
-            ItemCondition.MINT -> "Mint"
-            else -> label
-        }
+        if (this == ItemCondition.CIB_NO_MANUAL) "Sans notice" else formatGroup.takeIf { it != FormatGroup.Other }?.label ?: label
 
-/** Badge colors of a condition. */
-val ItemCondition.formatColors: BadgeColors
+/** Lit pips of the condition tag. */
+val ItemCondition.pips: Int get() = formatGroup.pips
+
+/**
+ * Parts of the copy: cartridge, box, manual — derived from the condition, null when the
+ * condition does not tell (wear grades).
+ */
+val ItemCondition.parts: List<Pair<String, Boolean>>?
     get() =
-        when (formatGroup) {
-            FormatGroup.Cib -> FormatBadgeColors.Cib
-            FormatGroup.Loose -> FormatBadgeColors.Loose
-            FormatGroup.New -> FormatBadgeColors.New
-            FormatGroup.Other -> FormatBadgeColors.Other
+        when (this) {
+            ItemCondition.LOOSE -> listOf("Cartouche" to true, "Boîte" to false, "Notice" to false)
+            ItemCondition.CIB_NO_MANUAL -> listOf("Cartouche" to true, "Boîte" to true, "Notice" to false)
+            ItemCondition.CIB, ItemCondition.MINT, ItemCondition.NEW_SEALED ->
+                listOf("Cartouche" to true, "Boîte" to true, "Notice" to true)
+            else -> null
         }

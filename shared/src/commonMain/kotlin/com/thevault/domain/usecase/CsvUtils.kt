@@ -44,7 +44,7 @@ object CsvUtils {
             }
             i++
         }
-        
+
         // Add the last field/record if not empty
         if (currentField.isNotEmpty() || csvString.endsWith(",")) {
             currentRecord.add(currentField.toString())
@@ -56,7 +56,10 @@ object CsvUtils {
         return result
     }
 
-    fun generateCsv(headers: List<String>, rows: List<List<String>>): String {
+    fun generateCsv(
+        headers: List<String>,
+        rows: List<List<String>>,
+    ): String {
         val sb = StringBuilder()
         sb.append(headers.joinToString(",") { escapeCsvField(it) }).append("\n")
         for (row in rows) {

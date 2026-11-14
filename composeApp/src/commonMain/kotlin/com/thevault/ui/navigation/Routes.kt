@@ -21,7 +21,10 @@ object Routes {
     /** Wishlist tab. */
     const val WISHLIST = "wishlist"
 
-    /** Stats tab. */
+    /** Profile tab (level, achievements). */
+    const val PROFILE = "profile"
+
+    /** Stats, opened from the profile. */
     const val STATS = "stats"
 
     /** Settings (CSV import / export, IGDB sync). */

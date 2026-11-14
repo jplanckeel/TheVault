@@ -10,7 +10,7 @@ import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.ItemKind
 
 /** Formats offered by the quick add sheet. */
-val QuickFormats = listOf(ItemCondition.LOOSE, ItemCondition.CIB, ItemCondition.NEW_SEALED)
+val QuickFormats = listOf(ItemCondition.LOOSE, ItemCondition.CIB, ItemCondition.MINT, ItemCondition.NEW_SEALED)
 
 /** Regions offered by the quick add sheet. */
 val QuickRegions = listOf(Region.PAL, Region.NTSC_US, Region.NTSC_JP)
@@ -79,7 +79,7 @@ fun preferredRegion(entries: List<CollectionEntry>): Region {
 /** Share of the collection in CIB, in percent (null when the collection is empty). */
 fun cibShare(entries: List<CollectionEntry>): Int? {
     if (entries.isEmpty()) return null
-    return entries.count { it.condition.formatGroup == FormatGroup.Cib } * PERCENT / entries.size
+    return entries.count { it.condition.formatGroup == FormatGroup.Complete } * PERCENT / entries.size
 }
 
 /** Purchase price typed with a comma or a dot; null when empty or invalid. */

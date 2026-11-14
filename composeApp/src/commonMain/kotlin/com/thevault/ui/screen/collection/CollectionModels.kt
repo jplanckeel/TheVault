@@ -5,12 +5,15 @@ import com.thevault.domain.model.Console
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemCondition
 import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.PriceQuote
 import com.thevault.domain.model.Region
+import com.thevault.domain.model.priceGrade
+import com.thevault.ui.component.CardData
 import com.thevault.ui.component.FormatGroup
 import com.thevault.ui.component.Manufacturer
-import com.thevault.ui.component.TileData
 import com.thevault.ui.component.formatGroup
 import com.thevault.ui.component.manufacturerOf
+import com.thevault.ui.component.shortPlatformName
 import kotlinx.datetime.LocalDate
 
 /**
@@ -49,6 +52,8 @@ enum class ItemKind(
  * @property purchasePrice Purchase price.
  * @property acquiredAt Acquisition date.
  * @property subtype Accessory type ("Manette"…), empty otherwise.
+ * @property quote eBay quote used for [value], null when the value was typed by hand.
+ * @property quotes Every eBay quote of the item (all grades).
  */
 data class CollectionEntry(
     val id: String,
@@ -64,10 +69,55 @@ data class CollectionEntry(
     val purchasePrice: Double?,
     val acquiredAt: LocalDate?,
     val subtype: String = "",
+    val quote: PriceQuote? = null,
+    val quotes: List<PriceQuote> = emptyList(),
 ) {
-    /** Data for a grid tile. */
-    val tile: TileData get() = TileData(title, platform, coverUrl, condition, value, purchasePrice)
+    /** Change of the quote over 30 days, in percent; null when unknown. */
+    val changePercent: Double?
+        get() {
+            val past = quote?.medianPast ?: return null
+            return if (past > 0.0) (quote.median - past) / past * PERCENT else null
+        }
+
+    /** Change of the quote over 30 days, in euros; null when unknown. */
+    val changeAmount: Double? get() = quote?.medianPast?.let { quote.median - it }
+
+    /** Data of a collection card. */
+    val card: CardData
+        get() {
+            val caption = if (kind == ItemKind.Console) manufacturer.label else shortPlatformName(platform)
+            return CardData(title, platform, coverUrl, condition, value, changePercent, caption)
+        }
 }
+
+private const val PERCENT = 100.0
+
+/**
+ * Effective value: the reliable eBay quote of the item's condition, otherwise the value
+ * typed by the user.
+ */
+fun effectiveValue(
+    manual: Double?,
+    quote: PriceQuote?,
+): Double? = quote?.takeIf { it.isReliable }?.median ?: manual
+
+/** Quote matching [condition] among [quotes], when reliable. */
+fun quoteFor(
+    condition: ItemCondition,
+    quotes: List<PriceQuote>,
+): PriceQuote? {
+    val grade = condition.priceGrade ?: return null
+    return quotes.find { it.grade == grade && it.isReliable }
+}
+
+private fun CollectionEntry.withQuotes(quotes: List<PriceQuote>): CollectionEntry {
+    val q = quoteFor(condition, quotes)
+    return copy(value = effectiveValue(value, q), quote = q, quotes = quotes)
+}
+
+/** Applies the eBay quotes ([byId]) to the entries. */
+fun List<CollectionEntry>.withQuotes(byId: Map<String, List<PriceQuote>>): List<CollectionEntry> =
+    map { entry -> byId[entry.id]?.let { entry.withQuotes(it) } ?: entry }
 
 /** Maps a game. */
 fun Game.toEntry() =
@@ -138,13 +188,23 @@ fun List<CollectionEntry>.totalValue(): Double = sumOf { it.value ?: 0.0 }
  * @property manufacturer Manufacturer.
  * @property count Number of games.
  * @property value Estimated value of these games.
+ * @property changePercent 30-day change of the quoted games, in percent; null when unknown.
  */
 data class PlatformSummary(
     val platform: String,
     val manufacturer: Manufacturer,
     val count: Int,
     val value: Double,
+    val changePercent: Double? = null,
 )
+
+/** 30-day change, in percent, of the quoted entries; null when none has a past quote. */
+fun List<CollectionEntry>.changePercent(): Double? {
+    val quoted = filter { it.quote?.medianPast != null }
+    val past = quoted.sumOf { it.quote?.medianPast ?: 0.0 }
+    if (past <= 0.0) return null
+    return (quoted.sumOf { it.quote?.median ?: 0.0 } - past) / past * PERCENT
+}
 
 /**
  * Platforms of one manufacturer.
@@ -165,8 +225,9 @@ fun platformSummaries(games: List<CollectionEntry>): List<PlatformSummary> =
     games
         .filter { it.platform.isNotBlank() }
         .groupBy { it.platform }
-        .map { (platform, list) -> PlatformSummary(platform, list.first().manufacturer, list.size, list.totalValue()) }
-        .sortedWith(compareByDescending<PlatformSummary> { it.count }.thenByDescending { it.value })
+        .map { (platform, list) ->
+            PlatformSummary(platform, list.first().manufacturer, list.size, list.totalValue(), list.changePercent())
+        }.sortedWith(compareByDescending<PlatformSummary> { it.count }.thenByDescending { it.value })
 
 /** Platforms grouped by manufacturer (Nintendo, Microsoft, Sony, Sega, others). */
 fun manufacturerGroups(games: List<CollectionEntry>): List<ManufacturerGroup> =
@@ -184,7 +245,7 @@ enum class GameSort(
     val label: String,
 ) {
     /** Highest value first. */
-    Value("Valeur ↓"),
+    Value("Valeur"),
 
     /** Most recently acquired first. */
     Recent("Récents"),

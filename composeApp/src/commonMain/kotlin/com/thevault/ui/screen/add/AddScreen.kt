@@ -1,16 +1,13 @@
 package com.thevault.ui.screen.add
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -18,41 +15,31 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import com.thevault.domain.model.RemoteGame
-import com.thevault.ui.component.Eyebrow
-import com.thevault.ui.component.IconSquareButton
-import com.thevault.ui.component.ItemCover
-import com.thevault.ui.component.SegmentedControl
-import com.thevault.ui.component.VaultBadge
-import com.thevault.ui.component.VaultFilterChip
-import com.thevault.ui.component.VaultSearchField
-import com.thevault.ui.component.platformBadgeColors
+import com.thevault.ui.component.EmptyState
+import com.thevault.ui.component.Engrave
+import com.thevault.ui.component.KeyButton
+import com.thevault.ui.component.ListRow
+import com.thevault.ui.component.LoadingBox
+import com.thevault.ui.component.ScreenHeader
+import com.thevault.ui.component.SearchField
+import com.thevault.ui.component.VaultChip
 import com.thevault.ui.component.shortPlatformName
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.ItemKind
 import com.thevault.ui.screen.collection.platformSummaries
-import com.thevault.ui.theme.FormatBadgeColors
-import com.thevault.ui.theme.OnPrimary
-import com.thevault.ui.theme.OnSurface
-import com.thevault.ui.theme.OnSurfaceVariant
-import com.thevault.ui.theme.Primary
-import com.thevault.ui.theme.SurfaceContainerHigh
-import com.thevault.ui.theme.VaultRadius
+import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -74,14 +61,13 @@ fun AddScreen(
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
     LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        Modifier.fillMaxSize().imePadding().windowInsetsPadding(WindowInsets.navigationBars),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                IconSquareButton(Icons.Default.Close, "Fermer", onClose)
-                Text("Ajouter", style = MaterialTheme.typography.headlineLarge, color = OnSurface)
+            ScreenHeader("Ajouter", eyebrow = if (state.kind == ItemKind.Game) "Recherche IGDB" else "Saisie libre") {
+                KeyButton(Icons.Default.Close, "Fermer", onClose)
             }
         }
         item {
@@ -93,17 +79,33 @@ fun AddScreen(
                 } else {
                     "Nom ${if (state.kind == ItemKind.Console) "de la console" else "de l'accessoire"}"
                 }
-            VaultSearchField(state.query, viewModel::onQueryChanged, hint, Modifier.fillMaxWidth(), focus)
+            SearchField(state.query, viewModel::onQueryChanged, hint, Modifier.fillMaxWidth(), focus)
         }
-        item { SegmentedControl(ItemKind.entries, state.kind, { it.singular }, viewModel::onKindSelected) }
+        item {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(ItemKind.entries) { k -> VaultChip(k.label, k == state.kind, { viewModel.onKindSelected(k) }) }
+            }
+        }
         if (state.kind == ItemKind.Game) gameResults(state, keys, viewModel) else manualCandidate(state, entries, viewModel)
     }
+    AddSheet(state, viewModel, onClose, onAddDetails)
+}
+
+@Composable
+private fun AddSheet(
+    state: AddUiState,
+    viewModel: AddViewModel,
+    onClose: () -> Unit,
+    onAddDetails: (String) -> Unit,
+) {
     state.candidate?.let { candidate ->
-        val actions =
-            QuickAddActions(viewModel::onFormChanged, viewModel::dismiss) { details ->
-                viewModel.save { gameId -> if (details && gameId != null) onAddDetails(gameId) else onClose() }
-            }
-        QuickAddSheet(candidate, state.form, entries, actions)
+        QuickAddSheet(
+            candidate,
+            state.form,
+            QuickAddActions(viewModel::onFormChanged, viewModel::dismiss) { status, details ->
+                viewModel.save(status) { gameId -> if (details && gameId != null) onAddDetails(gameId) else onClose() }
+            },
+        )
     }
 }
 
@@ -115,43 +117,51 @@ private fun LazyListScope.gameResults(
     val platforms = state.results.flatMap { it.platformNames }.distinct()
     if (platforms.size > 1) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Eyebrow("Plateforme")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item { VaultFilterChip("Toutes", state.platform == null, { viewModel.onPlatformSelected(null) }) }
-                    items(platforms) { p ->
-                        VaultFilterChip(
-                            shortPlatformName(p),
-                            state.platform == p,
-                            { viewModel.onPlatformSelected(p) },
-                            dot = platformBadgeColors(p).content,
-                        )
-                    }
-                }
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { VaultChip("Toutes", state.platform == null, { viewModel.onPlatformSelected(null) }) }
+                items(platforms) { p -> VaultChip(shortPlatformName(p), state.platform == p, { viewModel.onPlatformSelected(p) }) }
             }
         }
     }
     val visible = state.results.filter { state.platform == null || state.platform in it.platformNames }
     when {
-        state.isSearching ->
-            item {
-                Box(
-                    Modifier.fillMaxWidth().padding(24.dp),
-                    Alignment.Center,
-                ) { CircularProgressIndicator(color = Primary) }
-            }
+        state.isSearching -> item { LoadingBox() }
+        state.error != null -> item { EmptyState(Icons.Default.CloudOff, "Hors ligne", message = state.error) }
         state.query.trim().length >= MIN_QUERY_LENGTH -> {
-            item { Eyebrow("${visible.size} résultats IGDB") }
-            items(visible, key = { it.id }) { result ->
-                ResultRow(result, state.platform, result.isOwned(keys)) {
-                    viewModel.open(AddCandidate(ItemKind.Game, result.title, result.platformNames, result))
-                }
-            }
+            item { Engrave("${visible.size} résultats") }
+            items(visible, key = { it.id }) { result -> ResultRow(result, state.platform, result.isOwned(keys), viewModel) }
         }
     }
 }
 
-private const val MIN_QUERY_LENGTH = 3
+@Composable
+private fun ResultRow(
+    result: RemoteGame,
+    platformFilter: String?,
+    owned: Boolean,
+    viewModel: AddViewModel,
+) {
+    val platform = platformFilter ?: result.platformNames.firstOrNull().orEmpty()
+    val meta =
+        listOfNotNull(
+            shortPlatformName(platform).ifBlank { null },
+            result.releaseYear?.toString(),
+            result.developer,
+        ).joinToString(" · ")
+    ListRow(
+        title = result.title,
+        meta = meta,
+        cover = Triple(result.coverUrl, platform, null),
+        onClick = { viewModel.open(AddCandidate(ItemKind.Game, result.title, result.platformNames, result)) },
+        trailingContent = {
+            if (owned) {
+                Text("Possédé", style = Vault.type.monoTag, color = Vault.colors.ledSync)
+            } else {
+                Icon(Icons.Default.Add, contentDescription = "Ajouter", tint = Vault.colors.indigoInk)
+            }
+        },
+    )
+}
 
 private fun LazyListScope.manualCandidate(
     state: AddUiState,
@@ -161,51 +171,13 @@ private fun LazyListScope.manualCandidate(
     if (state.query.isBlank()) return
     val platforms = platformSummaries(entries.filter { it.kind == ItemKind.Game }).map { it.platform }
     item {
-        ResultRow(null, null, owned = false, title = "Ajouter « ${state.query.trim()} »", subtitle = state.kind.singular) {
-            viewModel.open(AddCandidate(state.kind, state.query.trim(), platforms))
-        }
+        ListRow(
+            title = "Ajouter « ${state.query.trim()} »",
+            meta = state.kind.singular,
+            onClick = { viewModel.open(AddCandidate(state.kind, state.query.trim(), platforms)) },
+            trailingContent = { Icon(Icons.Default.Add, contentDescription = null, tint = Vault.colors.indigoInk) },
+        )
     }
 }
 
-@Composable
-private fun ResultRow(
-    result: RemoteGame?,
-    platformFilter: String?,
-    owned: Boolean,
-    title: String = result?.title.orEmpty(),
-    subtitle: String? = null,
-    onAdd: () -> Unit,
-) {
-    val platform = platformFilter ?: result?.platformNames?.firstOrNull().orEmpty()
-    Column {
-        Row(
-            Modifier.fillMaxWidth().clickable(enabled = !owned, onClick = onAdd).padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            ItemCover(result?.coverUrl, platform, title, Modifier.size(40.dp, 52.dp), VaultRadius.md)
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = OnSurface, maxLines = 2)
-                val line =
-                    subtitle
-                        ?: listOfNotNull(shortPlatformName(platform).ifBlank { null }, result?.releaseYear?.toString()).joinToString(" · ")
-                Text(line, style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
-            }
-            if (owned) {
-                VaultBadge("Possédé", FormatBadgeColors.New)
-            } else {
-                Box(
-                    Modifier
-                        .size(40.dp)
-                        .clip(VaultRadius.lg)
-                        .background(Primary)
-                        .clickable(onClick = onAdd),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Ajouter", tint = OnPrimary)
-                }
-            }
-        }
-        HorizontalDivider(color = SurfaceContainerHigh)
-    }
-}
+private const val MIN_QUERY_LENGTH = 3

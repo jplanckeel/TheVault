@@ -5,10 +5,10 @@ import app.cash.sqldelight.coroutines.mapToOne
 import com.thevault.database.TheVaultDatabase
 import com.thevault.domain.model.VaultStats
 import com.thevault.domain.repository.VaultStatsRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 /**
  * Implementation of [VaultStatsRepository] using SQLDelight for local persistence.
@@ -18,7 +18,6 @@ import kotlinx.coroutines.IO
 class VaultStatsRepositoryImpl(
     private val database: TheVaultDatabase,
 ) : VaultStatsRepository {
-
     private val queries = database.theVaultQueries
 
     override fun observeStats(): Flow<VaultStats> {
@@ -30,11 +29,11 @@ class VaultStatsRepositoryImpl(
         val investedFlow: Flow<Double> = queries.sumTotalInvested().asFlow().mapToOne(Dispatchers.IO)
 
         return combine(
-            gamesFlow, 
-            consolesFlow, 
-            accessoriesFlow, 
-            wishlistFlow, 
-            valueFlow
+            gamesFlow,
+            consolesFlow,
+            accessoriesFlow,
+            wishlistFlow,
+            valueFlow,
         ) { g, c, a, w, v ->
             // Temporarily store the first 5 in a tuple-like structure to combine with the 6th
             Quintet(g, c, a, w, v)
@@ -45,10 +44,16 @@ class VaultStatsRepositoryImpl(
                 totalAccessories = q.a.toInt(),
                 totalWishlist = q.w.toInt(),
                 estimatedValue = q.v,
-                totalInvested = i
+                totalInvested = i,
             )
         }
     }
 
-    private data class Quintet(val g: Long, val c: Long, val a: Long, val w: Long, val v: Double)
+    private data class Quintet(
+        val g: Long,
+        val c: Long,
+        val a: Long,
+        val w: Long,
+        val v: Double,
+    )
 }

@@ -70,7 +70,7 @@ class CollectionViewTest {
     fun filtersAndSortsGames() {
         val gc = GameFilters(platform = "Nintendo GameCube")
         assertEquals(listOf("b", "a"), filterGames(games, gc).map { it.id })
-        assertEquals(listOf("a"), filterGames(games, gc.copy(format = FormatGroup.Cib)).map { it.id })
+        assertEquals(listOf("a"), filterGames(games, gc.copy(format = FormatGroup.Complete)).map { it.id })
         assertEquals(listOf("b", "a"), filterGames(games, gc.copy(sort = GameSort.Recent)).map { it.id })
         assertEquals(listOf("c"), filterGames(games, GameFilters(query = "title c")).map { it.id })
     }
@@ -95,16 +95,16 @@ class CollectionViewTest {
         assertEquals(4, home.totalCount)
         assertEquals(290.0, home.totalValue)
         assertEquals(3, home.platformCount)
-        assertEquals(listOf("b", "a", "c"), home.masterpieces.map { it.id })
+        assertEquals(listOf("b", "a", "c"), home.topValue.map { it.id })
         assertEquals("Nintendo GameCube", home.platforms.first().platform)
     }
 
     @Test
     fun statsCountFormatsAndPurchases() {
         val stats = buildStatsSummary(games + entry("e", paid = 20.0, condition = ItemCondition.NEW_SEALED))
-        assertEquals(3, stats.formats[FormatGroup.Cib])
+        assertEquals(3, stats.formats[FormatGroup.Complete])
         assertEquals(1, stats.formats[FormatGroup.Loose])
-        assertEquals(1, stats.formats[FormatGroup.New])
+        assertEquals(1, stats.formats[FormatGroup.Sealed])
         assertEquals(1, stats.purchases.filled)
         assertEquals(4, stats.purchases.missing)
         assertEquals(20.0, stats.purchases.invested)

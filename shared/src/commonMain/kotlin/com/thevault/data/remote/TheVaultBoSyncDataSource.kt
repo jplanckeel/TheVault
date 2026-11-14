@@ -1,61 +1,79 @@
+@file:Suppress("TooGenericExceptionCaught") // Network boundary: any failure means "offline, retry later".
+
 package com.thevault.data.remote
 
-import com.thevault.domain.model.Game
+import com.thevault.data.remote.dto.SyncItemDto
+import com.thevault.domain.model.SyncOutcome
+import com.thevault.domain.model.SyncPayload
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.coroutines.CancellationException
 
+/** Pushes items to the shared catalogue. */
 interface ItemSyncRemoteDataSource {
-    suspend fun syncItem(game: Game)
+    /** Pushes [payload] and tells whether to retry later. */
+    suspend fun push(payload: SyncPayload): SyncOutcome
 }
 
+/**
+ * [ItemSyncRemoteDataSource] backed by POST /items.
+ *
+ * @param httpClient HTTP client (expectSuccess, timeouts).
+ * @param baseUrl API base URL.
+ * @param apiKey Mobile API key.
+ */
 class TheVaultBoSyncDataSource(
     private val httpClient: HttpClient,
-    private val baseUrl: String = "https://thevault.bananaops.cloud/api/v1",
+    private val baseUrl: String,
     private val apiKey: String,
 ) : ItemSyncRemoteDataSource {
-
-    override suspend fun syncItem(game: Game) {
-        httpClient.post("$baseUrl/items") {
-            header("X-API-Key", apiKey)
-            contentType(ContentType.Application.Json)
-            setBody(game.toSyncDto())
+    override suspend fun push(payload: SyncPayload): SyncOutcome =
+        try {
+            httpClient.post("$baseUrl/items") {
+                expectSuccess = true
+                header("X-API-Key", apiKey)
+                contentType(ContentType.Application.Json)
+                setBody(payload.toDto())
+            }
+            SyncOutcome.Synced
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: ClientRequestException) {
+            // 400 (invalid item) and 410 (deleted by an admin) will never succeed.
+            val permanent = e.response.status == HttpStatusCode.Gone || e.response.status == HttpStatusCode.BadRequest
+            if (permanent) SyncOutcome.Rejected else SyncOutcome.Failed
+        } catch (_: Exception) {
+            SyncOutcome.Failed
         }
-    }
 }
 
-@Serializable
-private data class SyncItemDto(
-    @SerialName("external_id") val externalId: String,
-    val type: String = "game",
-    val title: String,
-    val platform: String,
-    val region: String,
-    val condition: String,
-    val status: String,
-    @SerialName("cover_url") val coverUrl: String = "",
-    val summary: String = "",
-    val genres: String = "",
-    val developer: String = "",
-    val publisher: String = "",
-    @SerialName("release_year") val releaseYear: Int = 0,
-)
+private fun SyncPayload.toDto() =
+    SyncItemDto(
+        externalId = externalId,
+        type = type,
+        title = title,
+        platform = platform,
+        region = region,
+        condition = condition,
+        status = status,
+        coverUrl = coverUrl.toCatalogUrl(),
+        genres = genres,
+        developer = developer,
+        publisher = publisher,
+        releaseYear = releaseYear,
+    )
 
-private fun Game.toSyncDto() = SyncItemDto(
-    externalId = id,
-    title = title,
-    platform = platform,
-    region = region.name,
-    condition = condition.name,
-    status = status.name,
-    coverUrl = coverUrl ?: "",
-    genres = genre,
-    developer = developer ?: "",
-    publisher = publisher ?: "",
-    releaseYear = releaseYear,
-)
+/** The backend only accepts absolute http(s) cover URLs; IGDB returns protocol-relative ones. */
+internal fun String.toCatalogUrl(): String =
+    when {
+        startsWith("//") -> "https:$this"
+        startsWith("https://") || startsWith("http://") -> this
+        else -> ""
+    }

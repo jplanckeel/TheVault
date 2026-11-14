@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.thevault.domain.model.Accessory
 import com.thevault.domain.model.Console
 import com.thevault.domain.model.Game
+import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.RemoteGame
 import com.thevault.domain.usecase.SaveAccessoryUseCase
 import com.thevault.domain.usecase.SaveConsoleUseCase
@@ -40,6 +41,7 @@ import kotlin.uuid.Uuid
  * @property isSearching Whether a search is running.
  * @property candidate Item open in the confirmation sheet.
  * @property form Choices of the confirmation sheet.
+ * @property error Search error, null when the last search succeeded.
  */
 data class AddUiState(
     val query: String = "",
@@ -49,6 +51,7 @@ data class AddUiState(
     val isSearching: Boolean = false,
     val candidate: AddCandidate? = null,
     val form: QuickAddForm = QuickAddForm(),
+    val error: String? = null,
 )
 
 /** ViewModel of the add flow (search + quick confirmation sheet). */
@@ -74,15 +77,16 @@ class AddViewModel(
         state.update { it.copy(query = query, platform = null) }
         searchJob?.cancel()
         if (state.value.kind != ItemKind.Game || query.trim().length < MIN_QUERY) {
-            state.update { it.copy(results = emptyList(), isSearching = false) }
+            state.update { it.copy(results = emptyList(), isSearching = false, error = null) }
             return
         }
         searchJob =
             viewModelScope.launch {
                 delay(DEBOUNCE_MS)
                 state.update { it.copy(isSearching = true) }
-                val results = searchRemoteGames(query.trim())
-                state.update { it.copy(results = results, isSearching = false) }
+                searchRemoteGames(query.trim())
+                    .onSuccess { results -> state.update { it.copy(results = results, isSearching = false, error = null) } }
+                    .onFailure { state.update { it.copy(results = emptyList(), isSearching = false, error = SEARCH_ERROR) } }
             }
     }
 
@@ -98,7 +102,12 @@ class AddViewModel(
     /** Opens the confirmation sheet with sensible defaults. */
     fun open(candidate: AddCandidate) {
         val owned = entries.value.owned()
-        val platform = state.value.platform?.takeIf { it in candidate.platforms } ?: candidate.platforms.firstOrNull().orEmpty()
+        val platform =
+            if (candidate.kind == ItemKind.Console) {
+                candidate.title
+            } else {
+                state.value.platform?.takeIf { it in candidate.platforms } ?: candidate.platforms.firstOrNull().orEmpty()
+            }
         state.update {
             it.copy(candidate = candidate, form = QuickAddForm(platform = platform, region = preferredRegion(owned)))
         }
@@ -110,11 +119,14 @@ class AddViewModel(
     /** Updates the sheet choices. */
     fun onFormChanged(form: QuickAddForm) = state.update { it.copy(form = form) }
 
-    /** Saves the item; returns the game id when a game was added. */
+    /** Saves the item with [status]; returns the game id when a game was added. */
     @OptIn(ExperimentalUuidApi::class)
-    fun save(onSaved: (gameId: String?) -> Unit) {
+    fun save(
+        status: ItemStatus,
+        onSaved: (gameId: String?) -> Unit,
+    ) {
         val candidate = state.value.candidate ?: return
-        val form = state.value.form
+        val form = state.value.form.copy(status = status)
         val id = Uuid.random().toString()
         viewModelScope.launch {
             when (candidate.kind) {
@@ -131,6 +143,7 @@ class AddViewModel(
         const val STOP_TIMEOUT_MS = 5_000L
         const val DEBOUNCE_MS = 400L
         const val MIN_QUERY = 3
+        const val SEARCH_ERROR = "Recherche indisponible : vérifie ta connexion et réessaie."
     }
 }
 

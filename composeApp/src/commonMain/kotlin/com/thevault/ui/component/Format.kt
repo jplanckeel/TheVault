@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber") // Design tokens and geometry of the console mockups.
+
 package com.thevault.ui.component
 
 import kotlin.math.abs
@@ -51,3 +53,38 @@ private val frenchMonths =
 
 /** French date, e.g. "24 mars 2021". */
 fun formatDate(date: kotlinx.datetime.LocalDate): String = "${date.day} ${frenchMonths[date.month.ordinal]} ${date.year}"
+
+/** French long date, e.g. "12 mars 2024" (used in uppercase on engraved lines). */
+fun formatLongDate(date: kotlinx.datetime.LocalDate): String {
+    val months =
+        listOf("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+    return "${date.day} ${months[date.month.ordinal]} ${date.year}"
+}
+
+/** Percentage with one decimal and a French comma: "6,8 %". */
+fun formatPercent(value: Double): String {
+    val tenths = (abs(value) * 10).roundToLong()
+    val text = if (tenths % 10 == 0L) "${tenths / 10}" else "${tenths / 10},${tenths % 10}"
+    return "$text${NARROW_NBSP}%"
+}
+
+/** Rounded percentage: "18 %". */
+fun formatWholePercent(value: Double): String = "${abs(value).roundToLong()}${NARROW_NBSP}%"
+
+/** Relative age in French: "à l'instant", "il y a 2 h", "il y a 3 j". */
+fun formatAge(elapsed: kotlin.time.Duration): String =
+    when {
+        elapsed.inWholeMinutes < 1 -> "à l'instant"
+        elapsed.inWholeHours < 1 -> "il y a ${elapsed.inWholeMinutes} min"
+        elapsed.inWholeDays < 1 -> "il y a ${elapsed.inWholeHours} h"
+        else -> "il y a ${elapsed.inWholeDays} j"
+    }
+
+/** Number with thin-space thousands: "1 240". */
+fun formatCount(value: Long): String =
+    value
+        .toString()
+        .reversed()
+        .chunked(3)
+        .joinToString(NARROW_NBSP.toString())
+        .reversed()

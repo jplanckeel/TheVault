@@ -2,7 +2,12 @@ package com.thevault.ui.screen.collection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.Region
 import com.thevault.ui.component.FormatGroup
+import com.thevault.ui.component.Manufacturer
+import com.thevault.ui.component.formatGroup
+import com.thevault.ui.component.manufacturerOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -10,22 +15,44 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
+/** Which games of the platform are shown. */
+enum class Ownership {
+    /** Owned games. */
+    Owned,
+
+    /** Wishlist. */
+    Wishlist,
+
+    /** Both. */
+    All,
+}
+
 /**
  * UI state of the games of one platform (or of every platform).
  *
- * @property filters Current filters.
+ * @property platform Platform, null for every game.
+ * @property ownership Shown games.
+ * @property filters Format and sort filters.
  * @property games Visible games.
- * @property count Number of games of the platform (before search / format filters).
- * @property value Value of the games of the platform.
- * @property platforms Every game platform, for the « Changer » menu.
+ * @property ownedCount Owned games of the platform.
+ * @property wishCount Wishlist games of the platform.
+ * @property value Value of the owned games.
+ * @property formats Owned games per condition family (non-empty ones).
+ * @property manufacturer Manufacturer of the platform.
+ * @property region Most frequent region, null when mixed or unknown.
  * @property isLoading Whether data is still loading.
  */
 data class PlatformGamesUiState(
+    val platform: String? = null,
+    val ownership: Ownership = Ownership.Owned,
     val filters: GameFilters = GameFilters(),
     val games: List<CollectionEntry> = emptyList(),
-    val count: Int = 0,
+    val ownedCount: Int = 0,
+    val wishCount: Int = 0,
     val value: Double = 0.0,
-    val platforms: List<PlatformSummary> = emptyList(),
+    val formats: Map<FormatGroup, Int> = emptyMap(),
+    val manufacturer: Manufacturer = Manufacturer.Other,
+    val region: Region? = null,
     val isLoading: Boolean = false,
 )
 
@@ -34,23 +61,23 @@ class PlatformGamesViewModel(
     source: VaultEntriesSource,
 ) : ViewModel() {
     private val filters = MutableStateFlow(GameFilters())
+    private val ownership = MutableStateFlow(Ownership.Owned)
 
     /** Observable UI state. */
     val uiState: StateFlow<PlatformGamesUiState> =
-        combine(source.entries(), filters) { all, f ->
-            val games = all.owned().filter { it.kind == ItemKind.Game }
-            val ofPlatform = games.filter { f.platform == null || it.platform == f.platform }
-            PlatformGamesUiState(f, filterGames(games, f), ofPlatform.size, ofPlatform.totalValue(), platformSummaries(games))
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PlatformGamesUiState(isLoading = true))
+        combine(source.entries(), filters, ownership) { all, f, o -> buildPlatformState(all, f, o) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PlatformGamesUiState(isLoading = true))
 
-    /** Shows the games of [platform] (null = every platform) and resets the filters. */
+    /** Shows the games of [platform] (null = every platform). */
     fun onPlatformSelected(platform: String?) = filters.update { GameFilters(platform = platform, sort = it.sort) }
-
-    /** Updates the search. */
-    fun onQueryChanged(query: String) = filters.update { it.copy(query = query) }
 
     /** Filters by format (null = all). */
     fun onFormatSelected(format: FormatGroup?) = filters.update { it.copy(format = format) }
+
+    /** Owned, wishlist or both. */
+    fun onOwnershipSelected(value: Ownership) {
+        ownership.value = value
+    }
 
     /** Cycles through the sort orders. */
     fun onSortToggled() = filters.update { it.copy(sort = GameSort.entries[(it.sort.ordinal + 1) % GameSort.entries.size]) }
@@ -58,4 +85,34 @@ class PlatformGamesViewModel(
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
     }
+}
+
+/** Builds the platform state. Pure function. */
+fun buildPlatformState(
+    all: List<CollectionEntry>,
+    f: GameFilters,
+    o: Ownership,
+): PlatformGamesUiState {
+    val games = all.filter { it.kind == ItemKind.Game && (f.platform == null || it.platform == f.platform) }
+    val owned = games.filter { it.status == ItemStatus.OWNED }
+    val wished = games.filter { it.status == ItemStatus.WISHLIST }
+    val shown =
+        when (o) {
+            Ownership.Owned -> owned
+            Ownership.Wishlist -> wished
+            Ownership.All -> owned + wished
+        }
+    val regions = owned.groupingBy { it.region }.eachCount()
+    return PlatformGamesUiState(
+        platform = f.platform,
+        ownership = o,
+        filters = f,
+        games = filterGames(shown, f),
+        ownedCount = owned.size,
+        wishCount = wished.size,
+        value = owned.totalValue(),
+        formats = owned.groupingBy { it.condition.formatGroup }.eachCount().toSortedMap(compareBy { it.ordinal }),
+        manufacturer = f.platform?.let { manufacturerOf(it) } ?: Manufacturer.Other,
+        region = regions.maxByOrNull { it.value }?.key?.takeIf { it != Region.OTHER },
+    )
 }

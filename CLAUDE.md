@@ -82,18 +82,16 @@ shared/commonMain
 
 ## Design System
 
-Two themes, both dark mode only:
-
-- **Mobile — « Nuit profonde, un seul violet »**: source of truth `design/nuit-profonde/README.md`, visual reference `design/nuit-profonde/refonte-mobile.html`. Tokens in `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/` (`Color.kt`, `Badges.kt`, `Typography.kt`, `VaultRadius.kt`).
-- **Web — « Premium Security »**: `design/DESIGN_SYSTEM.md`, tokens in `web/src/index.css` (`vault-*`). Not yet ported to « Nuit profonde ».
+- **Mobile — « console »** (deux coques : *Coque grise* claire, *Black Edition* sombre, au choix dans Réglages) : source of truth `design/console/README.md`, visual reference `design/console/maquettes-app-mobile.html`. Tokens in `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/` (`Color.kt`, `Typography.kt`, `VaultRadius.kt`, `Surfaces.kt`), read through `Vault.colors` / `Vault.type`.
+- **Web — « Premium Security »**: `design/DESIGN_SYSTEM.md`, tokens in `web/src/index.css` (`vault-*`). Not ported to the console design.
 
 Mobile rules:
-- No `#FFFFFF` text → use `OnSurface` (`#dee5ff`)
-- Single accent: violet `Primary` (`#BA9EFF`) with `OnPrimary` text; badges are tinted per manufacturer / format (`Badges.kt`)
-- Cards: `SurfaceContainerLow` + 1dp `CardBorderColor`, radius 18; buttons 52dp, radius 14
-- Font: Plus Jakarta Sans only, bundled in `composeResources/font/`, tabular figures
+- Never hardcode a color in a screen: use `Vault.colors.*` so both shells work
+- Single action color: `indigo` (« bouton A ») with `onIndigo`; secondary actions in `lavender`; platform bands from `Manufacturer.color`
+- Surfaces: `Panel` / `Modifier.molded` (radius 22) on `shell`, recessed `Modifier.well` for selectors and search; buttons are pills
+- Fonts: Archivo (display, Expanded for engraved labels), IBM Plex Sans (text), IBM Plex Mono (prices) — bundled in `composeResources/font/`
 - Reuse the shared components (`ui/component/`) instead of styling screens ad hoc
-- Never display invented figures: unknown values render as `—`
+- Never display invented figures: unknown values render as `—`; values come from eBay quotes (backend) or what the user typed
 
 ## Dependency Management
 

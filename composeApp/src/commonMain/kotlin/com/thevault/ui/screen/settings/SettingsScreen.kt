@@ -1,168 +1,151 @@
 package com.thevault.ui.screen.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudSync
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.thevault.ui.component.IconSquareButton
+import com.thevault.ui.app.AppViewModel
+import com.thevault.ui.component.ButtonVariant
+import com.thevault.ui.component.Engrave
+import com.thevault.ui.component.KeyButton
+import com.thevault.ui.component.LedColor
+import com.thevault.ui.component.Panel
 import com.thevault.ui.component.ScreenHeader
+import com.thevault.ui.component.Segment
+import com.thevault.ui.component.SegmentedControl
+import com.thevault.ui.component.StatusLed
 import com.thevault.ui.component.VaultButton
-import com.thevault.ui.component.VaultButtonVariant
-import com.thevault.ui.component.VaultCard
-import com.thevault.ui.theme.Error
-import com.thevault.ui.theme.OnSurface
-import com.thevault.ui.theme.OnSurfaceVariant
-import com.thevault.ui.theme.Primary
-import com.thevault.ui.theme.Success
-import com.thevault.ui.theme.VaultRadius
+import com.thevault.ui.theme.ThemeMode
+import com.thevault.ui.theme.Vault
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
 private const val MESSAGE_DURATION_MS = 5_000L
 
-/** Settings screen: data import / export and synchronisation. */
+/** Settings: shell, catalogue sync, CSV import / export and IGDB enrichment. */
 @Composable
 fun SettingsScreen(
+    app: AppViewModel,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
-    LaunchedEffect(state.message) {
-        if (state.message != null) {
-            delay(MESSAGE_DURATION_MS)
-            viewModel.clearMessage()
-        }
-    }
-    SettingsContent(
-        state = state,
-        onBack = onBack,
-        onImportCsv = viewModel::importCsv,
-        exportCsv = viewModel::exportCsv,
-        onSyncIgdb = viewModel::syncIgdb,
-    )
-}
-
-/**
- * Stateless settings content.
- *
- * @param state UI state.
- * @param onBack Back navigation.
- * @param onImportCsv Called with the picked CSV content.
- * @param exportCsv Produces the CSV export.
- * @param onSyncIgdb Starts the IGDB enrichment.
- */
-@Composable
-fun SettingsContent(
-    state: SettingsUiState,
-    onBack: () -> Unit,
-    onImportCsv: (String) -> Unit,
-    exportCsv: suspend () -> String?,
-    onSyncIgdb: () -> Unit,
-) {
+    val mode by app.themeMode.collectAsState()
+    val sync by app.syncStatus.collectAsState()
+    AutoDismiss(state.message, viewModel::clearMessage)
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 32.dp),
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            IconSquareButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", onBack)
-            ScreenHeader(title = "Réglages", eyebrow = "Données et synchronisation")
+        ScreenHeader("Réglages", eyebrow = "Système", leading = { KeyButton(Icons.AutoMirrored.Filled.ArrowBack, "Retour", onBack) })
+        state.message?.let { Feedback(it) }
+        Section("Coque", "Le thème de l'application.") {
+            SegmentedControl(ThemeMode.entries.map { Segment(it.label) }, mode.ordinal, { app.setTheme(ThemeMode.entries[it]) })
         }
-        state.message?.let { FeedbackBanner(it) }
-        SettingsSection(
-            icon = Icons.Default.Description,
-            title = "Import / export CSV",
-            description = "Importez un export GameEye ou sauvegardez votre collection au format CSV.",
-        ) {
-            CsvImportExportSection(onImport = onImportCsv, exportContent = exportCsv)
+        Section("Synchronisation", "Ta collection est envoyée au serveur, qui relève les cotes eBay de chaque objet.") {
+            SyncContent(state, sync, viewModel)
         }
-        SettingsSection(
-            icon = Icons.Default.CloudSync,
-            title = "Enrichissement IGDB",
-            description = "Complète les jaquettes, genres, éditeurs et dates de sortie de vos jeux.",
-        ) {
+        Section("Import / export CSV", "Importe un export GameEye (réimporter met à jour sans doublon) ou sauvegarde ta collection.") {
+            CsvImportExportSection(onImport = viewModel::importCsv, exportContent = viewModel::exportCsv)
+        }
+        Section("Enrichissement IGDB", "Complète les jaquettes, genres, éditeurs et dates de sortie de tes jeux.") {
             VaultButton(
-                text = if (state.isSyncing) "Synchronisation…" else "Synchroniser avec IGDB",
-                onClick = onSyncIgdb,
+                if (state.isSyncing) "Enrichissement…" else "Compléter avec IGDB",
+                viewModel::syncIgdb,
+                Modifier.fillMaxWidth(),
+                ButtonVariant.Secondary,
+                icon = Icons.Default.AutoFixHigh,
                 enabled = !state.isSyncing,
-                variant = VaultButtonVariant.Subtle,
-                leadingIcon = Icons.Default.Sync,
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 }
 
 @Composable
-private fun SettingsSection(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    content: @Composable () -> Unit,
+private fun SyncContent(
+    state: SettingsUiState,
+    sync: com.thevault.domain.usecase.SyncStatus,
+    viewModel: SettingsViewModel,
 ) {
-    VaultCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier.size(36.dp).clip(VaultRadius.md).background(Primary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, contentDescription = null, tint = Primary, modifier = Modifier.size(20.dp))
-            }
-            Text(title, style = MaterialTheme.typography.titleMedium, color = OnSurface)
+    val (led, text) =
+        when {
+            sync.running -> LedColor.Indigo to "Envoi en cours…"
+            state.pending == 0 -> LedColor.Sync to "${state.total} objets synchronisés"
+            else -> LedColor.Power to "${state.pending} objets en attente d'envoi"
         }
-        Text(
-            description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = OnSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
-        )
-        content()
+    StatusLed(led, label = text, blink = sync.running)
+    VaultButton(
+        "Synchroniser maintenant",
+        viewModel::syncNow,
+        Modifier.fillMaxWidth(),
+        ButtonVariant.Secondary,
+        icon = Icons.Default.Sync,
+    )
+}
+
+@Composable
+private fun AutoDismiss(
+    message: SettingsMessage?,
+    onDismiss: () -> Unit,
+) {
+    LaunchedEffect(message) {
+        if (message != null) {
+            delay(MESSAGE_DURATION_MS)
+            onDismiss()
+        }
     }
 }
 
 @Composable
-private fun FeedbackBanner(message: SettingsMessage) {
-    val color =
+private fun Section(
+    title: String,
+    description: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Panel(Modifier.fillMaxWidth()) {
+        Engrave(title)
+        Text(
+            description,
+            style = Vault.type.caption,
+            color = Vault.colors.inkMuted,
+            modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+    }
+}
+
+@Composable
+private fun Feedback(message: SettingsMessage) {
+    val led =
         when (message.tone) {
-            MessageTone.Info -> Primary
-            MessageTone.Success -> Success
-            MessageTone.Error -> Error
+            MessageTone.Info -> LedColor.Indigo
+            MessageTone.Success -> LedColor.Sync
+            MessageTone.Error -> LedColor.Power
         }
-    Text(
-        message.text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = color,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(VaultRadius.lg)
-                .background(color.copy(alpha = 0.12f))
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-    )
+    Panel(Modifier.fillMaxWidth()) {
+        StatusLed(led, blink = message.tone == MessageTone.Info)
+        Text(message.text, style = Vault.type.bodyStrong, color = Vault.colors.ink, modifier = Modifier.padding(top = 6.dp))
+    }
 }

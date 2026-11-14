@@ -44,7 +44,7 @@ class PlatformsTest {
 
     @Test
     fun groupsFormats() {
-        assertEquals(FormatGroup.Cib, ItemCondition.CIB_NO_MANUAL.formatGroup)
+        assertEquals(FormatGroup.Complete, ItemCondition.CIB_NO_MANUAL.formatGroup)
         assertEquals(FormatGroup.New, ItemCondition.MINT.formatGroup)
         assertEquals(FormatGroup.Loose, ItemCondition.LOOSE.formatGroup)
         assertEquals(FormatGroup.Other, ItemCondition.GOOD.formatGroup)

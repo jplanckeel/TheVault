@@ -29,15 +29,37 @@ enum class AccessoryFilter(
 }
 
 /**
+ * Order of the platform list.
+ *
+ * @property label Toggle label.
+ * @property comparator Sort order.
+ */
+enum class PlatformSort(
+    val label: String,
+    val comparator: Comparator<PlatformSummary>,
+) {
+    /** Highest value first. */
+    Value("Valeur", compareByDescending { it.value }),
+
+    /** Most games first. */
+    Count("Nombre", compareByDescending { it.count }),
+
+    /** Alphabetical. */
+    Name("A → Z", compareBy { it.platform.lowercase() }),
+}
+
+/**
  * Filters of the collection screen.
  *
  * @property kind Selected category.
+ * @property platformSort Order of the platform list.
  * @property query Search among games.
  * @property consoleMaker Console manufacturer filter, or null for all.
  * @property accessoryFilter Accessory filter.
  */
 data class CollectionFilters(
     val kind: ItemKind = ItemKind.Game,
+    val platformSort: PlatformSort = PlatformSort.Value,
     val query: String = "",
     val consoleMaker: Manufacturer? = null,
     val accessoryFilter: AccessoryFilter = AccessoryFilter.All,
@@ -49,6 +71,7 @@ data class CollectionFilters(
  * @property filters Current filters.
  * @property totals Count and value per category.
  * @property groups Game platforms grouped by manufacturer.
+ * @property platforms Game platforms in the chosen order.
  * @property platformCount Number of game platforms.
  * @property gameResults Games matching the search (empty without query).
  * @property consoles Consoles matching the filter, most valuable first.
@@ -60,6 +83,7 @@ data class CollectionUiState(
     val filters: CollectionFilters = CollectionFilters(),
     val totals: Map<ItemKind, KindTotal> = emptyMap(),
     val groups: List<ManufacturerGroup> = emptyList(),
+    val platforms: List<PlatformSummary> = emptyList(),
     val platformCount: Int = 0,
     val gameResults: List<CollectionEntry> = emptyList(),
     val consoles: List<CollectionEntry> = emptyList(),
@@ -88,6 +112,10 @@ class CollectionViewModel(
     /** Filters consoles by manufacturer (null = all). */
     fun onConsoleMakerSelected(maker: Manufacturer?) = filters.update { it.copy(consoleMaker = maker) }
 
+    /** Cycles the order of the platform list. */
+    fun onPlatformSortToggled() =
+        filters.update { it.copy(platformSort = PlatformSort.entries[(it.platformSort.ordinal + 1) % PlatformSort.entries.size]) }
+
     /** Filters accessories. */
     fun onAccessoryFilterSelected(filter: AccessoryFilter) = filters.update { it.copy(accessoryFilter = filter) }
 
@@ -109,6 +137,7 @@ fun buildCollectionState(
         filters = filters,
         totals = kindTotals(owned),
         groups = manufacturerGroups(games),
+        platforms = platformSummaries(games).sortedWith(filters.platformSort.comparator),
         platformCount = platformSummaries(games).size,
         gameResults = if (filters.query.isBlank()) emptyList() else filterGames(games, GameFilters(query = filters.query)),
         consoles = consoles.filter { filters.consoleMaker == null || it.manufacturer == filters.consoleMaker }.sortedWith(byValue),

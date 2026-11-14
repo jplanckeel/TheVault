@@ -1,14 +1,19 @@
 package com.thevault.ui.screen.collection
 
 import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.ValueSnapshot
 import com.thevault.ui.component.FormatGroup
 import com.thevault.ui.component.formatGroup
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlin.time.Instant
 
-private const val RECENT_COUNT = 8
 private const val HOME_PLATFORMS = 4
-private const val MASTERPIECES = 3
+private const val TOP_VALUE = 3
+private const val RISERS = 3
 private const val STATS_PLATFORMS = 5
+private const val STATS_TOP = 5
 
 /**
  * Count and value of one category.
@@ -42,9 +47,10 @@ data class PurchaseCoverage(
  * @property platformCount Number of distinct game platforms.
  * @property byKind Totals per category.
  * @property purchases Purchase price coverage.
- * @property recent Most recently added items.
+ * @property risers Owned items whose quote rose the most over 30 days.
  * @property platforms Top game platforms by value.
- * @property masterpieces Most valuable items.
+ * @property topValue Most valuable items.
+ * @property quotedAt Time of the most recent eBay quote, null when none.
  */
 data class HomeSummary(
     val totalValue: Double = 0.0,
@@ -52,9 +58,10 @@ data class HomeSummary(
     val platformCount: Int = 0,
     val byKind: Map<ItemKind, KindTotal> = emptyMap(),
     val purchases: PurchaseCoverage = PurchaseCoverage(),
-    val recent: List<CollectionEntry> = emptyList(),
+    val risers: List<CollectionEntry> = emptyList(),
     val platforms: List<PlatformSummary> = emptyList(),
-    val masterpieces: List<CollectionEntry> = emptyList(),
+    val topValue: List<CollectionEntry> = emptyList(),
+    val quotedAt: Instant? = null,
 )
 
 /** Items that count as part of the collection (not wishlist, sold or loaned). */
@@ -67,22 +74,28 @@ fun buildHomeSummary(all: List<CollectionEntry>): HomeSummary {
     return HomeSummary(
         totalValue = owned.totalValue(),
         totalCount = owned.size,
-        platformCount =
-            games
-                .map { it.platform }
-                .filter { it.isNotBlank() }
-                .distinct()
-                .size,
+        platformCount = platformSummaries(games).size,
         byKind = kindTotals(owned),
         purchases = purchaseCoverage(owned),
-        recent =
-            owned
-                .sortedWith(compareByDescending<CollectionEntry, LocalDate?>(nullsFirst()) { it.acquiredAt })
-                .take(RECENT_COUNT),
+        risers = risers(owned, RISERS),
         platforms = platformSummaries(games).sortedByDescending { it.value }.take(HOME_PLATFORMS),
-        masterpieces = owned.filter { it.value != null }.sortedByDescending { it.value }.take(MASTERPIECES),
+        topValue = owned.filter { it.value != null }.sortedByDescending { it.value }.take(TOP_VALUE),
+        quotedAt = latestQuote(all),
     )
 }
+
+/** Items whose quote rose the most (in euros) over 30 days. */
+fun risers(
+    entries: List<CollectionEntry>,
+    count: Int,
+): List<CollectionEntry> =
+    entries
+        .filter { it.changeAmount ?: 0.0 > 0.0 }
+        .sortedByDescending { it.changeAmount }
+        .take(count)
+
+/** Time of the most recent quote among [entries]. */
+fun latestQuote(entries: List<CollectionEntry>): Instant? = entries.flatMap { e -> e.quotes.map { it.scrapedAt } }.maxOrNull()
 
 /** Totals per category. */
 fun kindTotals(entries: List<CollectionEntry>): Map<ItemKind, KindTotal> =
@@ -102,9 +115,13 @@ fun purchaseCoverage(entries: List<CollectionEntry>): PurchaseCoverage {
  * @property totalValue Estimated value of owned items.
  * @property byKind Totals per category.
  * @property topPlatforms Game platforms with the highest value.
- * @property formats Number of items per format family.
+ * @property formats Number of games per condition family.
  * @property purchases Purchase price coverage.
  * @property totalCount Number of owned items.
+ * @property topValue Most valuable items.
+ * @property gainOnPriced Value minus price paid, on the items whose price is known.
+ * @property valueOfPriced Value of the items whose price is known.
+ * @property since Earliest acquisition date, null when unknown.
  */
 data class StatsSummary(
     val totalValue: Double = 0.0,
@@ -113,11 +130,16 @@ data class StatsSummary(
     val formats: Map<FormatGroup, Int> = emptyMap(),
     val purchases: PurchaseCoverage = PurchaseCoverage(),
     val totalCount: Int = 0,
+    val topValue: List<CollectionEntry> = emptyList(),
+    val gainOnPriced: Double = 0.0,
+    val valueOfPriced: Double = 0.0,
+    val since: LocalDate? = null,
 )
 
 /** Builds the stats screen data. Pure function, unit-tested. */
 fun buildStatsSummary(all: List<CollectionEntry>): StatsSummary {
     val owned = all.owned()
+    val priced = owned.filter { it.purchasePrice != null && it.value != null }
     return StatsSummary(
         totalValue = owned.totalValue(),
         byKind = kindTotals(owned),
@@ -125,5 +147,43 @@ fun buildStatsSummary(all: List<CollectionEntry>): StatsSummary {
         formats = FormatGroup.entries.associateWith { group -> owned.count { it.condition.formatGroup == group } },
         purchases = purchaseCoverage(owned),
         totalCount = owned.size,
+        topValue = owned.filter { it.value != null }.sortedByDescending { it.value }.take(STATS_TOP),
+        gainOnPriced = priced.sumOf { (it.value ?: 0.0) - (it.purchasePrice ?: 0.0) },
+        valueOfPriced = priced.sumOf { it.value ?: 0.0 },
+        since = owned.mapNotNull { it.acquiredAt }.minOrNull(),
     )
+}
+
+/**
+ * Period of the value chart.
+ *
+ * @property label Segment label.
+ * @property days Length in days, null for the whole history.
+ * @property suffix Muted period after the change ("30 j").
+ */
+enum class ChartPeriod(
+    val label: String,
+    val days: Int?,
+    val suffix: String,
+) {
+    /** One month. */
+    Month("1M", 30, "30 j"),
+
+    /** Six months. */
+    HalfYear("6M", 182, "6 mois"),
+
+    /** One year. */
+    Year("1A", 365, "1 an"),
+
+    /** Everything recorded. */
+    All("TOUT", null, "total"),
+}
+
+/** Snapshots of [period] ending [today], oldest first. */
+fun ChartPeriod.window(
+    snapshots: List<ValueSnapshot>,
+    today: LocalDate,
+): List<ValueSnapshot> {
+    val from = days?.let { today.minus(DatePeriod(days = it)) }
+    return snapshots.filter { from == null || it.day >= from }.sortedBy { it.day }
 }

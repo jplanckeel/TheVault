@@ -9,8 +9,8 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.thevault.ui.component.ButtonVariant
 import com.thevault.ui.component.VaultButton
-import com.thevault.ui.component.VaultButtonVariant
 
 /** iOS implementation: file pickers are not available yet, buttons are shown disabled. */
 @Composable
@@ -24,16 +24,16 @@ actual fun CsvImportExportSection(
             text = "Importer",
             onClick = {},
             enabled = false,
-            variant = VaultButtonVariant.Ghost,
-            leadingIcon = Icons.Default.FileDownload,
+            variant = ButtonVariant.Secondary,
+            icon = Icons.Default.FileDownload,
             modifier = Modifier.weight(1f),
         )
         VaultButton(
             text = "Exporter",
             onClick = {},
             enabled = false,
-            variant = VaultButtonVariant.Ghost,
-            leadingIcon = Icons.Default.FileUpload,
+            variant = ButtonVariant.Secondary,
+            icon = Icons.Default.FileUpload,
             modifier = Modifier.weight(1f),
         )
     }

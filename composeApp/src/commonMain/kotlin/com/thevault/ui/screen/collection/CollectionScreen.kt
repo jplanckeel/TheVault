@@ -1,34 +1,40 @@
 package com.thevault.ui.screen.collection
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.thevault.ui.component.ItemTile
+import com.thevault.domain.model.ItemStatus
+import com.thevault.ui.component.CollectionCard
+import com.thevault.ui.component.KeyButton
+import com.thevault.ui.component.LoadingBox
 import com.thevault.ui.component.ScreenHeader
-import com.thevault.ui.component.SegmentedControl
-import com.thevault.ui.component.formatEuro
-import com.thevault.ui.theme.Primary
+import com.thevault.ui.component.SearchField
+import com.thevault.ui.component.VaultChip
+import com.thevault.ui.component.formatCount
+import com.thevault.ui.navigation.tabBarClearance
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Columns of the collection grid: platform tiles span 3 (2 per row), item tiles span 2 (3 per row). */
-internal const val GRID_COLUMNS = 6
-internal const val PLATFORM_SPAN = 3
-internal const val ITEM_SPAN = 2
+/** Columns of the card grids. */
+internal const val GRID_COLUMNS = 3
 
 /**
  * Callbacks of the collection screen.
@@ -67,19 +73,34 @@ fun CollectionContent(
     navigation: CollectionNavigation,
 ) {
     val kind = state.filters.kind
-    val total = state.totals[kind] ?: KindTotal()
+    var searching by rememberSaveable { mutableStateOf(false) }
+    val total = state.totals.values.sumOf { it.count }
     LazyVerticalGrid(
         columns = GridCells.Fixed(GRID_COLUMNS),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 32.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = tabBarClearance()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         fullWidth {
-            ScreenHeader("Collection", summary = "${total.count} ${kind.label.lowercase()} · ${formatEuro(total.value)}")
+            CollectionHeader(total, searching) {
+                if (searching) viewModel.onQueryChanged("")
+                searching = !searching
+            }
         }
+        if (searching) fullWidth { SearchField(state.filters.query, viewModel::onQueryChanged, "Chercher un jeu", Modifier.fillMaxWidth()) }
         fullWidth {
-            SegmentedControl(ItemKind.entries, kind, { it.label }, viewModel::onKindSelected, Modifier.padding(top = 4.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(ItemKind.entries) { k ->
+                    VaultChip(
+                        k.label,
+                        k == kind,
+                        { viewModel.onKindSelected(k) },
+                        count =
+                            state.totals[k]?.count ?: 0,
+                    )
+                }
+            }
         }
         when {
             state.isLoading -> fullWidth { LoadingBox() }
@@ -90,23 +111,27 @@ fun CollectionContent(
     }
 }
 
-/** 3-column item tiles. */
-internal fun LazyGridScope.itemTiles(
-    entries: List<CollectionEntry>,
-    square: Boolean,
-    onClick: (CollectionEntry) -> Unit,
+@Composable
+private fun CollectionHeader(
+    total: Int,
+    searching: Boolean,
+    onToggle: () -> Unit,
 ) {
-    items(entries, key = { "${it.kind}_${it.id}" }, span = { GridItemSpan(ITEM_SPAN) }) { entry ->
-        ItemTile(entry.tile, { onClick(entry) }, square = square)
+    ScreenHeader("Collection", eyebrow = "Coffre · ${formatCount(total.toLong())} objets") {
+        KeyButton(if (searching) Icons.Default.Close else Icons.Default.Search, "Rechercher", onToggle)
+    }
+}
+
+/** Grid of collection cards. */
+internal fun LazyGridScope.cards(
+    entries: List<CollectionEntry>,
+    onClick: (CollectionEntry) -> Unit,
+    missing: Boolean = false,
+) {
+    items(entries, key = { "${it.kind}_${it.id}" }) { entry ->
+        CollectionCard(entry.card, { onClick(entry) }, missing = missing || entry.status == ItemStatus.WISHLIST)
     }
 }
 
 /** Grid item spanning every column. */
 internal fun LazyGridScope.fullWidth(content: @Composable () -> Unit) = item(span = { GridItemSpan(maxLineSpan) }) { content() }
-
-@Composable
-private fun LoadingBox() {
-    Box(Modifier.fillMaxWidth().padding(vertical = 48.dp), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Primary)
-    }
-}

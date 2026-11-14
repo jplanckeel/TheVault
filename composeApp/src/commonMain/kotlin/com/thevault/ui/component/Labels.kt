@@ -9,7 +9,7 @@ val ItemStatus.label: String
     get() =
         when (this) {
             ItemStatus.OWNED -> "Possédé"
-            ItemStatus.WISHLIST -> "Wishlist"
+            ItemStatus.WISHLIST -> "Envie"
             ItemStatus.SOLD -> "Vendu"
             ItemStatus.LOANED -> "Prêté"
         }
@@ -18,15 +18,15 @@ val ItemStatus.label: String
 val ItemCondition.label: String
     get() =
         when (this) {
-            ItemCondition.MINT -> "Mint"
+            ItemCondition.MINT -> "Neuf"
             ItemCondition.VERY_GOOD -> "Très bon"
             ItemCondition.GOOD -> "Bon"
             ItemCondition.FAIR -> "Correct"
             ItemCondition.POOR -> "Abîmé"
             ItemCondition.LOOSE -> "Loose"
             ItemCondition.CIB_NO_MANUAL -> "Complet sans notice"
-            ItemCondition.CIB -> "Complet (CIB)"
-            ItemCondition.NEW_SEALED -> "Neuf scellé"
+            ItemCondition.CIB -> "Complet"
+            ItemCondition.NEW_SEALED -> "Scellé"
         }
 
 /** Display label of a region. */

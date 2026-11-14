@@ -14,8 +14,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.thevault.ui.component.ButtonVariant
 import com.thevault.ui.component.VaultButton
-import com.thevault.ui.component.VaultButtonVariant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,15 +33,15 @@ actual fun CsvImportExportSection(
         VaultButton(
             text = "Importer",
             onClick = { importLauncher.launch("text/*") },
-            variant = VaultButtonVariant.Ghost,
-            leadingIcon = Icons.Default.FileDownload,
+            variant = ButtonVariant.Secondary,
+            icon = Icons.Default.FileDownload,
             modifier = Modifier.weight(1f),
         )
         VaultButton(
             text = "Exporter",
             onClick = { exportLauncher.launch("thevault_collection.csv") },
-            variant = VaultButtonVariant.Ghost,
-            leadingIcon = Icons.Default.FileUpload,
+            variant = ButtonVariant.Secondary,
+            icon = Icons.Default.FileUpload,
             modifier = Modifier.weight(1f),
         )
     }

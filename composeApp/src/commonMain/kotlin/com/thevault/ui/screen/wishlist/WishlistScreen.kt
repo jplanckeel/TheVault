@@ -1,113 +1,123 @@
 package com.thevault.ui.screen.wishlist
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.thevault.ui.component.EmptyState
-import com.thevault.ui.component.FormatBadge
-import com.thevault.ui.component.ItemCover
-import com.thevault.ui.component.PlatformBadge
+import com.thevault.ui.component.KeyButton
+import com.thevault.ui.component.LedColor
+import com.thevault.ui.component.ListRow
+import com.thevault.ui.component.LoadingBox
+import com.thevault.ui.component.Panel
+import com.thevault.ui.component.PriceDelta
 import com.thevault.ui.component.ScreenHeader
-import com.thevault.ui.component.VaultButton
-import com.thevault.ui.component.VaultButtonSize
-import com.thevault.ui.component.VaultButtonVariant
-import com.thevault.ui.component.VaultCard
-import com.thevault.ui.component.formatDate
+import com.thevault.ui.component.SectionHeader
+import com.thevault.ui.component.StatusLed
+import com.thevault.ui.component.formatEuro
 import com.thevault.ui.component.formatEuroOrDash
+import com.thevault.ui.component.formatLabel
+import com.thevault.ui.component.formatWholePercent
+import com.thevault.ui.component.shortPlatformName
+import com.thevault.ui.navigation.tabBarClearance
 import com.thevault.ui.screen.collection.CollectionEntry
-import com.thevault.ui.theme.OnSurface
-import com.thevault.ui.theme.OnSurfaceVariant
-import com.thevault.ui.theme.SurfaceContainerHigh
-import com.thevault.ui.theme.VaultRadius
+import com.thevault.ui.screen.collection.ItemKind
+import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Wishlist screen. */
+/** Wishlist (« Envies »): eBay drops and the items to watch. */
 @Composable
 fun WishlistScreen(
     onEntryClick: (CollectionEntry) -> Unit,
     onAdd: () -> Unit,
     viewModel: WishlistViewModel = koinViewModel(),
 ) {
-    val entries by viewModel.entries.collectAsState()
+    val state by viewModel.uiState.collectAsState()
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = tabBarClearance()),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        val list = entries.orEmpty()
-        item { ScreenHeader("Wishlist", summary = "${list.size} objets", modifier = Modifier.padding(bottom = 8.dp)) }
-        if (entries != null && list.isEmpty()) {
-            item {
-                EmptyState(
-                    Icons.Default.StarBorder,
-                    "Aucun objet convoité",
-                    message = "Ajoutez un objet en choisissant « Wishlist » dans l'écran d'ajout.",
-                    actionLabel = "Ajouter",
-                    onAction = onAdd,
+        item {
+            ScreenHeader("Envies", eyebrow = "${state.watched.size} objets · cote ${formatEuro(state.total)}") {
+                KeyButton(Icons.AutoMirrored.Filled.Sort, "Trier : ${state.sort.label}", viewModel::onSortToggled)
+            }
+        }
+        when {
+            state.isLoading -> item { LoadingBox() }
+            state.watched.isEmpty() ->
+                item {
+                    EmptyState(
+                        Icons.Default.FavoriteBorder,
+                        "Aucune envie",
+                        message = "Ajoute un jeu en choisissant « Envie » pour suivre sa cote eBay.",
+                        action = "Ajouter",
+                        onAction = onAdd,
+                    )
+                }
+            else -> content(state, onEntryClick)
+        }
+    }
+}
+
+private fun LazyListScope.content(
+    state: WishlistUiState,
+    onEntryClick: (CollectionEntry) -> Unit,
+) {
+    if (state.dropping.isNotEmpty()) {
+        item {
+            Panel(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                StatusLed(LedColor.Power, label = "${state.dropping.size} en baisse sur eBay")
+                Text(
+                    "Ces objets sont moins chers qu'il y a 30 jours.",
+                    style = Vault.type.caption,
+                    color = Vault.colors.ink,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
         }
-        items(list, key = { "${it.kind}_${it.id}" }) { entry ->
-            WishCard(entry, onDetails = { onEntryClick(entry) }, onBought = { viewModel.markBought(entry) })
-        }
+        item { SectionHeader("En baisse", Modifier.padding(top = 12.dp)) }
+        items(state.dropping, key = { "drop_${it.id}" }) { WishRow(it, onEntryClick) }
     }
+    item { SectionHeader("À surveiller", Modifier.padding(top = 12.dp), action = "Trier : ${state.sort.label}") }
+    items(state.watched, key = { "watch_${it.id}" }) { WishRow(it, onEntryClick) }
 }
 
 @Composable
-private fun WishCard(
+private fun WishRow(
     entry: CollectionEntry,
-    onDetails: () -> Unit,
-    onBought: () -> Unit,
+    onClick: (CollectionEntry) -> Unit,
 ) {
-    VaultCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(14.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            ItemCover(entry.coverUrl, entry.platform, entry.title, Modifier.size(52.dp, 68.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(entry.title, style = MaterialTheme.typography.titleMedium, color = OnSurface, maxLines = 2)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PlatformBadge(entry.platform)
-                    FormatBadge(entry.condition)
-                }
-            }
+    val where =
+        if (entry.kind ==
+            ItemKind.Accessory
+        ) {
+            "Accessoire ${shortPlatformName(entry.platform)}"
+        } else {
+            shortPlatformName(entry.platform)
         }
-        Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            InfoBox("Cote estimée", formatEuroOrDash(entry.value, decimals = 2), Modifier.weight(1f))
-            InfoBox("Ajouté le", entry.acquiredAt?.let { formatDate(it) } ?: "—", Modifier.weight(1f))
-        }
-        Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            VaultButton("Détails", onDetails, Modifier.weight(1f), VaultButtonVariant.Ghost, VaultButtonSize.Medium)
-            VaultButton("Je l'ai acheté", onBought, Modifier.weight(1f), size = VaultButtonSize.Medium)
-        }
-    }
-}
-
-@Composable
-private fun InfoBox(
-    label: String,
-    value: String,
-    modifier: Modifier,
-) {
-    Column(modifier.clip(VaultRadius.lg).background(SurfaceContainerHigh).padding(horizontal = 14.dp, vertical = 12.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleMedium, color = OnSurface, modifier = Modifier.padding(top = 3.dp))
-    }
+    ListRow(
+        title = entry.title,
+        meta = listOf(where, entry.condition.formatLabel).filter { it.isNotBlank() }.joinToString(" · "),
+        trailing = formatEuroOrDash(entry.value),
+        cover = Triple(entry.coverUrl, entry.platform, entry.condition),
+        onClick = { onClick(entry) },
+        trailingContent =
+            entry.changePercent?.takeIf { it != 0.0 }?.let { pct ->
+                { PriceDelta(formatWholePercent(pct), pct > 0, small = true) }
+            },
+    )
 }
