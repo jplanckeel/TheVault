@@ -60,20 +60,20 @@ tasks:
       - docker exec {{.PG_CONTAINER}} psql -U {{.PG_USER}} -c "CREATE DATABASE {{.PG_DB}}"
 
   docker:build:
-    desc: Build Docker image multiarch (amd64 + arm64)
+    desc: Build the Docker image locally for the current architecture (not pushed)
+    cmds:
+      - docker buildx build --load -t {{.IMAGE}}:{{.TAG}} -t {{.IMAGE}}:latest .
+
+  # A multi-arch image cannot be loaded into the local Docker store, so buildx
+  # pushes it directly: there is no separate `docker push` step.
+  docker:push:
+    desc: Build the multi-arch image (amd64 + arm64) and push it to the registry
     cmds:
       - docker buildx build --platform linux/amd64,linux/arm64 -t {{.IMAGE}}:{{.TAG}} -t {{.IMAGE}}:latest --push .
 
-  docker:push:
-    desc: Push Docker image to registry (jplanckeel/thevault)
-    cmds:
-      - docker push {{.IMAGE}}:{{.TAG}}
-      - docker push {{.IMAGE}}:latest
-
   docker:release:
-    desc: Build and push Docker image in one step
+    desc: Build and push the multi-arch Docker image in one step
     cmds:
-      - task: docker:build
       - task: docker:push
 
   build:
