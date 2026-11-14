@@ -22,6 +22,7 @@ const CONDITION_SERIES = [
 
 const SOURCE_STYLES: Record<string, { color: string; abbrev: string }> = {
   ebay: { color: '#E53238', abbrev: 'EB' },
+  ebay_pal: { color: '#E53238', abbrev: 'EB' },
 }
 
 function fmt$(n: number) {
@@ -202,7 +203,7 @@ export default function PriceSection({ prices, searchQuery }: Props) {
           >
             {marketListings.map(([source, snap]) => {
               const style = SOURCE_STYLES[source] ?? { color: '#978da0', abbrev: source.slice(0, 2).toUpperCase() }
-              const isEbay = source === 'ebay'
+              const isEbay = source.startsWith('ebay')
               const ebayUrl = isEbay && searchQuery
                 ? `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}&_sacat=0`
                 : undefined

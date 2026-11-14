@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	defaultBaseURL     = "https://api.ebay.com"
-	defaultMarketplace = "EBAY_FR"
+	defaultBaseURL      = "https://api.ebay.com"
+	defaultMarketplaces = "EBAY_FR,EBAY_DE"
+	// palSource tags the snapshots pooled from the PAL marketplaces.
+	palSource = "ebay_pal"
 )
 
 // Option configures the eBay runner (for testing).
@@ -92,7 +94,7 @@ func (r *ebayRunner) run(jobID, triggeredBy string, itemIDs ...string) {
 		return
 	}
 
-	marketplace := r.settingOrDefault(ctx, "ebay_marketplace_id", defaultMarketplace)
+	markets := r.marketplaces(ctx)
 
 	total := len(items)
 	done := 0
@@ -100,7 +102,7 @@ func (r *ebayRunner) run(jobID, triggeredBy string, itemIDs ...string) {
 
 	var itemErrors []string
 	for _, item := range items {
-		snaps, err := r.scrapeItem(ctx, token, marketplace, item)
+		snaps, err := r.scrapeItem(ctx, token, markets, item)
 		if err != nil {
 			itemErrors = append(itemErrors, fmt.Sprintf("%s: %v", item.ID, err))
 		} else {
@@ -188,6 +190,7 @@ func (r *ebayRunner) getToken(ctx context.Context) (string, error) {
 
 // ebayItemSummary is a single result from the Browse API search.
 type ebayItemSummary struct {
+	Title string `json:"title"`
 	Price struct {
 		Value    string `json:"value"`
 		Currency string `json:"currency"`
@@ -195,7 +198,87 @@ type ebayItemSummary struct {
 	Condition string `json:"condition"`
 }
 
-func (r *ebayRunner) scrapeItem(ctx context.Context, token, marketplace string, item domain.Item) ([]domain.PriceSnapshot, error) {
+// marketplace is an eBay site queried for PAL prices, with the rate converting its
+// currency to EUR (1 for euro sites).
+type marketplace struct {
+	ID       string
+	Currency string
+	ToEUR    float64
+}
+
+// marketplaces returns the sites to query: ebay_marketplace_ids (comma separated,
+// default FR + DE). EBAY_GB is only used when an fx_gbp_eur rate is configured, so
+// that no conversion rate is ever made up.
+func (r *ebayRunner) marketplaces(ctx context.Context) []marketplace {
+	ids := r.settingOrDefault(ctx, "ebay_marketplace_ids", r.settingOrDefault(ctx, "ebay_marketplace_id", defaultMarketplaces))
+	gbp, _ := strconv.ParseFloat(r.settingOrDefault(ctx, "fx_gbp_eur", ""), 64)
+	var out []marketplace
+	for _, id := range strings.Split(ids, ",") {
+		id = strings.TrimSpace(strings.ToUpper(id))
+		switch {
+		case id == "":
+		case id == "EBAY_GB" && gbp > 0:
+			out = append(out, marketplace{ID: id, Currency: "GBP", ToEUR: gbp})
+		case id == "EBAY_GB":
+			fmt.Fprintln(os.Stderr, "scraper: EBAY_GB skipped, set fx_gbp_eur to use it")
+		default:
+			out = append(out, marketplace{ID: id, Currency: "EUR", ToEUR: 1})
+		}
+	}
+	if len(out) == 0 {
+		out = []marketplace{{ID: "EBAY_FR", Currency: "EUR", ToEUR: 1}}
+	}
+	return out
+}
+
+func (r *ebayRunner) scrapeItem(ctx context.Context, token string, markets []marketplace, item domain.Item) ([]domain.PriceSnapshot, error) {
+	byCondition := make(map[domain.PriceCondition][]float64)
+	var lastErr error
+	queried := 0
+	for _, m := range markets {
+		summaries, err := r.search(ctx, token, m.ID, item)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		queried++
+		for _, s := range summaries {
+			if excludedListing(s.Title, s.Condition) || s.Price.Currency != m.Currency {
+				continue
+			}
+			price, err := strconv.ParseFloat(s.Price.Value, 64)
+			if err != nil || price <= 0 {
+				continue
+			}
+			cond := classifyListing(s.Title, s.Condition)
+			byCondition[cond] = append(byCondition[cond], price*m.ToEUR)
+		}
+	}
+	if queried == 0 {
+		return nil, lastErr
+	}
+
+	now := time.Now().UTC()
+	snaps := make([]domain.PriceSnapshot, 0, len(byCondition))
+	for cond, prices := range byCondition {
+		stats := computeStats(prices)
+		snaps = append(snaps, domain.PriceSnapshot{
+			ItemID:      item.ID,
+			Source:      palSource,
+			Condition:   cond,
+			PriceMin:    stats.Min,
+			PriceMax:    stats.Max,
+			PriceMedian: stats.Median,
+			SampleCount: stats.Count,
+			Currency:    "EUR",
+			ScrapedAt:   now,
+		})
+	}
+	return snaps, nil
+}
+
+// search returns the fixed-price listings of one marketplace for an item.
+func (r *ebayRunner) search(ctx context.Context, token, marketplaceID string, item domain.Item) ([]ebayItemSummary, error) {
 	query := url.QueryEscape(item.Title + " " + item.Platform)
 	endpoint := fmt.Sprintf("%s/buy/browse/v1/item_summary/search?q=%s&filter=buyingOptions:{FIXED_PRICE}&limit=50", r.baseURL, query)
 
@@ -204,8 +287,7 @@ func (r *ebayRunner) scrapeItem(ctx context.Context, token, marketplace string, 
 		return nil, fmt.Errorf("build search request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-EBAY-C-MARKETPLACE-ID", marketplace)
-	req.Header.Set("X-EBAY-C-ENDUSERCTX", "contextualLocation=country=FR")
+	req.Header.Set("X-EBAY-C-MARKETPLACE-ID", marketplaceID)
 
 	resp, err := r.client.Do(req)
 	if err != nil {
@@ -220,63 +302,11 @@ func (r *ebayRunner) scrapeItem(ctx context.Context, token, marketplace string, 
 
 	var result struct {
 		ItemSummaries []ebayItemSummary `json:"itemSummaries"`
-		Total         int               `json:"total"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decode search: %w", err)
 	}
-
-	fmt.Fprintf(os.Stderr, "scraper: item %s — eBay returned %d results (total=%d)\n", item.ID, len(result.ItemSummaries), result.Total)
-
-	// Group prices by condition
-	type priceEntry struct {
-		price    float64
-		currency string
-	}
-	byCondition := make(map[domain.PriceCondition][]priceEntry)
-
-	for _, s := range result.ItemSummaries {
-		price, err := strconv.ParseFloat(s.Price.Value, 64)
-		if err != nil {
-			continue
-		}
-		cond := mapCondition(s.Condition)
-		byCondition[cond] = append(byCondition[cond], priceEntry{price: price, currency: s.Price.Currency})
-	}
-
-	now := time.Now().UTC()
-	snaps := make([]domain.PriceSnapshot, 0, len(byCondition))
-
-	for cond, entries := range byCondition {
-		if len(entries) == 0 {
-			continue
-		}
-
-		prices := make([]float64, len(entries))
-		currency := "EUR"
-		for i, e := range entries {
-			prices[i] = e.price
-			if e.currency != "" {
-				currency = e.currency
-			}
-		}
-
-		stats := computeStats(prices)
-
-		snaps = append(snaps, domain.PriceSnapshot{
-			ItemID:      item.ID,
-			Source:      "ebay",
-			Condition:   cond,
-			PriceMin:    stats.Min,
-			PriceMax:    stats.Max,
-			PriceMedian: stats.Median,
-			SampleCount: stats.Count,
-			Currency:    currency,
-			ScrapedAt:   now,
-		})
-	}
-
-	return snaps, nil
+	return result.ItemSummaries, nil
 }
 
 // computeStats calculates min, max, and median for a slice of prices.

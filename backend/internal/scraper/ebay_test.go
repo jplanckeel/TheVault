@@ -159,8 +159,8 @@ func TestRunner_ScrapesItems_SavesPrices(t *testing.T) {
 		t.Error("want at least one price snapshot saved")
 	}
 	for _, s := range prices.snaps {
-		if s.Source != "ebay" {
-			t.Errorf("want source 'ebay', got %q", s.Source)
+		if s.Source != "ebay_pal" {
+			t.Errorf("want source 'ebay_pal', got %q", s.Source)
 		}
 		if s.ItemID != "item-1" {
 			t.Errorf("want item_id 'item-1', got %q", s.ItemID)
