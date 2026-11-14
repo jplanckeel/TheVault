@@ -1,8 +1,10 @@
 package com.thevault.ui.screen.copy
 
+import com.thevault.domain.model.Completeness
 import com.thevault.domain.model.Components
 import com.thevault.domain.model.CopyDetails
 import com.thevault.domain.model.Edition
+import com.thevault.domain.model.WishPrefs
 import com.thevault.ui.screen.additem.toAmount
 import kotlinx.datetime.LocalDate
 
@@ -30,6 +32,9 @@ val PurchaseSources = listOf("Brocante", "Leboncoin", "eBay", "Vinted", "Boutiqu
  * @property loanDueAt Return date (JJ/MM/AAAA).
  * @property soldPrice Sale price.
  * @property soldAt Sale date (JJ/MM/AAAA).
+ * @property wishPriority Wishlist priority (1 high – 3 low).
+ * @property wishMax Wishlist max price.
+ * @property wishTarget Wanted completeness.
  * @property base Details not edited by the form (barcode…), kept on save.
  */
 data class CopyDraft(
@@ -47,6 +52,9 @@ data class CopyDraft(
     val loanDueAt: String = "",
     val soldPrice: String = "",
     val soldAt: String = "",
+    val wishPriority: Int? = null,
+    val wishMax: String = "",
+    val wishTarget: Completeness? = null,
     val base: CopyDetails = CopyDetails(),
 ) {
     /** Details to save. */
@@ -69,6 +77,7 @@ data class CopyDraft(
             loanDueAt = parseDate(loanDueAt),
             soldPrice = soldPrice.toAmount(),
             soldAt = parseDate(soldAt),
+            wish = WishPrefs(wishPriority, wishMax.toAmount(), wishTarget),
         )
 
     /** Purchase price to save. */
@@ -102,6 +111,9 @@ data class CopyDraft(
             loanDueAt = formatDate(details.loanDueAt),
             soldPrice = details.soldPrice.plain(),
             soldAt = formatDate(details.soldAt),
+            wishPriority = details.wish.priority,
+            wishMax = details.wish.maxPrice.plain(),
+            wishTarget = details.wish.target,
             base = details,
         )
 

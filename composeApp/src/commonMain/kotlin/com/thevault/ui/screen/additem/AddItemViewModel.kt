@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.PlayLog
+import com.thevault.domain.model.PlayStatus
 import com.thevault.domain.model.Region
 import com.thevault.domain.model.RemoteGame
 import com.thevault.domain.usecase.GetGameByIdUseCase
@@ -41,6 +43,8 @@ import kotlin.uuid.Uuid
  * @property notes Notes.
  * @property coverUrl Cover URL.
  * @property availablePlatforms Platforms of the IGDB game.
+ * @property play Backlog status and time played.
+ * @property playHours Hours played as typed.
  * @property remote IGDB game picked, if any.
  * @property isSaving Whether a save is running.
  * @property isSuccess Whether the game was saved (screen closes).
@@ -64,6 +68,8 @@ data class AddItemUiState(
     val notes: String = "",
     val coverUrl: String? = null,
     val availablePlatforms: List<String> = emptyList(),
+    val play: PlayStatus? = null,
+    val playHours: String = "",
     val remote: RemoteGame? = null,
     val isSaving: Boolean = false,
     val isSuccess: Boolean = false,
@@ -177,7 +183,21 @@ private fun Game.toForm() =
         notes = notes.orEmpty(),
         coverUrl = coverUrl,
         availablePlatforms = listOf(platform),
+        play = play.status,
+        playHours =
+            play.minutes
+                ?.let { m ->
+                    if (m % MINUTES ==
+                        0
+                    ) {
+                        "${m / MINUTES}"
+                    } else {
+                        "${m / MINUTES},${m % MINUTES * 10 / MINUTES}"
+                    }
+                }.orEmpty(),
     )
+
+private const val MINUTES = 60
 
 /** Copies the form onto [base], keeping the fields the form does not show. */
 private fun AddItemUiState.applyTo(base: Game): Game =
@@ -188,6 +208,7 @@ private fun AddItemUiState.applyTo(base: Game): Game =
         releaseYear = releaseYear.toIntOrNull() ?: 0,
         region = region,
         details = draft.toDetails(),
+        play = PlayLog(play, playHours.toAmount()?.let { (it * MINUTES).toInt() }),
         status = status,
         coverUrl = coverUrl,
         purchasePrice = draft.purchasePrice,

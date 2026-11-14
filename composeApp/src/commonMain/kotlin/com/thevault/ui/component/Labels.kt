@@ -3,6 +3,7 @@ package com.thevault.ui.component
 import com.thevault.domain.model.Edition
 import com.thevault.domain.model.Grade
 import com.thevault.domain.model.ItemStatus
+import com.thevault.domain.model.PlayStatus
 import com.thevault.domain.model.Region
 
 /** French label of an ownership status. */
@@ -50,3 +51,14 @@ val Region.label: String
 
 /** Whether choosing this status calls for details (sale price, borrower…). */
 val ItemStatus.needsDetails: Boolean get() = this == ItemStatus.SOLD || this == ItemStatus.LOANED
+
+/** French label of a backlog status. */
+val PlayStatus.label: String
+    get() =
+        when (this) {
+            PlayStatus.TO_PLAY -> "À jouer"
+            PlayStatus.PLAYING -> "En cours"
+            PlayStatus.FINISHED -> "Fini"
+            PlayStatus.COMPLETED -> "100 %"
+            PlayStatus.DROPPED -> "Abandonné"
+        }

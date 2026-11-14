@@ -1,5 +1,6 @@
 package com.thevault
 
+import com.thevault.alerts.WishAlertWorker
 import android.app.Application
 import com.thevault.di.androidModule
 import com.thevault.di.appModule
@@ -24,5 +25,6 @@ class TheVaultApp : Application() {
                 commonModule,
             )
         }
+        WishAlertWorker.schedule(this)
     }
 }

@@ -28,14 +28,21 @@ enum class PriceGrade(
     }
 }
 
+/** Grade quoted for a completeness. */
+val Completeness.priceGrade: PriceGrade
+    get() =
+        when (this) {
+            Completeness.LOOSE -> PriceGrade.LOOSE
+            Completeness.CIB -> PriceGrade.CIB
+            Completeness.NEW -> PriceGrade.NEW
+        }
+
 /** Grade whose quote applies to a copy with these components (digital copies have none). */
 val Components.priceGrade: PriceGrade?
     get() =
         when {
             digital -> null
-            completeness == Completeness.NEW -> PriceGrade.NEW
-            completeness == Completeness.CIB -> PriceGrade.CIB
-            else -> PriceGrade.LOOSE
+            else -> completeness.priceGrade
         }
 
 /**

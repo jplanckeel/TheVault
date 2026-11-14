@@ -102,11 +102,32 @@ fun GameDetailScreen(
             CopyPurchase(game.purchasePrice, game.acquiredAt, state.value, state.valueSource == ValueSource.UsIndicative),
         )
         MarketSection(state.quotes, state.grade, state.history, viewModel::onGradeSelected, state.usPrice)
+        BacklogPanel(game)
         NotesPanel(game.notes)
         val wish = game.status == ItemStatus.WISHLIST
         DetailButtons(wish, { if (wish) viewModel.setStatus(ItemStatus.OWNED) else dialog = DetailDialog.Status }, onEdit)
     }
 }
+
+@Composable
+private fun BacklogPanel(game: Game) {
+    val parts =
+        listOfNotNull(
+            game.play.status?.label,
+            game.play.minutes?.let { m ->
+                "${m / MINUTES_PER_HOUR} h" +
+                    if (m % MINUTES_PER_HOUR != 0) " ${m % MINUTES_PER_HOUR} min" else ""
+            },
+            game.rating?.takeIf { it > 0 }?.let { "note $it/10" },
+        )
+    if (parts.isEmpty()) return
+    Panel(Modifier.fillMaxWidth()) {
+        Engrave("Backlog")
+        Text(parts.joinToString(" · "), style = Vault.type.bodyStrong, color = Vault.colors.ink, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+private const val MINUTES_PER_HOUR = 60
 
 @Composable
 private fun NotesPanel(notes: String?) {

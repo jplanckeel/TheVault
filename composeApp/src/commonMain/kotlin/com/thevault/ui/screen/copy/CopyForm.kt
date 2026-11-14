@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.thevault.domain.model.Completeness
 import com.thevault.domain.model.Edition
 import com.thevault.domain.model.Grade
 import com.thevault.domain.model.ItemStatus
@@ -47,6 +48,7 @@ fun CopyFormSections(
     StorageSection(draft, onChange)
     if (status == ItemStatus.LOANED) LoanSection(draft, onChange)
     if (status == ItemStatus.SOLD) SaleSection(draft, onChange)
+    if (status == ItemStatus.WISHLIST) WishSection(draft, onChange)
     if (!draft.datesValid) Text("Dates au format JJ/MM/AAAA.", style = Vault.type.caption, color = Vault.colors.loss)
 }
 
@@ -201,4 +203,38 @@ private fun SaleSection(
         }, Modifier.weight(1f), keyboardOptions = Decimal, suffix = "€")
         VaultTextField("Le", draft.soldAt, { onChange(draft.copy(soldAt = it)) }, Modifier.weight(1f), "JJ/MM/AAAA", DateKeys)
     }
+}
+
+/** Labels of the wishlist priorities. */
+val WishPriorities = listOf(1 to "Haute", 2 to "Moyenne", 3 to "Basse")
+
+/** Label of a completeness. */
+val Completeness.label: String
+    get() =
+        when (this) {
+            Completeness.LOOSE -> "Loose"
+            Completeness.CIB -> "Complet"
+            Completeness.NEW -> "Neuf"
+        }
+
+@Composable
+private fun WishSection(
+    draft: CopyDraft,
+    onChange: (CopyDraft) -> Unit,
+) {
+    Engrave("Priorité")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        WishPriorities.forEach { (p, label) ->
+            VaultChip(label, draft.wishPriority == p, { onChange(draft.copy(wishPriority = if (draft.wishPriority == p) null else p)) })
+        }
+    }
+    Engrave("État visé")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Completeness.entries.forEach { c ->
+            VaultChip(c.label, draft.wishTarget == c, { onChange(draft.copy(wishTarget = if (draft.wishTarget == c) null else c)) })
+        }
+    }
+    VaultTextField("Prix max", draft.wishMax, {
+        onChange(draft.copy(wishMax = it))
+    }, keyboardOptions = Decimal, suffix = "€", placeholder = "Alerte quand la cote passe dessous")
 }
