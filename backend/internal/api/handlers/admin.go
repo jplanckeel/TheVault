@@ -158,7 +158,7 @@ func (h *AdminHandler) RefreshIGDB(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	go h.igdb.Sync(context.Background(), job, []domain.Item{item})
+	go h.igdb.Sync(context.WithoutCancel(r.Context()), job, []domain.Item{item})
 	writeJSON(w, http.StatusAccepted, job)
 }
 

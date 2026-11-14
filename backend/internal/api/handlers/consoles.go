@@ -39,7 +39,7 @@ func (h *ConsolesHandler) ListConsoles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(consoles)
+	_ = json.NewEncoder(w).Encode(consoles)
 }
 
 // GetConsole handles GET /api/v1/consoles/{id} — returns a single console.
@@ -62,7 +62,7 @@ func (h *ConsolesHandler) GetConsole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(item)
+	_ = json.NewEncoder(w).Encode(item)
 }
 
 // GetConsoleGames handles GET /api/v1/consoles/{id}/games — returns games for a console.
@@ -94,5 +94,5 @@ func (h *ConsolesHandler) GetConsoleGames(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(games)
+	_ = json.NewEncoder(w).Encode(games)
 }

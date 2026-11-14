@@ -83,7 +83,7 @@ func (h *UserAuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	token, _ := h.signToken(user.ID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]any{"token": token, "user": userJSON(user)})
+	_ = json.NewEncoder(w).Encode(map[string]any{"token": token, "user": userJSON(user)})
 }
 
 func (h *UserAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +110,7 @@ func (h *UserAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	h.promoteIfListed(r, &user)
 	token, _ := h.signToken(user.ID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"token": token, "user": userJSON(user)})
+	_ = json.NewEncoder(w).Encode(map[string]any{"token": token, "user": userJSON(user)})
 }
 
 func (h *UserAuthHandler) Me(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +121,7 @@ func (h *UserAuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userJSON(user))
+	_ = json.NewEncoder(w).Encode(userJSON(user))
 }
 
 func (h *UserAuthHandler) signToken(userID string) (string, error) {
