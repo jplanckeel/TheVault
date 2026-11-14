@@ -2,7 +2,6 @@ package com.thevault.ui.screen.additem
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.thevault.domain.model.CopyDetails
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
@@ -10,6 +9,7 @@ import com.thevault.domain.model.RemoteGame
 import com.thevault.domain.usecase.GetGameByIdUseCase
 import com.thevault.domain.usecase.SaveGameUseCase
 import com.thevault.domain.usecase.SearchRemoteGamesUseCase
+import com.thevault.ui.screen.copy.CopyDraft
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,9 +32,8 @@ import kotlin.uuid.Uuid
  * @property genre Genre.
  * @property releaseYear Release year as typed.
  * @property region Region.
- * @property details Parts, wear, edition, purchase, storage, loan and sale of the copy.
+ * @property draft Parts, wear, edition, purchase, storage, loan and sale of the copy, as typed.
  * @property status Status.
- * @property purchasePrice Purchase price as typed.
  * @property currentValue Manual value as typed (used when there is no eBay quote).
  * @property rating Personal rating (0 = none).
  * @property developer Developer.
@@ -56,9 +55,8 @@ data class AddItemUiState(
     val genre: String = "",
     val releaseYear: String = "",
     val region: Region = Region.PAL,
-    val details: CopyDetails = CopyDetails(),
+    val draft: CopyDraft = CopyDraft(),
     val status: ItemStatus = ItemStatus.OWNED,
-    val purchasePrice: String = "",
     val currentValue: String = "",
     val rating: Int = 0,
     val developer: String = "",
@@ -74,7 +72,7 @@ data class AddItemUiState(
     val searchError: String? = null,
 ) {
     /** Whether the form can be saved. */
-    val canSave: Boolean get() = !isSaving && title.isNotBlank() && platform.isNotBlank()
+    val canSave: Boolean get() = !isSaving && title.isNotBlank() && platform.isNotBlank() && draft.datesValid
 }
 
 /** ViewModel of the full game form (add or edit). */
@@ -149,7 +147,7 @@ class AddItemViewModel(
         viewModelScope.launch {
             val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
             val base =
-                s.original ?: Game(Uuid.random().toString(), "", "", "", 0, s.region, s.details, status = s.status, acquiredAt = today)
+                s.original ?: Game(Uuid.random().toString(), "", "", "", 0, s.region, status = s.status, acquiredAt = today)
             saveGame(s.applyTo(base))
             state.update { it.copy(isSaving = false, isSuccess = true) }
         }
@@ -170,9 +168,8 @@ private fun Game.toForm() =
         genre = genre.takeIf { it != "N/A" }.orEmpty(),
         releaseYear = releaseYear.takeIf { it > 0 }?.toString().orEmpty(),
         region = region,
-        details = details,
+        draft = CopyDraft.of(details, purchasePrice, acquiredAt),
         status = status,
-        purchasePrice = purchasePrice?.toPlain().orEmpty(),
         currentValue = currentValue?.toPlain().orEmpty(),
         rating = rating ?: 0,
         developer = developer.orEmpty(),
@@ -190,10 +187,11 @@ private fun AddItemUiState.applyTo(base: Game): Game =
         genre = genre.ifBlank { "N/A" },
         releaseYear = releaseYear.toIntOrNull() ?: 0,
         region = region,
-        details = details,
+        details = draft.toDetails(),
         status = status,
         coverUrl = coverUrl,
-        purchasePrice = purchasePrice.toAmount(),
+        purchasePrice = draft.purchasePrice,
+        acquiredAt = draft.purchaseDate ?: base.acquiredAt,
         currentValue = currentValue.toAmount(),
         rating = rating.takeIf { it > 0 },
         developer = developer.ifBlank { null },

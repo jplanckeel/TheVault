@@ -10,6 +10,7 @@ import com.thevault.ui.screen.collection.VaultEntriesSource
 import com.thevault.ui.screen.gamedetail.GameDetailViewModel
 import com.thevault.ui.screen.home.HomeViewModel
 import com.thevault.ui.screen.item.ItemDetailViewModel
+import com.thevault.ui.screen.item.ItemEditViewModel
 import com.thevault.ui.screen.profile.ProfileViewModel
 import com.thevault.ui.screen.settings.SettingsViewModel
 import com.thevault.ui.screen.stats.StatsViewModel
@@ -35,6 +36,7 @@ val commonModule =
         viewModel { AddViewModel(get(), get(), get(), get(), get()) }
         viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
         viewModel { ItemDetailViewModel(get(), get()) }
+        viewModel { ItemEditViewModel(get(), get(), get(), get()) }
         viewModel { GameDetailViewModel(get(), get(), get(), get(), get()) }
         viewModel { AddItemViewModel(get(), get(), get()) }
     }

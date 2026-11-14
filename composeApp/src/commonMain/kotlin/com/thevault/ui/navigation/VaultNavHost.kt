@@ -30,6 +30,7 @@ import com.thevault.ui.screen.gamedetail.GameDetailScreen
 import com.thevault.ui.screen.home.HomeActions
 import com.thevault.ui.screen.home.HomeScreen
 import com.thevault.ui.screen.item.ItemDetailScreen
+import com.thevault.ui.screen.item.ItemEditScreen
 import com.thevault.ui.screen.profile.ProfileScreen
 import com.thevault.ui.screen.settings.SettingsScreen
 import com.thevault.ui.screen.stats.StatsScreen
@@ -117,16 +118,21 @@ private fun NavGraphBuilder.detailDestinations(
     }
     composable(Routes.CONSOLE_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable
-        ItemDetailScreen(ItemKind.Console, id, back)
+        ItemDetailScreen(ItemKind.Console, id, back, onEdit = { nav.navigate(Routes.editItem(ItemKind.Console, id)) })
     }
     composable(Routes.ACCESSORY_DETAIL) { entry ->
         val id = entry.stringArg("id") ?: return@composable
-        ItemDetailScreen(ItemKind.Accessory, id, back)
+        ItemDetailScreen(ItemKind.Accessory, id, back, onEdit = { nav.navigate(Routes.editItem(ItemKind.Accessory, id)) })
     }
     composable(Routes.ADD) {
         AddScreen(onClose = back, onAddDetails = { gameId ->
             nav.navigate(Routes.editGame(gameId)) { popUpTo(Routes.ADD) { inclusive = true } }
         })
+    }
+    composable(Routes.EDIT_ITEM) { entry ->
+        val kind = entry.stringArg("kind")?.let { k -> ItemKind.entries.find { it.name == k } } ?: return@composable
+        val id = entry.stringArg("id") ?: return@composable
+        ItemEditScreen(kind, id, back)
     }
     composable(Routes.EDIT_GAME, arguments = listOf(optionalString("gameId"))) { entry ->
         AddItemScreen(gameId = entry.stringArg("gameId"), onBack = back)

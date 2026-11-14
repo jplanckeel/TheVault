@@ -42,6 +42,9 @@ object Routes {
     /** Add flow (search + quick confirmation). */
     const val ADD = "add"
 
+    /** Console / accessory form. */
+    const val EDIT_ITEM = "editItem/{kind}/{id}"
+
     /** Full game form, editing `gameId`. */
     const val EDIT_GAME = "edit?gameId={gameId}"
 
@@ -58,6 +61,12 @@ object Routes {
             ItemKind.Console -> "console/${entry.id}"
             ItemKind.Accessory -> "accessory/${entry.id}"
         }
+
+    /** Form of a console or accessory. */
+    fun editItem(
+        kind: ItemKind,
+        id: String,
+    ) = "editItem/${kind.name}/$id"
 
     /** Full form of game [gameId]. */
     fun editGame(gameId: String) = "edit?gameId=$gameId"

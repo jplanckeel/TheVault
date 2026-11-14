@@ -2,6 +2,7 @@ package com.thevault.ui.screen.item
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
@@ -25,6 +26,7 @@ import com.thevault.domain.model.PriceGrade
 import com.thevault.domain.model.priceGrade
 import com.thevault.ui.component.ButtonVariant
 import com.thevault.ui.component.CopyPanel
+import com.thevault.ui.component.CopyPurchase
 import com.thevault.ui.component.DeleteConfirmDialog
 import com.thevault.ui.component.DetailHeader
 import com.thevault.ui.component.DetailTopBar
@@ -44,6 +46,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * UI state of a console or accessory detail.
@@ -113,6 +116,7 @@ class ItemDetailViewModel(
  * @param kind Console or accessory.
  * @param id Item identifier.
  * @param onBack Back navigation.
+ * @param onEdit Opens the form.
  * @param viewModel Screen ViewModel.
  */
 @Composable
@@ -120,9 +124,8 @@ fun ItemDetailScreen(
     kind: ItemKind,
     id: String,
     onBack: () -> Unit,
-    viewModel: ItemDetailViewModel =
-        org.koin.compose.viewmodel
-            .koinViewModel(),
+    onEdit: () -> Unit,
+    viewModel: ItemDetailViewModel = koinViewModel(),
 ) {
     LaunchedEffect(kind, id) { viewModel.load(kind, id) }
     val state by viewModel.uiState.collectAsState()
@@ -150,14 +153,18 @@ fun ItemDetailScreen(
             caption = "${kind.singular} · ${entry.status.label}",
             menu =
                 listOf(
+                    MenuEntry("Modifier", onClick = onEdit),
                     MenuEntry("Changer le statut", onClick = { statusDialog = true }),
                     MenuEntry("Supprimer", destructive = true, onClick = { deleteDialog = true }),
                 ),
         )
         val credits = listOf(entry.manufacturer.label, entry.subtype).filter { it.isNotBlank() && it != "Autres" }.joinToString(" · ")
-        DetailHeader(entry.title, entry.platform, entry.region, entry.coverUrl, credits, fromIgdb = false)
-        CopyPanel(entry.condition, entry.purchasePrice, entry.value, entry.acquiredAt)
+        DetailHeader(entry.title, entry.platform, entry.region, entry.details.regionVariant, entry.coverUrl, credits, fromIgdb = false)
+        CopyPanel(entry.details, CopyPurchase(entry.purchasePrice, entry.acquiredAt, entry.value))
         MarketSection(entry.quotes, state.grade, emptyList(), viewModel::onGradeSelected)
-        VaultButton("Changer le statut", { statusDialog = true }, variant = ButtonVariant.Secondary)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            VaultButton("Statut", { statusDialog = true }, Modifier.weight(1f), ButtonVariant.Secondary)
+            VaultButton("Modifier", onEdit, Modifier.weight(1f))
+        }
     }
 }

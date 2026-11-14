@@ -121,12 +121,14 @@ private fun rememberBlinkAlpha(): Float {
  * @param platform Platform.
  * @param modifier Modifier.
  * @param region Optional region shown after a divider.
+ * @param variant Optional region variant (FAH, UKV…) shown after the region.
  */
 @Composable
 fun PlatformTag(
     platform: String,
     modifier: Modifier = Modifier,
     region: Region? = null,
+    variant: String? = null,
 ) {
     if (platform.isBlank()) return
     val c = Vault.colors
@@ -144,7 +146,7 @@ fun PlatformTag(
         Text(shortPlatformName(platform).uppercase(), style = style, color = c.ink, maxLines = 1)
         if (region != null && region != Region.OTHER) {
             Box(Modifier.width(1.dp).height(12.dp).background(c.line))
-            Text(region.label, style = style, color = c.inkMuted)
+            Text(listOfNotNull(region.label, variant).joinToString(" · "), style = style, color = c.inkMuted)
         }
     }
 }

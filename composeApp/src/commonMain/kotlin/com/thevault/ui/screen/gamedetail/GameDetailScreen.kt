@@ -26,6 +26,7 @@ import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemStatus
 import com.thevault.ui.component.ButtonVariant
 import com.thevault.ui.component.CopyPanel
+import com.thevault.ui.component.CopyPurchase
 import com.thevault.ui.component.DeleteConfirmDialog
 import com.thevault.ui.component.DetailHeader
 import com.thevault.ui.component.DetailTopBar
@@ -89,11 +90,12 @@ fun GameDetailScreen(
             game.title,
             game.platform,
             game.region,
+            game.details.regionVariant,
             game.coverUrl,
             credits(game),
             fromIgdb = game.coverUrl != null,
         )
-        CopyPanel(game.details.components, game.purchasePrice, state.value, game.acquiredAt, footer = editions(game))
+        CopyPanel(game.details, CopyPurchase(game.purchasePrice, game.acquiredAt, state.value))
         MarketSection(state.quotes, state.grade, state.history, viewModel::onGradeSelected)
         NotesPanel(game.notes)
         val wish = game.status == ItemStatus.WISHLIST

@@ -26,8 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.thevault.domain.model.Components
-import com.thevault.domain.model.Edition
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
 import com.thevault.ui.component.ButtonSize
@@ -39,13 +37,11 @@ import com.thevault.ui.component.ScreenHeader
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.VaultChip
 import com.thevault.ui.component.VaultTextField
-import com.thevault.ui.component.formatLabel
 import com.thevault.ui.component.label
 import com.thevault.ui.component.shortPlatformName
+import com.thevault.ui.screen.copy.CopyFormSections
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
-
-private val FormConditions = com.thevault.ui.screen.add.QuickFormats + Components(box = true)
 
 /** Add (or edit when [gameId] is set) a game. */
 @Composable
@@ -160,19 +156,8 @@ private fun Choices(
     viewModel: AddItemViewModel,
 ) {
     ChipGroup("Statut", ItemStatus.entries, state.status, { it.label }) { s -> viewModel.update { it.copy(status = s) } }
-    ChipGroup("État", FormConditions, state.details.components, {
-        it.formatLabel
-    }) { c -> viewModel.update { it.copy(details = it.details.copy(components = c)) } }
     ChipGroup("Région", Region.entries, state.region, { it.label }) { r -> viewModel.update { it.copy(region = r) } }
-    Engrave("Édition")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        VaultChip("Collector", state.details.edition == Edition.COLLECTOR, {
-            viewModel.update { it.copy(details = it.details.copy(edition = Edition.COLLECTOR)) }
-        })
-        VaultChip("Limitée", state.details.edition == Edition.LIMITED, {
-            viewModel.update { it.copy(details = it.details.copy(edition = Edition.LIMITED)) }
-        })
-    }
+    CopyFormSections(state.draft, state.status) { d -> viewModel.update { it.copy(draft = d) } }
 }
 
 @Composable
@@ -194,19 +179,13 @@ private fun PriceFields(
     state: AddItemUiState,
     viewModel: AddItemViewModel,
 ) {
-    val decimal = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        VaultTextField("Prix payé", state.purchasePrice, { v ->
-            viewModel.update {
-                it.copy(purchasePrice = v)
-            }
-        }, Modifier.weight(1f), keyboardOptions = decimal, suffix = "€")
-        VaultTextField("Valeur manuelle", state.currentValue, { v ->
-            viewModel.update {
-                it.copy(currentValue = v)
-            }
-        }, Modifier.weight(1f), keyboardOptions = decimal, suffix = "€")
-    }
+    VaultTextField(
+        "Valeur manuelle",
+        state.currentValue,
+        { v -> viewModel.update { it.copy(currentValue = v) } },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        suffix = "€",
+    )
     Text("La cote eBay remplace la valeur manuelle dès qu'elle est disponible.", style = Vault.type.caption, color = Vault.colors.inkMuted)
 }
 
