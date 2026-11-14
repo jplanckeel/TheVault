@@ -95,7 +95,12 @@ class SettingsViewModel(
         viewModelScope.launch {
             val message =
                 csvService.importCsv(content).fold(
-                    onSuccess = { SettingsMessage("Import terminé : $it lignes.", MessageTone.Success) },
+                    onSuccess = {
+                        SettingsMessage(
+                            "Import terminé : ${it.created} ajoutés, ${it.updated} mis à jour.",
+                            MessageTone.Success,
+                        )
+                    },
                     onFailure = { SettingsMessage("Le fichier n'a pas pu être importé.", MessageTone.Error) },
                 )
             scheduler.request()

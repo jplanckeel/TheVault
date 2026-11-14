@@ -8,103 +8,128 @@ import com.thevault.domain.model.Edition
 import com.thevault.domain.model.Game
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.model.Region
+import com.thevault.domain.usecase.GameyeFormat.Col
 import kotlinx.datetime.LocalDate
 
 /**
- * One parsed row of a GameEye CSV export.
+ * US prices of an item in the Gameye export (PriceCharting). Never shown as a PAL quote.
+ *
+ * @property loose Loose price.
+ * @property cib Complete price.
+ * @property new New price.
+ */
+data class UsPrices(
+    val loose: Double?,
+    val cib: Double?,
+    val new: Double?,
+) {
+    /** Whether at least one price is known. */
+    val isKnown: Boolean get() = loose != null || cib != null || new != null
+}
+
+/**
+ * One row of a Gameye CSV export, interpreted. The whole collection is PAL: the unreliable
+ * `Country` column is ignored and the region variant is left empty.
  *
  * @property platform Platform.
  * @property category `Games`, `Systems` or an accessory category.
+ * @property status Status.
  * @property title Title.
  * @property publisher Publisher (manufacturer for systems).
  * @property developer Developer.
  * @property genre Genre.
- * @property createdAt Date the item was added in GameEye.
+ * @property createdAt Date the item was added in Gameye.
+ * @property components Parts and grades.
+ * @property usPrices US prices of the export.
+ * @property yourPrice Gameye « YourPrice » (an estimate, not the user's value).
+ * @property price Price paid, null when unknown.
  * @property notes Notes.
  * @property tags Tags.
- * @property rating Rating.
- * @property status Status.
- * @property components Parts of the copy.
- * @property region Region.
- * @property value Value.
- * @property price Purchase price.
  */
-internal data class CsvRow(
+data class CsvRow(
     val platform: String,
     val category: String,
+    val status: ItemStatus,
     val title: String,
     val publisher: String,
     val developer: String,
     val genre: String,
     val createdAt: LocalDate?,
-    val notes: String,
-    val tags: String,
-    val rating: Int?,
-    val status: ItemStatus,
     val components: Components,
-    val region: Region,
-    val value: Double?,
+    val usPrices: UsPrices,
+    val yourPrice: Double?,
     val price: Double?,
+    val notes: String,
+    val tags: List<String>,
 ) {
-    private val collector get() = notes.contains("collector", ignoreCase = true)
-    private val limited get() = notes.contains("limited", ignoreCase = true) || notes.contains("limitée", ignoreCase = true)
+    private val edition: Edition
+        get() =
+            when {
+                notes.contains("collector", ignoreCase = true) -> Edition.COLLECTOR
+                notes.contains("limited", ignoreCase = true) || notes.contains("limitée", ignoreCase = true) -> Edition.LIMITED
+                else -> Edition.STANDARD
+            }
 
-    private fun edition(): Edition =
-        when {
-            collector -> Edition.COLLECTOR
-            limited -> Edition.LIMITED
-            else -> Edition.STANDARD
-        }
-
-    private fun details() = CopyDetails(components = components, edition = edition())
-
-    /** Keeps what the app added (tags, location…) and applies the CSV parts and edition. */
-    private fun merged(base: CopyDetails) =
-        base.copy(components = components, edition = if (base.edition == Edition.STANDARD) edition() else base.edition)
+    /** Kind of item (`game`, `console`, `accessory`). */
+    val kind: String
+        get() =
+            when (category.lowercase()) {
+                "games" -> "game"
+                "systems" -> "console"
+                else -> "accessory"
+            }
 
     /** Identity of the row, shared by the copies of the same item. */
-    fun key(kind: String): String = listOf(kind, title, platform).joinToString("|") { it.trim().lowercase() }
+    fun key(): String = listOf(kind, title, if (kind == "console") title else platform).joinToString("|") { it.trim().lowercase() }
+
+    private fun details(base: CopyDetails = CopyDetails()) =
+        base.copy(
+            components = components,
+            edition = if (base.edition == Edition.STANDARD) edition else base.edition,
+            tags = (base.tags + tags).distinct(),
+        )
+
+    /** Value kept on re-import: a previous import stored « YourPrice » as the value; drop it. */
+    private fun keptValue(current: Double?): Double? = current?.takeUnless { it == yourPrice }
 
     /** Blank game with [id]. */
-    fun newGame(id: String) = Game(id, title, platform, genre, 0, region, details(), status = status, acquiredAt = createdAt)
+    fun newGame(id: String) = toGame(Game(id, title, platform, genre, 0, Region.PAL, status = status))
 
     /** Blank console with [id]. */
     fun newConsole(id: String) =
-        Console(id, title, publisher.ifEmpty { "Unknown" }, region, "", details(), 0, status, acquiredAt = createdAt)
+        toConsole(Console(id, title, publisher.ifEmpty { "Unknown" }, Region.PAL, "", productionYear = 0, status = status))
 
     /** Blank accessory with [id]. */
-    fun newAccessory(id: String) = Accessory(id, title, category, platform, details(), status, acquiredAt = createdAt)
+    fun newAccessory(id: String) = toAccessory(Accessory(id, title, category, platform, status = status))
 
     /** CSV fields applied to [base]; cover, year and app-only fields are kept. */
     fun toGame(base: Game) =
         base.copy(
             title = title,
             platform = platform,
-            genre = genre.ifBlank { base.genre },
-            region = region,
-            details = merged(base.details),
+            genre = genre.ifBlank { base.genre.ifBlank { "N/A" } },
+            region = Region.PAL,
+            details = details(base.details),
             status = status,
             purchasePrice = price ?: base.purchasePrice,
-            currentValue = value ?: base.currentValue,
+            currentValue = keptValue(base.currentValue),
             notes = notes.ifBlank { base.notes },
-            rating = rating ?: base.rating,
             developer = developer.ifBlank { base.developer },
             publisher = publisher.ifBlank { base.publisher },
-            themes = tags.ifBlank { base.themes },
-            acquiredAt = base.acquiredAt ?: createdAt,
+            acquiredAt = createdAt ?: base.acquiredAt,
         )
 
     /** CSV fields applied to [base]. */
     fun toConsole(base: Console) =
         base.copy(
             name = title,
-            region = region,
-            details = merged(base.details),
+            region = Region.PAL,
+            details = details(base.details),
             status = status,
             purchasePrice = price ?: base.purchasePrice,
-            currentValue = value ?: base.currentValue,
+            currentValue = keptValue(base.currentValue),
             notes = notes.ifBlank { base.notes },
-            acquiredAt = base.acquiredAt ?: createdAt,
+            acquiredAt = createdAt ?: base.acquiredAt,
         )
 
     /** CSV fields applied to [base]. */
@@ -113,47 +138,47 @@ internal data class CsvRow(
             name = title,
             type = category,
             compatibleConsole = platform,
-            details = merged(base.details),
+            details = details(base.details),
             status = status,
             purchasePrice = price ?: base.purchasePrice,
-            currentValue = value ?: base.currentValue,
+            currentValue = keptValue(base.currentValue),
             notes = notes.ifBlank { base.notes },
-            acquiredAt = base.acquiredAt ?: createdAt,
+            acquiredAt = createdAt ?: base.acquiredAt,
         )
 
     /** Companion helpers. */
     companion object {
-        /** Builds a row from raw columns and the already parsed enums / amounts. */
-        @Suppress("LongParameterList")
-        fun of(
-            row: List<String>,
-            status: ItemStatus,
-            components: Components,
-            region: Region,
-            value: Double?,
-            price: Double?,
-        ) = CsvRow(
-            platform = row[0],
-            category = row[1],
-            title = row[3].ifBlank { "Unknown" },
-            publisher = row[6],
-            developer = row[7],
-            genre = row[8],
-            createdAt = parseDate(row[9]),
-            notes = row.getOrNull(19).orEmpty(),
-            tags = row.getOrNull(20).orEmpty(),
-            rating = row.getOrNull(21)?.toIntOrNull(),
-            status = status,
-            components = components,
-            region = region,
-            value = value,
-            price = price,
-        )
+        /** Minimum number of columns of a valid row. */
+        const val MIN_COLUMNS = 21
 
-        /** First 10 characters as an ISO date ("2021-03-24 10:12:00" → 2021-03-24). */
-        fun parseDate(value: String): LocalDate? = runCatching { LocalDate.parse(value.trim().take(ISO_DATE)) }.getOrNull()
-
-        private const val ISO_DATE = 10
+        /** Interprets a raw Gameye row. */
+        fun parse(row: List<String>): CsvRow {
+            val f = GameyeFormat
+            val ownership = f.components(row[Col.OWNERSHIP])
+            val base = if (f.isDigital(row[Col.RELEASE_TYPE])) Components.DIGITAL else ownership
+            val parts =
+                base.copy(
+                    mediaGrade = f.grade(row[Col.ITEM_CONDITION]).takeIf { base.media },
+                    boxGrade = f.grade(row[Col.BOX_CONDITION]).takeIf { base.box },
+                    manualGrade = f.grade(row[Col.MANUAL_CONDITION]).takeIf { base.manual },
+                )
+            return CsvRow(
+                platform = f.text(row[Col.PLATFORM]),
+                category = f.text(row[Col.CATEGORY]),
+                status = f.status(row[Col.RECORD_TYPE]),
+                title = f.text(row[Col.TITLE]).ifBlank { "Sans titre" },
+                publisher = f.text(row[Col.PUBLISHER]),
+                developer = f.text(row[Col.DEVELOPER]),
+                genre = f.text(row[Col.GENRE]),
+                createdAt = f.date(row[Col.CREATED_AT]),
+                components = parts,
+                usPrices = UsPrices(f.amount(row[Col.PRICE_LOOSE]), f.amount(row[Col.PRICE_CIB]), f.amount(row[Col.PRICE_NEW])),
+                yourPrice = f.amount(row[Col.YOUR_PRICE]),
+                price = f.amount(row[Col.PRICE_PAID]),
+                notes = f.text(row.getOrNull(Col.NOTES)),
+                tags = f.tags(row.getOrNull(Col.TAGS)),
+            )
+        }
     }
 }
 
@@ -168,6 +193,7 @@ internal class ExistingIds(
 ) {
     private val free: MutableMap<String, ArrayDeque<String>> = mutableMapOf()
     private val seen: MutableMap<String, Int> = mutableMapOf()
+    private val used: MutableSet<String> = (games.map { it.id } + consoles.map { it.id } + accessories.map { it.id }).toMutableSet()
 
     init {
         games.forEach { add("game", it.title, it.platform, it.id) }
@@ -186,23 +212,17 @@ internal class ExistingIds(
     }
 
     /** Identifier of an existing item matching [row], consumed so each copy is matched once. */
-    fun take(
-        kind: String,
-        row: CsvRow,
-    ): String? {
-        val key = if (kind == "console") listOf(kind, row.title, row.title).joinToString("|") { it.trim().lowercase() } else row.key(kind)
-        return free[key]?.removeFirstOrNull()
-    }
+    fun take(row: CsvRow): String? = free[row.key()]?.removeFirstOrNull()
 
     /** Stable identifier of a new item (the n-th copy of the same row gets suffix n). */
-    fun newId(
-        kind: String,
-        row: CsvRow,
-    ): String {
-        val key = row.key(kind)
-        val n = seen.getOrElse(key) { 0 }
+    fun newId(row: CsvRow): String {
+        val key = row.key()
+        var n = seen.getOrElse(key) { 0 }
+        var id = "csv-${key.hashCode().toUInt().toString(HEX)}-$n"
+        while (id in used) id = "csv-${key.hashCode().toUInt().toString(HEX)}-${++n}"
         seen[key] = n + 1
-        return "csv-${key.hashCode().toUInt().toString(HEX)}-$n"
+        used += id
+        return id
     }
 
     private companion object {
