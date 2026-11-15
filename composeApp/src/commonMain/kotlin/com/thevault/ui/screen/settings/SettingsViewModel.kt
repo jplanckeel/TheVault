@@ -6,10 +6,12 @@ import com.thevault.domain.usecase.CsvService
 import com.thevault.domain.usecase.GetImportedPricesUseCase
 import com.thevault.domain.usecase.ObserveSyncedIdsUseCase
 import com.thevault.domain.usecase.RecordImportedPricesUseCase
+import com.thevault.domain.usecase.RefreshCatalogUseCase
 import com.thevault.domain.usecase.RefreshQuotesUseCase
 import com.thevault.domain.usecase.SyncScheduler
-import com.thevault.domain.usecase.SyncVaultWithIgdbUseCase
+import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.screen.collection.VaultEntriesSource
+import com.thevault.ui.screen.collection.owned
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -57,15 +59,32 @@ data class SettingsUiState(
     val message: SettingsMessage? = null,
     val pending: Int = 0,
     val total: Int = 0,
+    val valuation: ValuationSplit = ValuationSplit(),
 )
 
 /**
- * ViewModel of the Settings screen: CSV import / export and IGDB enrichment.
+ * Where the value of the owned items comes from — shows the move from the Gameye US
+ * prices to the eBay PAL quotes.
+ *
+ * @property ebay Items valued by a reliable eBay quote.
+ * @property manual Items valued by the user.
+ * @property usIndicative Items still valued by their Gameye US price.
+ * @property none Items without any value.
+ */
+data class ValuationSplit(
+    val ebay: Int = 0,
+    val manual: Int = 0,
+    val usIndicative: Int = 0,
+    val none: Int = 0,
+)
+
+/**
+ * ViewModel of the Settings screen: sync with the server, CSV import / export.
  */
 @Suppress("LongParameterList")
 class SettingsViewModel(
     private val csvService: CsvService,
-    private val syncVaultWithIgdb: SyncVaultWithIgdbUseCase,
+    private val refreshCatalog: RefreshCatalogUseCase,
     private val source: VaultEntriesSource,
     observeSynced: ObserveSyncedIdsUseCase,
     private val scheduler: SyncScheduler,
@@ -78,19 +97,34 @@ class SettingsViewModel(
     /** Observable UI state. */
     val uiState: StateFlow<SettingsUiState> =
         combine(state, source.entries(), observeSynced()) { s, entries, synced ->
-            s.copy(pending = entries.count { it.id !in synced }, total = entries.size)
+            val owned = entries.owned()
+            s.copy(
+                pending = entries.count { it.id !in synced },
+                total = entries.size,
+                valuation =
+                    ValuationSplit(
+                        ebay = owned.count { it.valueSource == ValueSource.Ebay },
+                        manual = owned.count { it.valueSource == ValueSource.Manual },
+                        usIndicative = owned.count { it.valueSource == ValueSource.UsIndicative },
+                        none = owned.count { it.valueSource == ValueSource.None },
+                    ),
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SettingsUiState())
 
-    /** Pushes the pending items and downloads the latest eBay quotes. */
+    /** Pushes the pending items, then downloads the catalogue sheets and the eBay quotes. */
     fun syncNow() {
         scheduler.request()
-        state.update { it.copy(message = SettingsMessage("Mise à jour des cotes eBay…", MessageTone.Info)) }
+        state.update { it.copy(isSyncing = true, message = SettingsMessage("Mise à jour des fiches et des cotes…", MessageTone.Info)) }
         viewModelScope.launch {
-            val ids = source.entries().first().map { it.id }
+            val sheets = refreshCatalog(force = true)
+            val quotes = refreshQuotes(source.entries().first().map { it.id }, force = true)
             val message =
-                refreshQuotes(ids, force = true)?.let { SettingsMessage("$it cotes eBay à jour.", MessageTone.Success) }
-                    ?: SettingsMessage("Serveur injoignable : réessaie plus tard.", MessageTone.Error)
-            state.update { it.copy(message = message) }
+                if (sheets == null || quotes == null) {
+                    SettingsMessage("Serveur injoignable : réessaie plus tard.", MessageTone.Error)
+                } else {
+                    SettingsMessage("$sheets fiches mises à jour, $quotes cotes eBay reçues.", MessageTone.Success)
+                }
+            state.update { it.copy(isSyncing = false, message = message) }
         }
     }
 
@@ -126,20 +160,6 @@ class SettingsViewModel(
                 null
             },
         )
-
-    /** Enriches the collection with IGDB metadata (covers, genres…). */
-    fun syncIgdb() {
-        state.update { it.copy(isSyncing = true, message = SettingsMessage("Synchronisation IGDB…", MessageTone.Info)) }
-        viewModelScope.launch {
-            val result = syncVaultWithIgdb()
-            val message =
-                result.fold(
-                    onSuccess = { SettingsMessage("$it jeu(x) mis à jour.", MessageTone.Success) },
-                    onFailure = { SettingsMessage("La synchronisation IGDB a échoué.", MessageTone.Error) },
-                )
-            state.update { it.copy(isSyncing = false, message = message) }
-        }
-    }
 
     /** Insurance inventory of the owned items. */
     suspend fun insuranceLines(): List<InsuranceLine> = insuranceLines(source.entries().first())

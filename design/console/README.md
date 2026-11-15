@@ -59,6 +59,7 @@ Jamais de chiffre inventé : ce qui manque s'affiche « — » ou est masqué.
 | Élément | Source |
 |---|---|
 | Cote eBay (Loose / Complet / Neuf), « Plus fortes hausses », variations 30 j, rapport de mise à jour | Backend : annonces eBay FR + DE (UK si un taux `fx_gbp_eur` est configuré), lots / pour pièces / repros / NTSC exclus, médiane + nombre d'annonces (`ebay_pal`) |
+| Fiche (jaquette, genre, année, studio) | Catalogue du backend (`/items/lookup` : enrichissement IGDB serveur, jaquettes et corrections du back-office), appliqué au démarrage (toutes les 12 h) et depuis Réglages |
 | Valeur d'un exemplaire | Cote PAL fiable (≥ 3 annonces) de sa complétude dérivée, sinon valeur saisie, sinon prix US de l'import Gameye affiché « ≈ … cote US indicative » |
 | Courbes | Valeur du coffre : instantané quotidien local (`value_snapshot`) ; fiche : historique backend complété par les relevés locaux (`price_snapshot`) |
 | Plus-value | Valeur − prix payé − port |
