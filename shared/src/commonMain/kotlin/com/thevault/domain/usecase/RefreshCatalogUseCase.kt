@@ -71,6 +71,6 @@ class RefreshCatalogUseCase(
         const val KEY_LAST_REFRESH = "catalog.last_refresh"
 
         /** Minimum time between two automatic refreshes. */
-        val REFRESH_INTERVAL = 12.hours
+        val REFRESH_INTERVAL = 6.hours
     }
 }
