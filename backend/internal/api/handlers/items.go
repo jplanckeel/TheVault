@@ -103,6 +103,31 @@ func (h *ItemsHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(items)
 }
 
+// lookupRequest is the body of POST /api/v1/items/lookup.
+type lookupRequest struct {
+	ExternalIDs []string `json:"external_ids"`
+}
+
+// LookupItems handles POST /api/v1/items/lookup — the shared catalogue sheets (cover,
+// IGDB facts, admin corrections) of the items an app knows by these external ids.
+func (h *ItemsHandler) LookupItems(w http.ResponseWriter, r *http.Request) {
+	var req lookupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if err := domain.ValidateExternalIDs(req.ExternalIDs); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	entries, err := h.items.LookupByExternalIDs(r.Context(), req.ExternalIDs)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, entries)
+}
+
 // GetItem handles GET /api/v1/items/{id}.
 func (h *ItemsHandler) GetItem(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

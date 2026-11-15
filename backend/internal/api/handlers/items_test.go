@@ -1,12 +1,14 @@
 package handlers_test
 
 import (
+	"strings"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
@@ -38,7 +40,19 @@ func (m *mockItemStore) List(_ context.Context) ([]domain.Item, error) {
 	}
 	return result, nil
 }
-func (m *mockItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error)        { return nil, nil }
+func (m *mockItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error) { return nil, nil }
+func (m *mockItemStore) ListForPricing(_ context.Context, _ time.Duration, _ int) ([]domain.Item, error) {
+	return nil, nil
+}
+func (m *mockItemStore) LookupByExternalIDs(_ context.Context, ids []string) ([]domain.CatalogEntry, error) {
+	out := make([]domain.CatalogEntry, 0)
+	for _, id := range ids {
+		if it, ok := m.items[id]; ok {
+			out = append(out, domain.CatalogEntry{ExternalID: id, ItemID: it.ID, Title: it.Title, Platform: it.Platform, CoverURL: it.CoverURL})
+		}
+	}
+	return out, nil
+}
 func (m *mockItemStore) UpdateIGDB(_ context.Context, _ string, _ domain.IGDBData) error { return nil }
 
 func (m *mockItemStore) UpdateCoverURL(_ context.Context, id string, coverURL string) error {
@@ -207,5 +221,32 @@ func TestGetItemPrices_Returns200(t *testing.T) {
 	var snaps []domain.PriceSnapshot
 	if err := json.NewDecoder(w.Body).Decode(&snaps); err != nil {
 		t.Fatalf("decode: %v", err)
+	}
+}
+
+func TestLookupItems(t *testing.T) {
+	s := newMockItemStore()
+	s.items["ext-1"] = domain.Item{ID: "item-1", ExternalID: "ext-1", Title: "Metroid", CoverURL: "https://img/c.jpg"}
+	h := handlers.NewItemsHandler(s, &mockPriceStore{})
+
+	for _, body := range []string{`{}`, `not json`, `{"external_ids":[""]}`} {
+		w := httptest.NewRecorder()
+		h.LookupItems(w, httptest.NewRequest(http.MethodPost, "/api/v1/items/lookup", strings.NewReader(body)))
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("body %q: want 400, got %d", body, w.Code)
+		}
+	}
+
+	w := httptest.NewRecorder()
+	h.LookupItems(w, httptest.NewRequest(http.MethodPost, "/api/v1/items/lookup", strings.NewReader(`{"external_ids":["ext-1","unknown"]}`)))
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", w.Code)
+	}
+	var entries []domain.CatalogEntry
+	if err := json.NewDecoder(w.Body).Decode(&entries); err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].ExternalID != "ext-1" || entries[0].CoverURL != "https://img/c.jpg" {
+		t.Errorf("entries = %+v", entries)
 	}
 }

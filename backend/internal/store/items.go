@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -191,3 +192,55 @@ func (s *PostgresItemStore) UpdateCoverURL(ctx context.Context, id string, cover
 
 // compile-time interface satisfaction check
 var _ ItemStore = (*PostgresItemStore)(nil)
+
+// LookupByExternalIDs returns the catalogue sheets of the items known by externalIDs.
+func (s *PostgresItemStore) LookupByExternalIDs(ctx context.Context, externalIDs []string) ([]domain.CatalogEntry, error) {
+	q := `
+		WITH ids AS (` + itemsByExternalID + `)
+		SELECT ids.ext, i.id, i.type, i.title, i.platform, i.cover_url, i.igdb_id, i.summary,
+		       i.genres, i.developer, i.publisher, i.release_year, i.admin_edited, i.updated_at
+		FROM ids JOIN items i ON i.id = ids.item_id
+		ORDER BY ids.ext`
+	rows, err := s.pool.Query(ctx, q, externalIDs)
+	if err != nil {
+		return nil, fmt.Errorf("lookup: %w", err)
+	}
+	defer rows.Close()
+	entries := make([]domain.CatalogEntry, 0)
+	for rows.Next() {
+		var e domain.CatalogEntry
+		if err := rows.Scan(&e.ExternalID, &e.ItemID, &e.Type, &e.Title, &e.Platform, &e.CoverURL, &e.IgdbID,
+			&e.Summary, &e.Genres, &e.Developer, &e.Publisher, &e.ReleaseYear, &e.AdminEdited, &e.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("lookup scan: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
+}
+
+// ListForPricing returns at most limit items not quoted for olderThan, never-quoted first.
+func (s *PostgresItemStore) ListForPricing(ctx context.Context, olderThan time.Duration, limit int) ([]domain.Item, error) {
+	q := `
+		SELECT ` + prefixedItemCols("i") + `
+		FROM items i
+		LEFT JOIN LATERAL (
+			SELECT MAX(p.scraped_at) AS last FROM price_snapshots p WHERE p.item_id = i.id
+		) lp ON TRUE
+		WHERE lp.last IS NULL OR lp.last < NOW() - make_interval(secs => $1)
+		ORDER BY lp.last ASC NULLS FIRST, i.created_at ASC
+		LIMIT $2`
+	rows, err := s.pool.Query(ctx, q, olderThan.Seconds(), limit)
+	if err != nil {
+		return nil, fmt.Errorf("list for pricing: %w", err)
+	}
+	defer rows.Close()
+	items := make([]domain.Item, 0)
+	for rows.Next() {
+		var i domain.Item
+		if err := scanItem(rows, &i); err != nil {
+			return nil, fmt.Errorf("list for pricing scan: %w", err)
+		}
+		items = append(items, i)
+	}
+	return items, rows.Err()
+}

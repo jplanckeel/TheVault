@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,7 +62,10 @@ func main() {
 	ebayClientID := getenv("EBAY_CLIENT_ID", "")
 	ebayClientSecret := getenv("EBAY_CLIENT_SECRET", "")
 	ebayBaseURL := getenv("EBAY_BASE_URL", "")
-	opts := []scraper.Option{scraper.WithCredentials(ebayClientID, ebayClientSecret)}
+	opts := []scraper.Option{
+		scraper.WithCredentials(ebayClientID, ebayClientSecret),
+		scraper.WithBatch(atoiOr(getenv("EBAY_BATCH_SIZE", ""), 0), time.Duration(atoiOr(getenv("EBAY_REFRESH_HOURS", ""), 0))*time.Hour),
+	}
 	if ebayBaseURL != "" {
 		opts = append(opts, scraper.WithBaseURL(ebayBaseURL))
 	}
@@ -126,4 +130,13 @@ func parseEmails(raw string) []string {
 		}
 	}
 	return out
+}
+
+// atoiOr parses s, returning def when it is empty or not a number.
+func atoiOr(s string, def int) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+	return n
 }
