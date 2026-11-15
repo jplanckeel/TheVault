@@ -66,6 +66,7 @@ func (h *ItemsHandler) UpsertItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	item.SanitizeFacts()
 
 	saved, err := h.items.Upsert(r.Context(), item)
 	if errors.Is(err, store.ErrTombstoned) {

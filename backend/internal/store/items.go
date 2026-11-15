@@ -78,8 +78,9 @@ func (s *PostgresItemStore) Upsert(ctx context.Context, item domain.Item) (domai
 	}
 
 	const q = `
-		INSERT INTO items (external_id, type, title, platform, region, condition, status, cover_url, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+		INSERT INTO items (external_id, type, title, platform, region, condition, status, cover_url,
+		                   summary, genres, developer, publisher, release_year, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
 		ON CONFLICT (external_id) DO UPDATE SET
 			type       = CASE WHEN items.admin_edited THEN items.type ELSE EXCLUDED.type END,
 			title      = CASE WHEN items.admin_edited THEN items.title ELSE EXCLUDED.title END,
@@ -90,12 +91,19 @@ func (s *PostgresItemStore) Upsert(ctx context.Context, item domain.Item) (domai
 			-- An empty cover from an app never erases one found on IGDB or uploaded.
 			cover_url  = CASE WHEN items.igdb_id = '' AND NOT items.admin_edited AND EXCLUDED.cover_url <> ''
 			                  THEN EXCLUDED.cover_url ELSE items.cover_url END,
+			-- Facts sent by an app only fill gaps: IGDB and the back-office stay the reference.
+			summary      = CASE WHEN items.summary = '' THEN EXCLUDED.summary ELSE items.summary END,
+			genres       = CASE WHEN items.genres = '' THEN EXCLUDED.genres ELSE items.genres END,
+			developer    = CASE WHEN items.developer = '' THEN EXCLUDED.developer ELSE items.developer END,
+			publisher    = CASE WHEN items.publisher = '' THEN EXCLUDED.publisher ELSE items.publisher END,
+			release_year = CASE WHEN items.release_year = 0 THEN EXCLUDED.release_year ELSE items.release_year END,
 			updated_at = NOW()
 		RETURNING ` + itemCols
 
 	err = scanItem(s.pool.QueryRow(ctx, q,
 		item.ExternalID, string(item.Type), item.Title, item.Platform,
 		item.Region, item.Condition, item.Status, item.CoverURL,
+		item.Summary, item.Genres, item.Developer, item.Publisher, item.ReleaseYear,
 	), &out)
 	if err != nil {
 		return domain.Item{}, fmt.Errorf("item upsert: %w", err)

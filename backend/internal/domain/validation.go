@@ -55,9 +55,35 @@ func (i Item) ValidateSync() error {
 		return fmt.Errorf("a field is too long")
 	case !ValidCoverURL(i.CoverURL):
 		return fmt.Errorf("cover_url must be an http(s) URL")
+	case tooLong(i.Summary, MaxTextLen), tooLong(i.Genres, MaxTitleLen),
+		tooLong(i.Developer, MaxTitleLen), tooLong(i.Publisher, MaxTitleLen):
+		return fmt.Errorf("a field is too long")
 	}
 	return nil
 }
+
+// SanitizeFacts drops the catalogue facts an app could not know: placeholder « N/A »
+// values and impossible years. A sync is never rejected for them.
+func (i *Item) SanitizeFacts() {
+	clean := func(s string) string {
+		s = strings.TrimSpace(s)
+		if strings.EqualFold(s, "N/A") {
+			return ""
+		}
+		return s
+	}
+	i.Summary, i.Genres = clean(i.Summary), clean(i.Genres)
+	i.Developer, i.Publisher = clean(i.Developer), clean(i.Publisher)
+	if i.ReleaseYear < MinReleaseYear || i.ReleaseYear > MaxReleaseYear {
+		i.ReleaseYear = 0
+	}
+}
+
+// Bounds of a release year sent by an app (0 means unknown).
+const (
+	MinReleaseYear = 1950
+	MaxReleaseYear = 2100
+)
 
 // Limits of the price endpoints used by the apps.
 const (
