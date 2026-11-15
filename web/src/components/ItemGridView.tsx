@@ -27,6 +27,7 @@ function parseType(value: string | null): ItemType {
 }
 
 const UNIT: Record<ItemType, string> = { game: 'jeux', console: 'consoles', accessory: 'accessoires' }
+const UNIT_ONE: Record<ItemType, string> = { game: 'jeu', console: 'console', accessory: 'accessoire' }
 
 /**
  * Collection, Envies and Explorer: type selector, then platform rows (as on mobile),
@@ -130,7 +131,7 @@ export default function ItemGridView({ title, eyebrow, items, prices, loading, e
                   key={p.platform}
                   platform={p.platform}
                   count={p.count}
-                  unit={p.count > 1 ? unit : unit.replace(/s$/, '')}
+                  unit={p.count > 1 ? unit : UNIT_ONE[type]}
                   value={p.value > 0 ? formatEuro(p.value) : undefined}
                   onClick={() => update({ platform: p.platform })}
                 />

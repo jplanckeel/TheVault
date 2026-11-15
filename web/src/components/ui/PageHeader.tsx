@@ -17,7 +17,7 @@ interface Props {
 export default function PageHeader({ title, eyebrow, subtitle, actions, back }: Props) {
   const navigate = useNavigate()
   return (
-    <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+    <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="flex items-start gap-3 min-w-0">
         {back && <IconButton icon="arrow_back" aria-label="Retour" onClick={() => navigate(-1)} className="mt-0.5" />}
         <div className="min-w-0 flex flex-col gap-1.5">
