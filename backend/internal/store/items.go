@@ -87,7 +87,9 @@ func (s *PostgresItemStore) Upsert(ctx context.Context, item domain.Item) (domai
 			region     = CASE WHEN items.admin_edited THEN items.region ELSE EXCLUDED.region END,
 			condition  = EXCLUDED.condition,
 			status     = EXCLUDED.status,
-			cover_url  = CASE WHEN items.igdb_id = '' AND NOT items.admin_edited THEN EXCLUDED.cover_url ELSE items.cover_url END,
+			-- An empty cover from an app never erases one found on IGDB or uploaded.
+			cover_url  = CASE WHEN items.igdb_id = '' AND NOT items.admin_edited AND EXCLUDED.cover_url <> ''
+			                  THEN EXCLUDED.cover_url ELSE items.cover_url END,
 			updated_at = NOW()
 		RETURNING ` + itemCols
 
@@ -139,7 +141,10 @@ func (s *PostgresItemStore) GetByID(ctx context.Context, id string) (domain.Item
 
 // ListWithoutIGDB returns items that have not yet been enriched from IGDB.
 func (s *PostgresItemStore) ListWithoutIGDB(ctx context.Context) ([]domain.Item, error) {
-	q := `SELECT ` + itemCols + ` FROM items WHERE (type = 'game' AND igdb_id = '') OR ((type = 'console' OR type = 'accessory') AND cover_url = '') ORDER BY type, title ASC`
+	q := `SELECT ` + itemCols + ` FROM items
+		WHERE ((type = 'game' AND igdb_id = '') OR ((type = 'console' OR type = 'accessory') AND cover_url = ''))
+		  AND (igdb_checked_at IS NULL OR igdb_checked_at < NOW() - interval '7 days')
+		ORDER BY igdb_checked_at ASC NULLS FIRST, type, title ASC`
 	rows, err := s.pool.Query(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("items without igdb: %w", err)
@@ -161,13 +166,15 @@ func (s *PostgresItemStore) ListWithoutIGDB(ctx context.Context) ([]domain.Item,
 func (s *PostgresItemStore) UpdateIGDB(ctx context.Context, id string, data domain.IGDBData) error {
 	const q = `
 		UPDATE items SET
-			igdb_id      = $2,
-			cover_url    = $3,
-			summary      = $4,
-			genres       = $5,
-			developer    = $6,
-			publisher    = $7,
-			release_year = $8,
+			igdb_id      = COALESCE(NULLIF($2, ''), igdb_id),
+			-- A cover chosen in the back-office is kept; empty IGDB fields never erase data.
+			cover_url    = CASE WHEN admin_edited AND cover_url <> '' THEN cover_url ELSE COALESCE(NULLIF($3, ''), cover_url) END,
+			summary      = COALESCE(NULLIF($4, ''), summary),
+			genres       = COALESCE(NULLIF($5, ''), genres),
+			developer    = COALESCE(NULLIF($6, ''), developer),
+			publisher    = COALESCE(NULLIF($7, ''), publisher),
+			release_year = CASE WHEN $8 > 0 THEN $8 ELSE release_year END,
+			igdb_checked_at = NOW(),
 			updated_at   = NOW()
 		WHERE id = $1
 	`
@@ -183,7 +190,8 @@ func (s *PostgresItemStore) UpdateIGDB(ctx context.Context, id string, data doma
 
 // UpdateCoverURL sets the cover_url for an item (manual fallback).
 func (s *PostgresItemStore) UpdateCoverURL(ctx context.Context, id string, coverURL string) error {
-	_, err := s.pool.Exec(ctx, `UPDATE items SET cover_url = $2, updated_at = NOW() WHERE id = $1`, id, coverURL)
+	// A cover set by hand is a correction: syncs and IGDB no longer replace it.
+	_, err := s.pool.Exec(ctx, `UPDATE items SET cover_url = $2, admin_edited = TRUE, updated_at = NOW() WHERE id = $1`, id, coverURL)
 	if err != nil {
 		return fmt.Errorf("item update cover: %w", err)
 	}
@@ -243,4 +251,12 @@ func (s *PostgresItemStore) ListForPricing(ctx context.Context, olderThan time.D
 		items = append(items, i)
 	}
 	return items, rows.Err()
+}
+
+// MarkIGDBChecked records an IGDB attempt that found nothing, so the item waits a week.
+func (s *PostgresItemStore) MarkIGDBChecked(ctx context.Context, id string) error {
+	if _, err := s.pool.Exec(ctx, `UPDATE items SET igdb_checked_at = NOW() WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("item mark igdb checked: %w", err)
+	}
+	return nil
 }

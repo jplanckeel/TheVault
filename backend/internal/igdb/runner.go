@@ -57,6 +57,7 @@ func (r *Runner) Sync(ctx context.Context, job domain.ScrapeJob, items []domain.
 				lastErr = err.Error()
 			} else if data == nil {
 				fmt.Printf("igdb sync: %s — no result\n", item.Title)
+				_ = r.items.MarkIGDBChecked(ctx, item.ID)
 			} else {
 				if err := r.items.UpdateIGDB(ctx, item.ID, *data); err != nil {
 					fmt.Printf("igdb sync: %s — db error: %v\n", item.Title, err)
@@ -72,6 +73,7 @@ func (r *Runner) Sync(ctx context.Context, job domain.ScrapeJob, items []domain.
 				lastErr = err.Error()
 			} else if logoURL == "" {
 				fmt.Printf("igdb sync platform: %s — no logo\n", item.Platform)
+				_ = r.items.MarkIGDBChecked(ctx, item.ID)
 			} else {
 				data := domain.IGDBData{CoverURL: logoURL}
 				if err := r.items.UpdateIGDB(ctx, item.ID, data); err != nil {
@@ -84,6 +86,7 @@ func (r *Runner) Sync(ctx context.Context, job domain.ScrapeJob, items []domain.
 		default:
 			// accessory: skip in auto-sync, handled via manual cover_url
 			fmt.Printf("igdb sync: %s — skipped (type=%s)\n", item.Title, item.Type)
+			_ = r.items.MarkIGDBChecked(ctx, item.ID)
 		}
 
 		done++

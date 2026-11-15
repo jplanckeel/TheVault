@@ -70,3 +70,63 @@ func TestItemStore_LookupAndPricing_Postgres(t *testing.T) {
 		t.Errorf("an item quoted two days ago is stale")
 	}
 }
+
+// Covers survive app syncs and empty IGDB answers (TEST_DATABASE_URL).
+func TestItemStore_CoverProtection_Postgres(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	items := NewItemStore(pool)
+
+	console, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-console", Type: "console", Title: "GameCube", Platform: "GameCube"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := items.UpdateIGDB(ctx, console.ID, domain.IGDBData{CoverURL: "https://img/logo.png"}); err != nil {
+		t.Fatal(err)
+	}
+	// The app syncs the console again without a picture.
+	again, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-console", Type: "console", Title: "GameCube", Platform: "GameCube"})
+	if err != nil || again.CoverURL != "https://img/logo.png" {
+		t.Fatalf("cover after sync = %q, %v", again.CoverURL, err)
+	}
+
+	game, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-game", Type: "game", Title: "Zelda", Platform: "GameCube"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := items.UpdateCoverURL(ctx, game.ID, "/covers/x.webp"); err != nil {
+		t.Fatal(err)
+	}
+	if err := items.UpdateIGDB(ctx, game.ID, domain.IGDBData{IgdbID: "42", CoverURL: "https://img/igdb.jpg", Genres: "Action"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := items.GetByID(ctx, game.ID)
+	if err != nil || got.CoverURL != "/covers/x.webp" || got.Genres != "Action" || !got.AdminEdited {
+		t.Fatalf("game = %+v, %v", got, err)
+	}
+
+	unknown, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-unknown", Type: "game", Title: "Unknown", Platform: "Wii"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := items.MarkIGDBChecked(ctx, unknown.ID); err != nil {
+		t.Fatal(err)
+	}
+	pending, err := items.ListWithoutIGDB(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, it := range pending {
+		if it.ID == unknown.ID {
+			t.Errorf("an item checked today waits a week before the next IGDB attempt")
+		}
+	}
+}

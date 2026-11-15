@@ -1,12 +1,12 @@
 package handlers_test
 
 import (
-	"strings"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -250,3 +250,5 @@ func TestLookupItems(t *testing.T) {
 		t.Errorf("entries = %+v", entries)
 	}
 }
+
+func (m *mockItemStore) MarkIGDBChecked(_ context.Context, _ string) error { return nil }

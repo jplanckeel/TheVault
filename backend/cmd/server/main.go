@@ -79,7 +79,8 @@ func main() {
 
 	// Start scheduler
 	ebayCron := getenv("EBAY_CRON", "0 * * * *") // default: every hour
-	igdbCron := getenv("IGDB_CRON", "0 3 * * *") // default: daily at 03:00
+	// Hourly: new items get their cover quickly; unknown ones are retried weekly.
+	igdbCron := getenv("IGDB_CRON", "15 * * * *")
 	schedOpts := []scheduler.Option{
 		scheduler.WithEbaySchedule(ebayCron),
 		scheduler.WithIGDB(igdbRunner, igdbCron),

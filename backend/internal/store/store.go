@@ -22,6 +22,8 @@ type ItemStore interface {
 	ListWithoutIGDB(ctx context.Context) ([]domain.Item, error)
 	UpdateIGDB(ctx context.Context, id string, data domain.IGDBData) error
 	UpdateCoverURL(ctx context.Context, id string, coverURL string) error
+	// MarkIGDBChecked records an IGDB attempt that found nothing.
+	MarkIGDBChecked(ctx context.Context, id string) error
 	// LookupByExternalIDs returns the catalogue sheets of the items known by these
 	// external ids (directly or through a merge alias).
 	LookupByExternalIDs(ctx context.Context, externalIDs []string) ([]domain.CatalogEntry, error)

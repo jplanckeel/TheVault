@@ -214,3 +214,5 @@ func TestRunner_SpecificItems(t *testing.T) {
 		}
 	}
 }
+
+func (m *memItemStore) MarkIGDBChecked(_ context.Context, _ string) error { return nil }
