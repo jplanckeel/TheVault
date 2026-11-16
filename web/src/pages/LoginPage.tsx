@@ -17,10 +17,10 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const ok = await login(email, password).catch(() => false)
+    const failure = await login(email, password)
     setLoading(false)
-    if (ok) navigate('/')
-    else setError('Email ou mot de passe incorrect')
+    if (failure) setError(failure)
+    else navigate('/')
   }
 
   return (
