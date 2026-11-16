@@ -12,7 +12,7 @@ plugins {
 kotlin {
     android {
         namespace = "com.thevault.composeapp"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 24
 
         compilerOptions {

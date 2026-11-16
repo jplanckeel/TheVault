@@ -18,7 +18,7 @@ val gitCommitCount: Provider<Int> =
 
 android {
     namespace = "com.thevault.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.thevault.app"
