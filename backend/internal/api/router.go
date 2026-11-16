@@ -124,6 +124,7 @@ func NewRouter(
 				r.Get("/collection", uch.ListCollection)
 				r.Get("/wishlist", uch.ListWishlist)
 				r.Get("/backup", vh.GetBackup)
+				r.Get("/backup/versions", vh.ListBackupVersions)
 				r.Post("/shares", vh.CreateShare)
 				r.Get("/shares", vh.ListShares)
 				r.Delete("/shares/{token}", vh.RevokeShare)

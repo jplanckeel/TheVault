@@ -25,15 +25,27 @@ func TestBuildPublicView(t *testing.T) {
 }
 
 func TestValidateBackupAndShare(t *testing.T) {
-	if ValidateBackup([]byte(backup)) != nil {
+	if _, err := ValidateBackup([]byte(backup)); err != nil {
 		t.Error("valid backup rejected")
 	}
 	for _, bad := range []string{`[]`, `{}`, `nope`} {
-		if ValidateBackup([]byte(bad)) == nil {
+		if _, err := ValidateBackup([]byte(bad)); err == nil {
 			t.Errorf("%s should be rejected", bad)
 		}
 	}
 	if ValidateShare("everything", "") == nil || ValidateShare(ShareWishlist, "Mes envies") != nil {
 		t.Error("share validation")
+	}
+}
+
+func TestIsSuspiciousShrink(t *testing.T) {
+	cases := []struct {
+		previous, next int
+		want           bool
+	}{{0, 0, false}, {9, 0, false}, {10, 5, false}, {10, 4, true}, {467, 0, true}, {467, 460, false}}
+	for _, c := range cases {
+		if got := IsSuspiciousShrink(c.previous, c.next); got != c.want {
+			t.Errorf("IsSuspiciousShrink(%d, %d) = %v", c.previous, c.next, got)
+		}
 	}
 }

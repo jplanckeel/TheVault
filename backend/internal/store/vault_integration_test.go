@@ -2,9 +2,11 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
@@ -23,21 +25,39 @@ func TestVaultStore_Postgres(t *testing.T) {
 	}
 	defer pool.Close()
 	var userID string
-	if err := pool.QueryRow(ctx, `INSERT INTO users (email, password_hash, name) VALUES ('vault@test.local', 'x', 'T') RETURNING id`).Scan(&userID); err != nil {
+	if err := pool.QueryRow(ctx, `INSERT INTO users (email, password_hash, name) VALUES ($1, 'x', 'T') RETURNING id`, fmt.Sprintf("vault-%d@test.local", time.Now().UnixNano())).Scan(&userID); err != nil {
 		t.Fatal(err)
 	}
 	s := NewVaultStore(pool)
-	if _, err := s.SaveBackup(ctx, userID, []byte(`{"items":[{"title":"A"}]}`)); err != nil {
+	if _, err := s.SaveBackup(ctx, userID, []byte(`{"items":[{"title":"A"}]}`), 1); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.SaveBackup(ctx, userID, []byte(`{"items":[{"title":"B"}]}`)); err != nil {
+	if _, err := s.SaveBackup(ctx, userID, []byte(`{"items":[{"title":"B"}]}`), 1); err != nil {
 		t.Fatal(err)
+	}
+	for i := 0; i < 12; i++ {
+		if _, err := s.SaveBackup(ctx, userID, []byte(`{"items":[{"title":"B"},{"title":"C"}]}`), 2); err != nil {
+			t.Fatal(err)
+		}
+	}
+	versions, err := s.ListBackupVersions(ctx, userID)
+	if err != nil || len(versions) != 10 || versions[0].ItemCount != 2 {
+		t.Fatalf("versions = %+v, %v", versions, err)
+	}
+	if n, err := s.CurrentBackupCount(ctx, userID); err != nil || n != 2 {
+		t.Fatalf("count = %d, %v", n, err)
+	}
+	if _, err := s.GetBackupVersion(ctx, userID, versions[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetBackupVersion(ctx, "00000000-0000-0000-0000-000000000000", versions[0].ID); err != ErrNotFound {
+		t.Fatalf("another user's version: %v", err)
 	}
 	payload, _, err := s.GetBackup(ctx, userID)
 	if err != nil || !strings.Contains(string(payload), "B") {
 		t.Fatalf("backup = %s, %v", payload, err)
 	}
-	sh, err := s.CreateShare(ctx, domain.Share{Token: "tok_0123456789abcdefghij", UserID: userID, Scope: domain.ShareCollection})
+	sh, err := s.CreateShare(ctx, domain.Share{Token: fmt.Sprintf("tok_%d_abcdefghij", time.Now().UnixNano()), UserID: userID, Scope: domain.ShareCollection})
 	if err != nil || sh.CreatedAt.IsZero() {
 		t.Fatalf("create share: %v", err)
 	}
