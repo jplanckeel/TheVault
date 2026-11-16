@@ -3,17 +3,19 @@ package com.thevault.ui.screen.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Text
@@ -21,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.thevault.ui.app.AppViewModel
@@ -68,21 +71,20 @@ fun SettingsScreen(
         Section("Coque", "Le thème de l'application.") {
             SegmentedControl(ThemeMode.entries.map { Segment(it.label) }, mode.ordinal, { app.setTheme(ThemeMode.entries[it]) })
         }
-        Section("Synchronisation", "Ta collection est envoyée au serveur, qui relève les cotes eBay de chaque objet.") {
+        Section(
+            "Synchronisation",
+            "Ta collection est envoyée au serveur, qui complète les fiches (jaquette, studio, année) et relève les cotes eBay de chaque objet.",
+        ) {
             SyncContent(state, sync, viewModel)
         }
         Section("Import / export CSV", "Importe un export GameEye (réimporter met à jour sans doublon) ou sauvegarde ta collection.") {
             CsvImportExportSection(onImport = viewModel::importCsv, exportContent = viewModel::exportCsv)
         }
-        Section("Enrichissement IGDB", "Complète les jaquettes, genres, éditeurs et dates de sortie de tes jeux.") {
-            VaultButton(
-                if (state.isSyncing) "Enrichissement…" else "Compléter avec IGDB",
-                viewModel::syncIgdb,
-                Modifier.fillMaxWidth(),
-                ButtonVariant.Secondary,
-                icon = Icons.Default.AutoFixHigh,
-                enabled = !state.isSyncing,
-            )
+        Section(
+            "Cotes",
+            "D'où vient la valeur de tes objets. Les prix US de l'import Gameye servent seulement en attendant une cote eBay PAL fiable.",
+        ) {
+            ValuationContent(state.valuation)
         }
     }
 }
@@ -101,12 +103,42 @@ private fun SyncContent(
         }
     StatusLed(led, label = text, blink = sync.running)
     VaultButton(
-        "Synchroniser maintenant",
+        if (state.isSyncing) "Mise à jour…" else "Mettre à jour fiches et cotes",
         viewModel::syncNow,
         Modifier.fillMaxWidth(),
         ButtonVariant.Secondary,
         icon = Icons.Default.Sync,
+        enabled = !state.isSyncing,
     )
+}
+
+@Composable
+private fun ValuationContent(split: ValuationSplit) {
+    ValuationRow("Cote eBay PAL", split.ebay, LedColor.Sync)
+    ValuationRow("Cote US indicative (Gameye)", split.usIndicative, LedColor.Power)
+    ValuationRow("Valeur saisie", split.manual, LedColor.Indigo)
+    ValuationRow("Sans valeur", split.none, null)
+    if (split.usIndicative > 0) {
+        Text(
+            "Un objet passe à la cote eBay dès que le serveur a trouvé au moins 3 annonces PAL pour son état. " +
+                "Il faut qu'il soit synchronisé ; le serveur cote en priorité les objets jamais cotés.",
+            style = Vault.type.caption,
+            color = Vault.colors.inkMuted,
+        )
+    }
+}
+
+@Composable
+private fun ValuationRow(
+    label: String,
+    count: Int,
+    led: LedColor?,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (led != null) StatusLed(led) else Spacer(Modifier.width(8.dp))
+        Text(label, style = Vault.type.body, color = Vault.colors.ink, modifier = Modifier.weight(1f).padding(start = 10.dp))
+        Text(count.toString(), style = Vault.type.monoPrice, color = Vault.colors.ink)
+    }
 }
 
 @Composable

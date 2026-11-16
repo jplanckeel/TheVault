@@ -9,6 +9,7 @@ import com.thevault.domain.usecase.ObserveAchievementUnlocksUseCase
 import com.thevault.domain.usecase.ObserveSettingUseCase
 import com.thevault.domain.usecase.RecordAchievementUnlocksUseCase
 import com.thevault.domain.usecase.RecordValueSnapshotUseCase
+import com.thevault.domain.usecase.RefreshCatalogUseCase
 import com.thevault.domain.usecase.RefreshQuotesUseCase
 import com.thevault.domain.usecase.SetSettingUseCase
 import com.thevault.domain.usecase.SyncScheduler
@@ -47,6 +48,7 @@ class AppViewModel(
     private val setSetting: SetSettingUseCase,
     private val scheduler: SyncScheduler,
     private val refreshQuotes: RefreshQuotesUseCase,
+    private val refreshCatalog: RefreshCatalogUseCase,
     private val recordSnapshot: RecordValueSnapshotUseCase,
     observeUnlocks: ObserveAchievementUnlocksUseCase,
     private val recordUnlocks: RecordAchievementUnlocksUseCase,
@@ -79,6 +81,7 @@ class AppViewModel(
     init {
         scheduler.request()
         viewModelScope.launch { refreshQuotes(source.entries().first().map { it.id }) }
+        viewModelScope.launch { refreshCatalog() }
         viewModelScope.launch {
             source.entries().debounce(SNAPSHOT_DEBOUNCE_MS).collect { entries ->
                 recordToday(entries)

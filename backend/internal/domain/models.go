@@ -112,3 +112,22 @@ type ExternalQuote struct {
 	// date), or nil when the item has no snapshot that old.
 	PricePast *float64 `json:"price_past"`
 }
+
+// CatalogEntry is the shared catalogue sheet of an item, addressed by the external_id
+// an app knows it by (POST /items/lookup). A merged item answers with its target's sheet.
+type CatalogEntry struct {
+	ExternalID  string    `json:"external_id"`
+	ItemID      string    `json:"item_id"`
+	Type        string    `json:"type"`
+	Title       string    `json:"title"`
+	Platform    string    `json:"platform"`
+	CoverURL    string    `json:"cover_url"`
+	IgdbID      string    `json:"igdb_id"`
+	Summary     string    `json:"summary"`
+	Genres      string    `json:"genres"`
+	Developer   string    `json:"developer"`
+	Publisher   string    `json:"publisher"`
+	ReleaseYear int       `json:"release_year"`
+	AdminEdited bool      `json:"admin_edited"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}

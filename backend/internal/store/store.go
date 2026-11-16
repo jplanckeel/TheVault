@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jplanckeel/thevaultbo/internal/domain"
 )
@@ -21,6 +22,14 @@ type ItemStore interface {
 	ListWithoutIGDB(ctx context.Context) ([]domain.Item, error)
 	UpdateIGDB(ctx context.Context, id string, data domain.IGDBData) error
 	UpdateCoverURL(ctx context.Context, id string, coverURL string) error
+	// MarkIGDBChecked records an IGDB attempt that found nothing.
+	MarkIGDBChecked(ctx context.Context, id string) error
+	// LookupByExternalIDs returns the catalogue sheets of the items known by these
+	// external ids (directly or through a merge alias).
+	LookupByExternalIDs(ctx context.Context, externalIDs []string) ([]domain.CatalogEntry, error)
+	// ListForPricing returns at most limit items whose latest price snapshot is older
+	// than olderThan (never quoted first, then the stalest).
+	ListForPricing(ctx context.Context, olderThan time.Duration, limit int) ([]domain.Item, error)
 }
 
 // PriceStore defines persistence operations for price snapshots.

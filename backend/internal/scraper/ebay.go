@@ -28,6 +28,13 @@ const (
 // Option configures the eBay runner (for testing).
 type Option func(*ebayRunner)
 
+// Defaults keep a scheduled hourly run within eBay's Browse API quota (5 000 calls a
+// day, two marketplaces per item): 80 items × 2 calls × 24 runs = 3 840 calls.
+const (
+	defaultBatch   = 80
+	defaultRefresh = 24 * time.Hour
+)
+
 // WithBaseURL overrides the eBay API base URL (used in tests).
 func WithBaseURL(u string) Option {
 	return func(r *ebayRunner) { r.baseURL = u }
@@ -50,6 +57,22 @@ type ebayRunner struct {
 	client       *http.Client
 	clientID     string
 	clientSecret string
+	// batch and refresh bound scheduled runs: at most batch items per run, each item
+	// quoted again once its latest snapshot is older than refresh (eBay daily quota).
+	batch   int
+	refresh time.Duration
+}
+
+// WithBatch limits a scheduled run to the batch stalest items, re-quoted after refresh.
+func WithBatch(batch int, refresh time.Duration) Option {
+	return func(r *ebayRunner) {
+		if batch > 0 {
+			r.batch = batch
+		}
+		if refresh > 0 {
+			r.refresh = refresh
+		}
+	}
 }
 
 // NewEbayRunner returns the runner func used by ScrapeHandler.
@@ -67,6 +90,8 @@ func NewEbayRunner(
 		settings: settings,
 		baseURL:  defaultBaseURL,
 		client:   &http.Client{Timeout: 30 * time.Second},
+		batch:    defaultBatch,
+		refresh:  defaultRefresh,
 	}
 	for _, o := range opts {
 		o(r)
@@ -125,7 +150,7 @@ func (r *ebayRunner) run(jobID, triggeredBy string, itemIDs ...string) {
 
 func (r *ebayRunner) resolveItems(ctx context.Context, itemIDs []string) ([]domain.Item, error) {
 	if len(itemIDs) == 0 {
-		return r.items.List(ctx)
+		return r.items.ListForPricing(ctx, r.refresh, r.batch)
 	}
 	result := make([]domain.Item, 0, len(itemIDs))
 	for _, id := range itemIDs {

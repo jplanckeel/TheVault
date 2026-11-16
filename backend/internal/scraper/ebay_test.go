@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/jplanckeel/thevaultbo/internal/domain"
 	"github.com/jplanckeel/thevaultbo/internal/scraper"
@@ -20,8 +21,17 @@ func (m *memItemStore) Upsert(_ context.Context, item domain.Item) (domain.Item,
 	m.items = append(m.items, item)
 	return item, nil
 }
-func (m *memItemStore) List(_ context.Context) ([]domain.Item, error)                   { return m.items, nil }
-func (m *memItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error)        { return m.items, nil }
+func (m *memItemStore) List(_ context.Context) ([]domain.Item, error)            { return m.items, nil }
+func (m *memItemStore) ListWithoutIGDB(_ context.Context) ([]domain.Item, error) { return m.items, nil }
+func (m *memItemStore) ListForPricing(_ context.Context, _ time.Duration, limit int) ([]domain.Item, error) {
+	if limit < len(m.items) {
+		return m.items[:limit], nil
+	}
+	return m.items, nil
+}
+func (m *memItemStore) LookupByExternalIDs(_ context.Context, _ []string) ([]domain.CatalogEntry, error) {
+	return nil, nil
+}
 func (m *memItemStore) UpdateCoverURL(_ context.Context, _ string, _ string) error      { return nil }
 func (m *memItemStore) UpdateIGDB(_ context.Context, _ string, _ domain.IGDBData) error { return nil }
 func (m *memItemStore) GetByID(_ context.Context, id string) (domain.Item, error) {
@@ -204,3 +214,5 @@ func TestRunner_SpecificItems(t *testing.T) {
 		}
 	}
 }
+
+func (m *memItemStore) MarkIGDBChecked(_ context.Context, _ string) error { return nil }

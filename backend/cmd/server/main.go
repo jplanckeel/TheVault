@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,7 +62,10 @@ func main() {
 	ebayClientID := getenv("EBAY_CLIENT_ID", "")
 	ebayClientSecret := getenv("EBAY_CLIENT_SECRET", "")
 	ebayBaseURL := getenv("EBAY_BASE_URL", "")
-	opts := []scraper.Option{scraper.WithCredentials(ebayClientID, ebayClientSecret)}
+	opts := []scraper.Option{
+		scraper.WithCredentials(ebayClientID, ebayClientSecret),
+		scraper.WithBatch(atoiOr(getenv("EBAY_BATCH_SIZE", ""), 0), time.Duration(atoiOr(getenv("EBAY_REFRESH_HOURS", ""), 0))*time.Hour),
+	}
 	if ebayBaseURL != "" {
 		opts = append(opts, scraper.WithBaseURL(ebayBaseURL))
 	}
@@ -75,7 +79,8 @@ func main() {
 
 	// Start scheduler
 	ebayCron := getenv("EBAY_CRON", "0 * * * *") // default: every hour
-	igdbCron := getenv("IGDB_CRON", "0 3 * * *") // default: daily at 03:00
+	// Hourly: new items get their cover quickly; unknown ones are retried weekly.
+	igdbCron := getenv("IGDB_CRON", "15 * * * *")
 	schedOpts := []scheduler.Option{
 		scheduler.WithEbaySchedule(ebayCron),
 		scheduler.WithIGDB(igdbRunner, igdbCron),
@@ -126,4 +131,13 @@ func parseEmails(raw string) []string {
 		}
 	}
 	return out
+}
+
+// atoiOr parses s, returning def when it is empty or not a number.
+func atoiOr(s string, def int) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+	return n
 }
