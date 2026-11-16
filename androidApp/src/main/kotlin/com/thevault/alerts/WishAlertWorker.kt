@@ -21,6 +21,7 @@ import androidx.work.WorkerParameters
 import com.thevault.MainActivity
 import com.thevault.domain.model.ItemStatus
 import com.thevault.domain.repository.SettingsRepository
+import com.thevault.domain.usecase.RefreshCatalogUseCase
 import com.thevault.domain.usecase.RefreshQuotesUseCase
 import com.thevault.ui.component.formatEuro
 import com.thevault.ui.screen.collection.VaultEntriesSource
@@ -31,7 +32,7 @@ import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
 
 /**
- * Refreshes the eBay quotes in the background and notifies when a wishlist item's PAL quote
+ * Refreshes the eBay quotes and the catalogue sheets (covers…) in the background, and notifies when a wishlist item's PAL quote
  * falls to or under its max price. Each item is notified once per price.
  */
 class WishAlertWorker(
@@ -41,11 +42,13 @@ class WishAlertWorker(
     KoinComponent {
     private val source: VaultEntriesSource by inject()
     private val refreshQuotes: RefreshQuotesUseCase by inject()
+    private val refreshCatalog: RefreshCatalogUseCase by inject()
     private val settings: SettingsRepository by inject()
 
     override suspend fun doWork(): Result {
         val ids = source.entries().first().map { it.id }
         refreshQuotes(ids)
+        refreshCatalog()
         val under =
             source
                 .entries()

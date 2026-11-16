@@ -135,6 +135,7 @@ func NewRouter(
 				r.With(writeLimit.Middleware).Post("/items", ih.UpsertItem)
 				r.With(searchLimit.Middleware).Get("/search", srch.Search)
 				r.With(priceLimit.Middleware).Post("/prices/quotes", ph.GetQuotes)
+				r.With(priceLimit.Middleware).Post("/items/lookup", ih.LookupItems)
 				r.With(priceLimit.Middleware).Get("/prices/history", ph.GetHistory)
 			})
 

@@ -26,7 +26,7 @@ val commonModule =
         factory { VaultEntriesSource(get(), get(), get(), get(), get()) }
         factory { ItemActions(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
-        viewModel { AppViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+        viewModel { AppViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
         viewModel { HomeViewModel(get(), get(), get(), get()) }
         viewModel {
             com.thevault.ui.screen.report

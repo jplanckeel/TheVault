@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -77,8 +78,9 @@ func (s *PostgresItemStore) Upsert(ctx context.Context, item domain.Item) (domai
 	}
 
 	const q = `
-		INSERT INTO items (external_id, type, title, platform, region, condition, status, cover_url, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+		INSERT INTO items (external_id, type, title, platform, region, condition, status, cover_url,
+		                   summary, genres, developer, publisher, release_year, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
 		ON CONFLICT (external_id) DO UPDATE SET
 			type       = CASE WHEN items.admin_edited THEN items.type ELSE EXCLUDED.type END,
 			title      = CASE WHEN items.admin_edited THEN items.title ELSE EXCLUDED.title END,
@@ -86,13 +88,22 @@ func (s *PostgresItemStore) Upsert(ctx context.Context, item domain.Item) (domai
 			region     = CASE WHEN items.admin_edited THEN items.region ELSE EXCLUDED.region END,
 			condition  = EXCLUDED.condition,
 			status     = EXCLUDED.status,
-			cover_url  = CASE WHEN items.igdb_id = '' AND NOT items.admin_edited THEN EXCLUDED.cover_url ELSE items.cover_url END,
+			-- An empty cover from an app never erases one found on IGDB or uploaded.
+			cover_url  = CASE WHEN items.igdb_id = '' AND NOT items.admin_edited AND EXCLUDED.cover_url <> ''
+			                  THEN EXCLUDED.cover_url ELSE items.cover_url END,
+			-- Facts sent by an app only fill gaps: IGDB and the back-office stay the reference.
+			summary      = CASE WHEN items.summary = '' THEN EXCLUDED.summary ELSE items.summary END,
+			genres       = CASE WHEN items.genres = '' THEN EXCLUDED.genres ELSE items.genres END,
+			developer    = CASE WHEN items.developer = '' THEN EXCLUDED.developer ELSE items.developer END,
+			publisher    = CASE WHEN items.publisher = '' THEN EXCLUDED.publisher ELSE items.publisher END,
+			release_year = CASE WHEN items.release_year = 0 THEN EXCLUDED.release_year ELSE items.release_year END,
 			updated_at = NOW()
 		RETURNING ` + itemCols
 
 	err = scanItem(s.pool.QueryRow(ctx, q,
 		item.ExternalID, string(item.Type), item.Title, item.Platform,
 		item.Region, item.Condition, item.Status, item.CoverURL,
+		item.Summary, item.Genres, item.Developer, item.Publisher, item.ReleaseYear,
 	), &out)
 	if err != nil {
 		return domain.Item{}, fmt.Errorf("item upsert: %w", err)
@@ -138,7 +149,10 @@ func (s *PostgresItemStore) GetByID(ctx context.Context, id string) (domain.Item
 
 // ListWithoutIGDB returns items that have not yet been enriched from IGDB.
 func (s *PostgresItemStore) ListWithoutIGDB(ctx context.Context) ([]domain.Item, error) {
-	q := `SELECT ` + itemCols + ` FROM items WHERE (type = 'game' AND igdb_id = '') OR ((type = 'console' OR type = 'accessory') AND cover_url = '') ORDER BY type, title ASC`
+	q := `SELECT ` + itemCols + ` FROM items
+		WHERE ((type = 'game' AND igdb_id = '') OR ((type = 'console' OR type = 'accessory') AND cover_url = ''))
+		  AND (igdb_checked_at IS NULL OR igdb_checked_at < NOW() - interval '7 days')
+		ORDER BY igdb_checked_at ASC NULLS FIRST, type, title ASC`
 	rows, err := s.pool.Query(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("items without igdb: %w", err)
@@ -160,13 +174,15 @@ func (s *PostgresItemStore) ListWithoutIGDB(ctx context.Context) ([]domain.Item,
 func (s *PostgresItemStore) UpdateIGDB(ctx context.Context, id string, data domain.IGDBData) error {
 	const q = `
 		UPDATE items SET
-			igdb_id      = $2,
-			cover_url    = $3,
-			summary      = $4,
-			genres       = $5,
-			developer    = $6,
-			publisher    = $7,
-			release_year = $8,
+			igdb_id      = COALESCE(NULLIF($2, ''), igdb_id),
+			-- A cover chosen in the back-office is kept; empty IGDB fields never erase data.
+			cover_url    = CASE WHEN admin_edited AND cover_url <> '' THEN cover_url ELSE COALESCE(NULLIF($3, ''), cover_url) END,
+			summary      = COALESCE(NULLIF($4, ''), summary),
+			genres       = COALESCE(NULLIF($5, ''), genres),
+			developer    = COALESCE(NULLIF($6, ''), developer),
+			publisher    = COALESCE(NULLIF($7, ''), publisher),
+			release_year = CASE WHEN $8 > 0 THEN $8 ELSE release_year END,
+			igdb_checked_at = NOW(),
 			updated_at   = NOW()
 		WHERE id = $1
 	`
@@ -182,7 +198,8 @@ func (s *PostgresItemStore) UpdateIGDB(ctx context.Context, id string, data doma
 
 // UpdateCoverURL sets the cover_url for an item (manual fallback).
 func (s *PostgresItemStore) UpdateCoverURL(ctx context.Context, id string, coverURL string) error {
-	_, err := s.pool.Exec(ctx, `UPDATE items SET cover_url = $2, updated_at = NOW() WHERE id = $1`, id, coverURL)
+	// A cover set by hand is a correction: syncs and IGDB no longer replace it.
+	_, err := s.pool.Exec(ctx, `UPDATE items SET cover_url = $2, admin_edited = TRUE, updated_at = NOW() WHERE id = $1`, id, coverURL)
 	if err != nil {
 		return fmt.Errorf("item update cover: %w", err)
 	}
@@ -191,3 +208,63 @@ func (s *PostgresItemStore) UpdateCoverURL(ctx context.Context, id string, cover
 
 // compile-time interface satisfaction check
 var _ ItemStore = (*PostgresItemStore)(nil)
+
+// LookupByExternalIDs returns the catalogue sheets of the items known by externalIDs.
+func (s *PostgresItemStore) LookupByExternalIDs(ctx context.Context, externalIDs []string) ([]domain.CatalogEntry, error) {
+	q := `
+		WITH ids AS (` + itemsByExternalID + `)
+		SELECT ids.ext, i.id, i.type, i.title, i.platform, i.cover_url, i.igdb_id, i.summary,
+		       i.genres, i.developer, i.publisher, i.release_year, i.admin_edited, i.updated_at
+		FROM ids JOIN items i ON i.id = ids.item_id
+		ORDER BY ids.ext`
+	rows, err := s.pool.Query(ctx, q, externalIDs)
+	if err != nil {
+		return nil, fmt.Errorf("lookup: %w", err)
+	}
+	defer rows.Close()
+	entries := make([]domain.CatalogEntry, 0)
+	for rows.Next() {
+		var e domain.CatalogEntry
+		if err := rows.Scan(&e.ExternalID, &e.ItemID, &e.Type, &e.Title, &e.Platform, &e.CoverURL, &e.IgdbID,
+			&e.Summary, &e.Genres, &e.Developer, &e.Publisher, &e.ReleaseYear, &e.AdminEdited, &e.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("lookup scan: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
+}
+
+// ListForPricing returns at most limit items not quoted for olderThan, never-quoted first.
+func (s *PostgresItemStore) ListForPricing(ctx context.Context, olderThan time.Duration, limit int) ([]domain.Item, error) {
+	q := `
+		SELECT ` + prefixedItemCols("i") + `
+		FROM items i
+		LEFT JOIN LATERAL (
+			SELECT MAX(p.scraped_at) AS last FROM price_snapshots p WHERE p.item_id = i.id
+		) lp ON TRUE
+		WHERE lp.last IS NULL OR lp.last < NOW() - make_interval(secs => $1)
+		ORDER BY lp.last ASC NULLS FIRST, i.created_at ASC
+		LIMIT $2`
+	rows, err := s.pool.Query(ctx, q, olderThan.Seconds(), limit)
+	if err != nil {
+		return nil, fmt.Errorf("list for pricing: %w", err)
+	}
+	defer rows.Close()
+	items := make([]domain.Item, 0)
+	for rows.Next() {
+		var i domain.Item
+		if err := scanItem(rows, &i); err != nil {
+			return nil, fmt.Errorf("list for pricing scan: %w", err)
+		}
+		items = append(items, i)
+	}
+	return items, rows.Err()
+}
+
+// MarkIGDBChecked records an IGDB attempt that found nothing, so the item waits a week.
+func (s *PostgresItemStore) MarkIGDBChecked(ctx context.Context, id string) error {
+	if _, err := s.pool.Exec(ctx, `UPDATE items SET igdb_checked_at = NOW() WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("item mark igdb checked: %w", err)
+	}
+	return nil
+}

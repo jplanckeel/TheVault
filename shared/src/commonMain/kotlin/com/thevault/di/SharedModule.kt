@@ -1,14 +1,17 @@
 package com.thevault.di
 
 import com.thevault.config.ApiConfig
+import com.thevault.data.remote.CatalogRemoteDataSource
 import com.thevault.data.remote.GameRemoteDataSource
 import com.thevault.data.remote.ItemSyncRemoteDataSource
 import com.thevault.data.remote.PriceRemoteDataSource
+import com.thevault.data.remote.TheVaultBoCatalogDataSource
 import com.thevault.data.remote.TheVaultBoPriceDataSource
 import com.thevault.data.remote.TheVaultBoRemoteDataSource
 import com.thevault.data.remote.TheVaultBoSyncDataSource
 import com.thevault.data.repository.AccessoryRepositoryImpl
 import com.thevault.data.repository.AchievementRepositoryImpl
+import com.thevault.data.repository.CatalogRepositoryImpl
 import com.thevault.data.repository.CatalogSyncRepositoryImpl
 import com.thevault.data.repository.ConsoleRepositoryImpl
 import com.thevault.data.repository.GameRepositoryImpl
@@ -19,6 +22,7 @@ import com.thevault.data.repository.VaultStatsRepositoryImpl
 import com.thevault.data.sync.BackgroundSyncScheduler
 import com.thevault.domain.repository.AccessoryRepository
 import com.thevault.domain.repository.AchievementRepository
+import com.thevault.domain.repository.CatalogRepository
 import com.thevault.domain.repository.CatalogSyncRepository
 import com.thevault.domain.repository.ConsoleRepository
 import com.thevault.domain.repository.GameRepository
@@ -44,6 +48,7 @@ import com.thevault.domain.usecase.ObserveValueHistoryUseCase
 import com.thevault.domain.usecase.ObserveVaultStatsUseCase
 import com.thevault.domain.usecase.RecordAchievementUnlocksUseCase
 import com.thevault.domain.usecase.RecordValueSnapshotUseCase
+import com.thevault.domain.usecase.RefreshCatalogUseCase
 import com.thevault.domain.usecase.RefreshQuotesUseCase
 import com.thevault.domain.usecase.SaveAccessoryUseCase
 import com.thevault.domain.usecase.SaveConsoleUseCase
@@ -53,7 +58,6 @@ import com.thevault.domain.usecase.SearchRemoteGamesUseCase
 import com.thevault.domain.usecase.SetSettingUseCase
 import com.thevault.domain.usecase.SyncPendingItemsUseCase
 import com.thevault.domain.usecase.SyncScheduler
-import com.thevault.domain.usecase.SyncVaultWithIgdbUseCase
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -94,6 +98,8 @@ val sharedModule =
         single<GameRemoteDataSource> { TheVaultBoRemoteDataSource(get(), ApiConfig.BASE_URL, ApiConfig.API_KEY) }
         single<ItemSyncRemoteDataSource> { TheVaultBoSyncDataSource(get(), ApiConfig.BASE_URL, ApiConfig.API_KEY) }
         single<PriceRemoteDataSource> { TheVaultBoPriceDataSource(get(), ApiConfig.BASE_URL, ApiConfig.API_KEY) }
+        single<CatalogRemoteDataSource> { TheVaultBoCatalogDataSource(get(), ApiConfig.BASE_URL, ApiConfig.API_KEY) }
+        single<CatalogRepository> { CatalogRepositoryImpl(get(), ApiConfig.BASE_URL.substringBefore("/api/")) }
         single<com.thevault.data.remote.VaultRemoteDataSource> {
             com.thevault.data.remote.TheVaultBoVaultDataSource(
                 get(),
@@ -128,7 +134,7 @@ val sharedModule =
                 .DeleteAccessoryUseCase(get())
         }
         factory { CsvService(get(), get(), get()) }
-        factory { SyncVaultWithIgdbUseCase(get(), get()) }
+        factory { RefreshCatalogUseCase(get(), get(), get(), get(), get()) }
         factory { SyncPendingItemsUseCase(get(), get(), get(), get()) }
         factory { ObserveSyncedIdsUseCase(get()) }
         factory { ObserveQuotesUseCase(get()) }
