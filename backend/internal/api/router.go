@@ -82,14 +82,7 @@ func NewRouter(
 
 	// Serve frontend SPA (only when a static dir is configured)
 	if staticDir != "" {
-		fs := http.FileServer(noListingFS{http.Dir(staticDir)})
-		r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
-			if _, err := http.Dir(staticDir).Open(req.URL.Path); err != nil {
-				http.ServeFile(w, req, staticDir+"/index.html")
-				return
-			}
-			fs.ServeHTTP(w, req)
-		})
+		r.Get("/*", spaHandler(staticDir))
 	}
 
 	r.Route("/api/v1", func(r chi.Router) {
