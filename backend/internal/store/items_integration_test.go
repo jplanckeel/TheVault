@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -24,16 +25,18 @@ func TestItemStore_LookupAndPricing_Postgres(t *testing.T) {
 	defer pool.Close()
 	items := NewItemStore(pool)
 	prices := NewPriceStore(pool)
+	// Unique ids: the tests can run again on the same database.
+	run := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	quoted, err := items.Upsert(ctx, domain.Item{ExternalID: "lookup-quoted", Type: "game", Title: "Quoted", Platform: "GameCube", CoverURL: "https://img/q.jpg"})
+	quoted, err := items.Upsert(ctx, domain.Item{ExternalID: "lookup-quoted-" + run, Type: "game", Title: "Quoted", Platform: "GameCube", CoverURL: "https://img/q.jpg"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	fresh, err := items.Upsert(ctx, domain.Item{ExternalID: "lookup-fresh", Type: "game", Title: "Fresh", Platform: "Wii"})
+	fresh, err := items.Upsert(ctx, domain.Item{ExternalID: "lookup-fresh-" + run, Type: "game", Title: "Fresh", Platform: "Wii"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO item_aliases (external_id, item_id) VALUES ('lookup-alias', $1)`, quoted.ID); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO item_aliases (external_id, item_id) VALUES ($2, $1)`, quoted.ID, "lookup-alias-"+run); err != nil {
 		t.Fatal(err)
 	}
 	// Insert stamps NOW(): back-date the snapshot by hand.
@@ -45,11 +48,11 @@ func TestItemStore_LookupAndPricing_Postgres(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := items.LookupByExternalIDs(ctx, []string{"lookup-alias", "lookup-fresh", "nope"})
+	entries, err := items.LookupByExternalIDs(ctx, []string{"lookup-alias-" + run, "lookup-fresh-" + run, "nope-" + run})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 || entries[0].ExternalID != "lookup-alias" || entries[0].CoverURL != "https://img/q.jpg" {
+	if len(entries) != 2 || entries[0].ExternalID != "lookup-alias-"+run || entries[0].CoverURL != "https://img/q.jpg" {
 		t.Fatalf("lookup = %+v", entries)
 	}
 
@@ -84,8 +87,9 @@ func TestItemStore_CoverProtection_Postgres(t *testing.T) {
 	}
 	defer pool.Close()
 	items := NewItemStore(pool)
+	run := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	console, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-console", Type: "console", Title: "GameCube", Platform: "GameCube"})
+	console, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-console-" + run, Type: "console", Title: "GameCube", Platform: "GameCube"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,12 +97,12 @@ func TestItemStore_CoverProtection_Postgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The app syncs the console again without a picture.
-	again, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-console", Type: "console", Title: "GameCube", Platform: "GameCube"})
+	again, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-console-" + run, Type: "console", Title: "GameCube", Platform: "GameCube"})
 	if err != nil || again.CoverURL != "https://img/logo.png" {
 		t.Fatalf("cover after sync = %q, %v", again.CoverURL, err)
 	}
 
-	game, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-game", Type: "game", Title: "Zelda", Platform: "GameCube"})
+	game, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-game-" + run, Type: "game", Title: "Zelda", Platform: "GameCube"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +117,7 @@ func TestItemStore_CoverProtection_Postgres(t *testing.T) {
 		t.Fatalf("game = %+v, %v", got, err)
 	}
 
-	unknown, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-unknown", Type: "game", Title: "Unknown", Platform: "Wii"})
+	unknown, err := items.Upsert(ctx, domain.Item{ExternalID: "cover-unknown-" + run, Type: "game", Title: "Unknown", Platform: "Wii"})
 	if err != nil {
 		t.Fatal(err)
 	}

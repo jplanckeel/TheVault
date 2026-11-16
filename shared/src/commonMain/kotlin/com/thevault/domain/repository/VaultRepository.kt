@@ -1,6 +1,7 @@
 package com.thevault.domain.repository
 
 import com.thevault.domain.model.Account
+import com.thevault.domain.model.BackupVersion
 import com.thevault.domain.model.ShareLink
 import com.thevault.domain.model.ShareScope
 import com.thevault.domain.model.VaultContent
@@ -21,10 +22,16 @@ interface VaultRepository {
     suspend fun logout()
 
     /** Uploads [content]; returns the backup time. */
-    suspend fun upload(content: VaultContent): Result<String>
+    suspend fun upload(
+        content: VaultContent,
+        force: Boolean = false,
+    ): Result<String>
 
     /** Downloads the backup. */
-    suspend fun download(): Result<VaultContent>
+    suspend fun download(version: Long? = null): Result<VaultContent>
+
+    /** Backups saved on the account, newest first. */
+    suspend fun backupVersions(): Result<List<BackupVersion>>
 
     /** Lists the share links. */
     suspend fun shares(): Result<List<ShareLink>>

@@ -194,6 +194,10 @@ val sharedModule =
         }
         factory {
             com.thevault.domain.usecase
+                .BackupVersionsUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
                 .ShareLinksUseCase(get())
         }
         factory {

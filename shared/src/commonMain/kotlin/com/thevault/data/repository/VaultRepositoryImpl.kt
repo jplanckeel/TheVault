@@ -6,6 +6,7 @@ import com.thevault.data.remote.VaultRemoteDataSource
 import com.thevault.data.remote.dto.ShareDto
 import com.thevault.data.remote.dto.ShareRequestDto
 import com.thevault.domain.model.Account
+import com.thevault.domain.model.BackupVersion
 import com.thevault.domain.model.ShareLink
 import com.thevault.domain.model.ShareScope
 import com.thevault.domain.model.VaultContent
@@ -51,10 +52,15 @@ class VaultRepositoryImpl(
         settings.set(KEY_TOKEN, "")
     }
 
-    override suspend fun upload(content: VaultContent): Result<String> =
-        attempt { remote.putBackup(token(), content.toDto(clock.now().toString())).updatedAt }
+    override suspend fun upload(
+        content: VaultContent,
+        force: Boolean,
+    ): Result<String> = attempt { remote.putBackup(token(), content.toDto(clock.now().toString()), force).updatedAt }
 
-    override suspend fun download(): Result<VaultContent> = attempt { remote.getBackup(token()).toDomain() }
+    override suspend fun download(version: Long?): Result<VaultContent> = attempt { remote.getBackup(token(), version).toDomain() }
+
+    override suspend fun backupVersions(): Result<List<BackupVersion>> =
+        attempt { remote.backupVersions(token()).map { BackupVersion(it.id, it.itemCount, it.createdAt) } }
 
     override suspend fun shares(): Result<List<ShareLink>> = attempt { remote.listShares(token()).mapNotNull { it.toDomain() } }
 

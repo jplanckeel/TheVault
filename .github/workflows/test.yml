@@ -23,6 +23,22 @@ jobs:
     name: Test Backend
     runs-on: ubuntu-latest
 
+    # Throwaway database for the store integration tests (TEST_DATABASE_URL).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: thevault_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -39,15 +55,17 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: go test -race ./...
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/thevault_test?sslmode=disable
+        run: go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
 
       - name: Vulnerability scan (govulncheck)
         working-directory: backend
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
       - name: Static security analysis (gosec)
         working-directory: backend
-        run: go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet ./...
+        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.30.0 -quiet ./...
 
   test-web:
     name: Test Web

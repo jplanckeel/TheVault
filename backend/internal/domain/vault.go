@@ -54,20 +54,41 @@ type BackupItem struct {
 }
 
 // ValidateBackup checks that a backup is a JSON object with an items array.
-func ValidateBackup(payload []byte) error {
+func ValidateBackup(payload []byte) (int, error) {
 	var doc struct {
 		Items []json.RawMessage `json:"items"`
 	}
 	if err := json.Unmarshal(payload, &doc); err != nil {
-		return fmt.Errorf("backup must be a JSON object")
+		return 0, fmt.Errorf("backup must be a JSON object")
 	}
 	if doc.Items == nil {
-		return fmt.Errorf("backup must contain items")
+		return 0, fmt.Errorf("backup must contain items")
 	}
 	if len(doc.Items) > MaxBackupItems {
-		return fmt.Errorf("at most %d items", MaxBackupItems)
+		return 0, fmt.Errorf("at most %d items", MaxBackupItems)
 	}
-	return nil
+	return len(doc.Items), nil
+}
+
+// BackupVersion is one saved backup of a user.
+type BackupVersion struct {
+	ID        int64     `json:"id"`
+	ItemCount int       `json:"item_count"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Backup history rules.
+const (
+	// MaxBackupVersions is how many backups are kept per user.
+	MaxBackupVersions = 10
+	// ShrinkGuardMin is the size from which a shrinking backup needs a confirmation.
+	ShrinkGuardMin = 10
+)
+
+// IsSuspiciousShrink reports whether replacing a backup of previous items by one of next
+// items loses more than half of them (an empty or new phone), which needs confirming.
+func IsSuspiciousShrink(previous, next int) bool {
+	return previous >= ShrinkGuardMin && next*2 < previous
 }
 
 // PublicView is what a share link shows.

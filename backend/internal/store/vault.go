@@ -13,8 +13,15 @@ import (
 
 // VaultStore persists the mobile backups and the public share links.
 type VaultStore interface {
-	SaveBackup(ctx context.Context, userID string, payload []byte) (time.Time, error)
+	// SaveBackup stores payload as the current backup and as a new version, keeping
+	// the latest domain.MaxBackupVersions.
+	SaveBackup(ctx context.Context, userID string, payload []byte, itemCount int) (time.Time, error)
 	GetBackup(ctx context.Context, userID string) ([]byte, time.Time, error)
+	// CurrentBackupCount is the number of items of the current backup (0 when none).
+	CurrentBackupCount(ctx context.Context, userID string) (int, error)
+	ListBackupVersions(ctx context.Context, userID string) ([]domain.BackupVersion, error)
+	// GetBackupVersion returns one of the user's versions, ErrNotFound otherwise.
+	GetBackupVersion(ctx context.Context, userID string, id int64) ([]byte, error)
 	CreateShare(ctx context.Context, share domain.Share) (domain.Share, error)
 	ListShares(ctx context.Context, userID string) ([]domain.Share, error)
 	RevokeShare(ctx context.Context, userID, token string) error
@@ -31,17 +38,78 @@ func NewVaultStore(pool *pgxpool.Pool) *PostgresVaultStore {
 	return &PostgresVaultStore{pool: pool}
 }
 
-// SaveBackup stores (or replaces) the backup of a user.
-func (s *PostgresVaultStore) SaveBackup(ctx context.Context, userID string, payload []byte) (time.Time, error) {
-	var at time.Time
-	err := s.pool.QueryRow(ctx, `
-		INSERT INTO user_backups (user_id, payload, updated_at) VALUES ($1, $2, NOW())
-		ON CONFLICT (user_id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()
-		RETURNING updated_at`, userID, payload).Scan(&at)
+// SaveBackup stores the backup of a user as current and as a new version.
+func (s *PostgresVaultStore) SaveBackup(ctx context.Context, userID string, payload []byte, itemCount int) (time.Time, error) {
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("save backup: %w", err)
 	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var at time.Time
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO user_backups (user_id, payload, updated_at) VALUES ($1, $2, NOW())
+		ON CONFLICT (user_id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()
+		RETURNING updated_at`, userID, payload).Scan(&at); err != nil {
+		return time.Time{}, fmt.Errorf("save backup: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO user_backup_versions (user_id, payload, item_count, created_at) VALUES ($1, $2, $3, $4)`,
+		userID, payload, itemCount, at); err != nil {
+		return time.Time{}, fmt.Errorf("save backup version: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM user_backup_versions WHERE user_id = $1 AND id NOT IN (
+			SELECT id FROM user_backup_versions WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2)`,
+		userID, domain.MaxBackupVersions); err != nil {
+		return time.Time{}, fmt.Errorf("prune backup versions: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return time.Time{}, fmt.Errorf("save backup: %w", err)
+	}
 	return at, nil
+}
+
+// CurrentBackupCount returns the number of items of the current backup.
+func (s *PostgresVaultStore) CurrentBackupCount(ctx context.Context, userID string) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx, `SELECT COALESCE(jsonb_array_length(payload -> 'items'), 0) FROM user_backups WHERE user_id = $1`, userID).Scan(&n)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("backup count: %w", err)
+	}
+	return n, nil
+}
+
+// ListBackupVersions returns the saved versions of a user, newest first.
+func (s *PostgresVaultStore) ListBackupVersions(ctx context.Context, userID string) ([]domain.BackupVersion, error) {
+	rows, err := s.pool.Query(ctx, `SELECT id, item_count, created_at FROM user_backup_versions WHERE user_id = $1 ORDER BY created_at DESC, id DESC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list backup versions: %w", err)
+	}
+	defer rows.Close()
+	versions := make([]domain.BackupVersion, 0)
+	for rows.Next() {
+		var v domain.BackupVersion
+		if err := rows.Scan(&v.ID, &v.ItemCount, &v.CreatedAt); err != nil {
+			return nil, fmt.Errorf("backup version scan: %w", err)
+		}
+		versions = append(versions, v)
+	}
+	return versions, rows.Err()
+}
+
+// GetBackupVersion returns one version of the user's backups.
+func (s *PostgresVaultStore) GetBackupVersion(ctx context.Context, userID string, id int64) ([]byte, error) {
+	var payload []byte
+	err := s.pool.QueryRow(ctx, `SELECT payload FROM user_backup_versions WHERE user_id = $1 AND id = $2`, userID, id).Scan(&payload)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get backup version: %w", err)
+	}
+	return payload, nil
 }
 
 // GetBackup returns the backup of a user, ErrNotFound when there is none.

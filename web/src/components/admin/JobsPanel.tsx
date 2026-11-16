@@ -9,7 +9,7 @@ const REFRESH_MS = 5000
 
 type Tone = 'neutral' | 'primary' | 'success' | 'error' | 'info'
 
-/** Sync statuses — design/DESIGN_SYSTEM.md §6. */
+/** Sync statuses of the back-office jobs. */
 const STATUS: Record<JobStatus, { label: string; tone: Tone; icon: string }> = {
   pending: { label: 'En attente', tone: 'neutral', icon: 'schedule' },
   running: { label: 'En cours', tone: 'primary', icon: 'progress_activity' },

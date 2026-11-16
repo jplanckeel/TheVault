@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
@@ -34,11 +35,24 @@ func (h *VaultHandler) PutBackup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid body", http.StatusBadRequest)
 		return
 	}
-	if err := domain.ValidateBackup(payload); err != nil {
+	count, err := domain.ValidateBackup(payload)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	at, err := h.vaults.SaveBackup(r.Context(), userID, payload)
+	if r.URL.Query().Get("force") != "1" {
+		previous, err := h.vaults.CurrentBackupCount(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if domain.IsSuspiciousShrink(previous, count) {
+			// The app asks the user, then retries with ?force=1.
+			writeJSON(w, http.StatusConflict, map[string]int{"current_count": previous, "new_count": count})
+			return
+		}
+	}
+	at, err := h.vaults.SaveBackup(r.Context(), userID, payload, count)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -46,10 +60,33 @@ func (h *VaultHandler) PutBackup(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"updated_at": at})
 }
 
-// GetBackup handles GET /api/v1/backup — returns the backup of the user.
+// ListBackupVersions handles GET /api/v1/backup/versions — the saved backups, newest first.
+func (h *VaultHandler) ListBackupVersions(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(UserIDKey).(string)
+	versions, err := h.vaults.ListBackupVersions(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, versions)
+}
+
+// GetBackup handles GET /api/v1/backup[?version=id] — the current backup of the user,
+// or one of its saved versions.
 func (h *VaultHandler) GetBackup(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserIDKey).(string)
-	payload, _, err := h.vaults.GetBackup(r.Context(), userID)
+	var payload []byte
+	var err error
+	if raw := r.URL.Query().Get("version"); raw != "" {
+		id, convErr := strconv.ParseInt(raw, 10, 64)
+		if convErr != nil || id <= 0 {
+			http.Error(w, "invalid version", http.StatusBadRequest)
+			return
+		}
+		payload, err = h.vaults.GetBackupVersion(r.Context(), userID, id)
+	} else {
+		payload, _, err = h.vaults.GetBackup(r.Context(), userID)
+	}
 	if errors.Is(err, store.ErrNotFound) {
 		http.Error(w, "no backup", http.StatusNotFound)
 		return

@@ -3,6 +3,7 @@ package igdb
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jplanckeel/thevaultbo/internal/domain"
@@ -53,39 +54,39 @@ func (r *Runner) Sync(ctx context.Context, job domain.ScrapeJob, items []domain.
 		case "game":
 			data, err := r.client.SearchGame(item.Title)
 			if err != nil {
-				fmt.Printf("igdb sync: %s — error: %v\n", item.Title, err)
+				slog.Warn("igdb sync", "title", item.Title, "err", err)
 				lastErr = err.Error()
 			} else if data == nil {
-				fmt.Printf("igdb sync: %s — no result\n", item.Title)
+				slog.Info("igdb sync: no result", "title", item.Title)
 				_ = r.items.MarkIGDBChecked(ctx, item.ID)
 			} else {
 				if err := r.items.UpdateIGDB(ctx, item.ID, *data); err != nil {
-					fmt.Printf("igdb sync: %s — db error: %v\n", item.Title, err)
+					slog.Error("igdb sync: db", "title", item.Title, "err", err)
 					lastErr = err.Error()
 				} else {
-					fmt.Printf("igdb sync: %s — OK (igdb_id=%s)\n", item.Title, data.IgdbID)
+					slog.Info("igdb sync: enriched", "title", item.Title, "igdb_id", data.IgdbID)
 				}
 			}
 		case "console":
 			logoURL, err := r.client.SearchPlatform(item.Platform)
 			if err != nil {
-				fmt.Printf("igdb sync platform: %s — error: %v\n", item.Platform, err)
+				slog.Warn("igdb sync platform", "platform", item.Platform, "err", err)
 				lastErr = err.Error()
 			} else if logoURL == "" {
-				fmt.Printf("igdb sync platform: %s — no logo\n", item.Platform)
+				slog.Info("igdb sync platform: no logo", "platform", item.Platform)
 				_ = r.items.MarkIGDBChecked(ctx, item.ID)
 			} else {
 				data := domain.IGDBData{CoverURL: logoURL}
 				if err := r.items.UpdateIGDB(ctx, item.ID, data); err != nil {
-					fmt.Printf("igdb sync platform: %s — db error: %v\n", item.Platform, err)
+					slog.Error("igdb sync platform: db", "platform", item.Platform, "err", err)
 					lastErr = err.Error()
 				} else {
-					fmt.Printf("igdb sync platform: %s — OK (%s)\n", item.Platform, logoURL)
+					slog.Info("igdb sync platform: logo", "platform", item.Platform, "url", logoURL)
 				}
 			}
 		default:
 			// accessory: skip in auto-sync, handled via manual cover_url
-			fmt.Printf("igdb sync: %s — skipped (type=%s)\n", item.Title, item.Type)
+			slog.Debug("igdb sync: skipped", "title", item.Title, "type", item.Type)
 			_ = r.items.MarkIGDBChecked(ctx, item.ID)
 		}
 
@@ -110,7 +111,7 @@ func (r *Runner) Sync(ctx context.Context, job domain.ScrapeJob, items []domain.
 		Error:      lastErr,
 		FinishedAt: &now,
 	})
-	fmt.Printf("igdb sync: finished (%d/%d)\n", done, len(items))
+	slog.Info("igdb sync: finished", "done", done, "total", len(items))
 }
 
 // Run is a fire-and-forget entry point used by the scheduler.
@@ -120,7 +121,7 @@ func (r *Runner) Run(triggeredBy string) {
 		ctx := context.Background()
 		job, items, err := r.Prepare(ctx, triggeredBy)
 		if err != nil {
-			fmt.Printf("igdb runner: %v\n", err)
+			slog.Error("igdb runner", "err", err)
 			return
 		}
 		r.Sync(ctx, job, items)

@@ -3,7 +3,7 @@
 Référence visuelle : [`maquettes-app-mobile.html`](maquettes-app-mobile.html) (18 écrans, deux coques).
 Implémentation : `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/` et `ui/component/`.
 
-> L'application **mobile** utilise ce design. Le **web** reste en « Premium Security » (`design/DESIGN_SYSTEM.md`).
+> L'application **mobile** et le **web** (`web/DESIGN.md`) utilisent ce design. L'ancien design web « Premium Security » est archivé dans `design/archive/`.
 > L'ancien design « Nuit profonde » (`design/nuit-profonde/`) est conservé pour l'historique.
 
 ## Deux coques (`Color.kt`, `ThemeMode`)

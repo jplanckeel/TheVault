@@ -1,3 +1,5 @@
+> **Archivé (16 nov. 2026).** Ni le web ni le mobile n'utilisent plus ce design : les deux suivent le design system « Collector System » (`design/console/README.md`, `web/DESIGN.md`).
+
 # TheVault — Design System « Premium Security »
 
 > **Web uniquement.** L'application mobile utilise désormais « Nuit profonde, un seul violet » : voir [`nuit-profonde/README.md`](nuit-profonde/README.md).

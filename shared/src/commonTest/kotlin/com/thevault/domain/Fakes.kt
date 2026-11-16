@@ -159,12 +159,17 @@ class FakeVault : VaultRepository {
 
     override suspend fun logout() = Unit
 
-    override suspend fun upload(content: VaultContent): Result<String> {
+    override suspend fun upload(
+        content: VaultContent,
+        force: Boolean,
+    ): Result<String> {
         stored = content
         return Result.success("now")
     }
 
-    override suspend fun download(): Result<VaultContent> =
+    override suspend fun backupVersions() = Result.success(emptyList<com.thevault.domain.model.BackupVersion>())
+
+    override suspend fun download(version: Long?): Result<VaultContent> =
         stored?.let { Result.success(it) } ?: Result.failure(IllegalStateException("none"))
 
     override suspend fun shares() = Result.success(emptyList<ShareLink>())

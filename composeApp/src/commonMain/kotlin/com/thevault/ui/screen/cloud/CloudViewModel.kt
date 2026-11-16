@@ -3,10 +3,13 @@ package com.thevault.ui.screen.cloud
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thevault.domain.model.Account
+import com.thevault.domain.model.BackupShrinkException
+import com.thevault.domain.model.BackupVersion
 import com.thevault.domain.model.ShareLink
 import com.thevault.domain.model.ShareScope
 import com.thevault.domain.usecase.AccountUseCase
 import com.thevault.domain.usecase.BackupVaultUseCase
+import com.thevault.domain.usecase.BackupVersionsUseCase
 import com.thevault.domain.usecase.EditShareUseCase
 import com.thevault.domain.usecase.RestoreVaultUseCase
 import com.thevault.domain.usecase.ShareLinksUseCase
@@ -29,6 +32,8 @@ import kotlinx.coroutines.launch
  * @property error Whether [message] is an error.
  * @property links Share links of the account.
  * @property created Link just created (to share it).
+ * @property versions Backups saved on the account, newest first.
+ * @property shrink Backup refused because it loses many items, waiting for a confirmation.
  */
 data class CloudUiState(
     val busy: Boolean = false,
@@ -36,6 +41,8 @@ data class CloudUiState(
     val error: Boolean = false,
     val links: List<ShareLink> = emptyList(),
     val created: ShareLink? = null,
+    val versions: List<BackupVersion> = emptyList(),
+    val shrink: BackupShrinkException? = null,
 )
 
 /** ViewModel of the account, backup and share screen. */
@@ -45,6 +52,7 @@ class CloudViewModel(
     private val signIn: SignInUseCase,
     private val backup: BackupVaultUseCase,
     private val restore: RestoreVaultUseCase,
+    private val backupVersions: BackupVersionsUseCase,
     private val shareLinks: ShareLinksUseCase,
     private val editShare: EditShareUseCase,
     private val source: VaultEntriesSource,
@@ -62,7 +70,12 @@ class CloudViewModel(
         email: String,
         password: String,
     ) = run("Connexion…") {
-        signIn(email, password).map { "Connecté." }.also { if (it.isSuccess) loadLinks() }
+        signIn(email, password).map { "Connecté." }.also {
+            if (it.isSuccess) {
+                loadLinks()
+                loadVersions()
+            }
+        }
     }
 
     /** Signs out. */
@@ -73,11 +86,36 @@ class CloudViewModel(
         }
     }
 
-    /** Uploads the whole collection. */
-    fun backupNow() = run("Sauvegarde…") { upload().map { "Sauvegarde envoyée." } }
+    /**
+     * Uploads the whole collection. A backup losing more than half of the saved items is
+     * held until [confirmShrink].
+     */
+    fun backupNow(force: Boolean = false) =
+        run("Sauvegarde…") {
+            upload(force)
+                .onFailure { e -> if (e is BackupShrinkException) state.update { it.copy(shrink = e) } }
+                .map {
+                    loadVersions()
+                    "Sauvegarde envoyée."
+                }
+        }
 
-    /** Restores the backup of the account. */
-    fun restoreNow() = run("Restauration…") { restore().map { "$it objets restaurés." } }
+    /** Replaces the bigger backup after the user confirmed. */
+    fun confirmShrink() {
+        state.update { it.copy(shrink = null) }
+        backupNow(force = true)
+    }
+
+    /** Keeps the backup on the server. */
+    fun dismissShrink() = state.update { it.copy(shrink = null, message = "Sauvegarde annulée.", error = false) }
+
+    /** Restores the current backup, or the saved [version]. */
+    fun restoreNow(version: Long? = null) = run("Restauration…") { restore(version).map { "$it objets restaurés." } }
+
+    /** Loads the backups saved on the account. */
+    fun loadVersions() {
+        viewModelScope.launch { backupVersions().onSuccess { v -> state.update { it.copy(versions = v) } } }
+    }
 
     /** Loads the share links. */
     fun loadLinks() {
@@ -109,9 +147,9 @@ class CloudViewModel(
     /** Forgets the link just created (after sharing it). */
     fun consumeCreated() = state.update { it.copy(created = null) }
 
-    private suspend fun upload(): Result<String> {
+    private suspend fun upload(force: Boolean = false): Result<String> {
         val values = source.entries().first().associate { it.id to it.value }
-        return backup(values)
+        return backup(values, force)
     }
 
     private fun run(
@@ -124,8 +162,11 @@ class CloudViewModel(
             state.update {
                 it.copy(
                     busy = false,
-                    message = result.getOrElse { e -> "Échec : ${e.message ?: "serveur injoignable"}" },
-                    error = result.isFailure,
+                    message =
+                        result.getOrElse { e ->
+                            if (e is BackupShrinkException) null else "Échec : ${e.message ?: "serveur injoignable"}"
+                        },
+                    error = result.isFailure && result.exceptionOrNull() !is BackupShrinkException,
                 )
             }
         }

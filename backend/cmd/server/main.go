@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -20,6 +21,9 @@ import (
 )
 
 func main() {
+	// JSON logs (also used by the standard log package and the request logger).
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	databaseURL := getenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/thevaultbo?sslmode=disable")
 	port := getenv("PORT", "8080")
 
@@ -102,7 +106,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%s", port),
-		Handler:           router,
+		Handler:           api.WithReadiness(router, pool.Ping),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second, // cover uploads up to 8 MiB
 		WriteTimeout:      60 * time.Second,
