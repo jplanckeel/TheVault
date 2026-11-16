@@ -46,7 +46,7 @@ jobs:
           java-version: '21'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # No API key in CI: the generated ApiConfig falls back to an empty key.
       - name: Lint (ktlint) and static analysis (detekt, new issues only)
