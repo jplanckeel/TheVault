@@ -1,0 +1,227 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CascadingCallWrapping:Achievements.kt$clip( androidx.compose.foundation.shape .RoundedCornerShape(15.dp), )</ID>
+    <ID>CascadingCallWrapping:Achievements.kt$games() .filter(predicate) .groupingBy { it.platform } .eachCount() .values .maxOrNull() ?.toLong() ?: 0L</ID>
+    <ID>CascadingCallWrapping:AddItemScreen.kt$v .filter(Char::isDigit) .take(2) .toIntOrNull() ?.coerceIn(0, MAX_RATING) ?: 0</ID>
+    <ID>CascadingCallWrapping:AddItemViewModel.kt$orEmpty()</ID>
+    <ID>CascadingCallWrapping:CatalogRemoteDataSource.kt$TheVaultBoCatalogDataSource$body&lt;List&lt;CatalogEntryDto&gt;&gt;()</ID>
+    <ID>CascadingCallWrapping:CollectionModels.kt$sortedWith(compareByDescending&lt;PlatformSummary&gt; { it.count }.thenByDescending { it.value })</ID>
+    <ID>CascadingCallWrapping:GameRepositoryImpl.kt$GameRepositoryImpl$withTags(queries.observeTags(), { it.id }) { row, tags -&gt; row.toDomain(tags) }</ID>
+    <ID>CascadingCallWrapping:InsightsRepositoriesImpl.kt$PriceRepositoryImpl$sortedBy { it.at }</ID>
+    <ID>CascadingCallWrapping:ItemEditViewModel.kt$orEmpty()</ID>
+    <ID>CascadingCallWrapping:MarketUseCases.kt$GetImportedPricesUseCase$toMap()</ID>
+    <ID>CascadingCallWrapping:Panels.kt$padding(padding)</ID>
+    <ID>CascadingCallWrapping:PriceRemoteDataSource.kt$TheVaultBoPriceDataSource$body()</ID>
+    <ID>CascadingCallWrapping:PriceRemoteDataSource.kt$TheVaultBoPriceDataSource$body&lt;List&lt;QuoteDto&gt;&gt;()</ID>
+    <ID>CascadingCallWrapping:ProfileViewModel.kt$ProfileViewModel$stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)</ID>
+    <ID>CascadingCallWrapping:QuickAddSheet.kt$padding(horizontal = 20.dp)</ID>
+    <ID>CascadingCallWrapping:QuickCheck.kt$groupBy { ownedKey(it.title, it.platform) }</ID>
+    <ID>CascadingCallWrapping:SetDetailScreen.kt$filter { it.first !in known }</ID>
+    <ID>CascadingCallWrapping:StatsData.kt$groupBy({ it.first }, { it.second })</ID>
+    <ID>CascadingCallWrapping:StatsViewModel.kt$StatsViewModel$stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)</ID>
+    <ID>CascadingCallWrapping:Summaries.kt$sortedByDescending { kotlin.math.abs(it.gain) }</ID>
+    <ID>CascadingCallWrapping:Tags.kt$clip(VaultRadius.pill)</ID>
+    <ID>CascadingCallWrapping:Tags.kt$clip(VaultRadius.xs)</ID>
+    <ID>CascadingCallWrapping:TheVaultBoRemoteDataSource.kt$TheVaultBoRemoteDataSource$body()</ID>
+    <ID>CascadingCallWrapping:VaultRemoteDataSource.kt$TheVaultBoVaultDataSource$body()</ID>
+    <ID>CascadingCallWrapping:WishlistScreen.kt$entry.details.wish.target ?.label ?: entry.condition.formatLabel</ID>
+    <ID>ClassOrdering:AppViewModel.kt$AppViewModel$fun setHidePrices(hide: Boolean)</ID>
+    <ID>ClassOrdering:CopyDraft.kt$CopyDraft$fun toDetails(): CopyDetails</ID>
+    <ID>ClassOrdering:CopyDraft.kt$CopyDraft.Companion$private const val CENTURY = 100</ID>
+    <ID>ClassOrdering:CopyDraft.kt$CopyDraft.Companion$private const val DATE_PARTS = 3</ID>
+    <ID>ClassOrdering:CopyDraft.kt$CopyDraft.Companion$private const val YEAR_2000 = 2000</ID>
+    <ID>ClassOrdering:GameyeFormat.kt$GameyeFormat$private const val CENTS = 100.0</ID>
+    <ID>ClassOrdering:GameyeFormat.kt$GameyeFormat$private const val DATE_PARTS = 3</ID>
+    <ID>ClassOrdering:GameyeFormat.kt$GameyeFormat$private const val FAIR = 0.4</ID>
+    <ID>ClassOrdering:GameyeFormat.kt$GameyeFormat$private const val GOOD = 0.55</ID>
+    <ID>ClassOrdering:GameyeFormat.kt$GameyeFormat$private const val ISO_DATE = 10</ID>
+    <ID>ClassOrdering:GameyeFormat.kt$GameyeFormat$private const val MINT = 0.95</ID>
+    <ID>ClassOrdering:GameyeFormat.kt$GameyeFormat$private const val VERY_GOOD = 0.75</ID>
+    <ID>ClassOrdering:MainActivity.kt$MainActivity$private fun applySystemBars(dark: Boolean)</ID>
+    <ID>ClassOrdering:Mappers.kt$CopyColumns.Companion$private val Boolean.bit: Long get() = if (this) 1L else 0L</ID>
+    <ID>ClassOrdering:PlatformGamesViewModel.kt$PlatformGamesViewModel$/** Observable UI state. */ val uiState: StateFlow&lt;PlatformGamesUiState&gt; = combine(source.entries(), filters, ownership) { all, f, o -&gt; buildPlatformState(all, f, o) } .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PlatformGamesUiState(isLoading = true))</ID>
+    <ID>ClassOrdering:PlatformGamesViewModel.kt$PlatformGamesViewModel$private val filters = MutableStateFlow(GameFilters())</ID>
+    <ID>ClassOrdering:PlatformGamesViewModel.kt$PlatformGamesViewModel$private val ownership = MutableStateFlow(Ownership.Owned)</ID>
+    <ID>ComplexCondition:CsvUtils.kt$CsvUtils$field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r")</ID>
+    <ID>CyclomaticComplexMethod:CsvUtils.kt$CsvUtils$fun parseCsv(csvString: String): List&lt;List&lt;String&gt;&gt;</ID>
+    <ID>CyclomaticComplexMethod:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$fun find(platformName: String): PlatformInfo?</ID>
+    <ID>CyclomaticComplexMethod:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$private fun inferNintendoYear(key: String): PlatformInfo</ID>
+    <ID>CyclomaticComplexMethod:RefreshCatalogUseCase.kt$RefreshCatalogUseCase$private suspend fun apply(): Int</ID>
+    <ID>LongMethod:CloudScreen.kt$@Composable fun CloudScreen( onBack: () -&gt; Unit, viewModel: CloudViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:CloudScreen.kt$@Composable private fun SharePanel( state: CloudUiState, viewModel: CloudViewModel, shareText: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:CloudScreen.kt$@Composable private fun SignedIn( account: Account, state: CloudUiState, viewModel: CloudViewModel, shareText: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:CollectionScreen.kt$@Composable fun CollectionContent( state: CollectionUiState, viewModel: CollectionViewModel, navigation: CollectionNavigation, )</ID>
+    <ID>LongMethod:CopyPanel.kt$@Composable fun CopyPanel( details: CopyDetails, purchase: CopyPurchase, )</ID>
+    <ID>LongMethod:Covers.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun CollectionCard( data: CardData, onClick: () -&gt; Unit, modifier: Modifier = Modifier, missing: Boolean = false, selected: Boolean = false, onLongClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:CsvUtils.kt$CsvUtils$fun parseCsv(csvString: String): List&lt;List&lt;String&gt;&gt;</ID>
+    <ID>LongMethod:DetailParts.kt$@Composable fun ColumnScope.MarketSection( quotes: List&lt;PriceQuote&gt;, selected: PriceGrade, history: List&lt;PricePoint&gt;, onSelect: (PriceGrade) -&gt; Unit, usPrice: Double? = null, )</ID>
+    <ID>LongMethod:GameDetailScreen.kt$@Composable fun GameDetailScreen( gameId: String, onBack: () -&gt; Unit, onEdit: () -&gt; Unit, viewModel: GameDetailViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:ItemDetailScreen.kt$@Composable fun ItemDetailScreen( kind: ItemKind, id: String, onBack: () -&gt; Unit, onEdit: () -&gt; Unit, viewModel: ItemDetailViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:ItemEditScreen.kt$@Composable fun ItemEditScreen( kind: ItemKind, id: String, onBack: () -&gt; Unit, viewModel: ItemEditViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:Mappers.kt$fun Accessory.toEntity( createdAt: String, updatedAt: String, ): AccessoryEntity</ID>
+    <ID>LongMethod:Mappers.kt$fun Console.toEntity( createdAt: String, updatedAt: String, ): ConsoleEntity</ID>
+    <ID>LongMethod:Mappers.kt$fun ConsoleEntity.toDomain(tags: List&lt;String&gt; = emptyList()): Console</ID>
+    <ID>LongMethod:Mappers.kt$fun Game.toEntity( createdAt: String, updatedAt: String, ): GameEntity</ID>
+    <ID>LongMethod:Mappers.kt$fun GameEntity.toDomain(tags: List&lt;String&gt; = emptyList()): Game</ID>
+    <ID>LongMethod:PlatformGamesScreen.kt$@Composable fun PlatformGamesScreen( platform: String?, onBack: () -&gt; Unit, onEntryClick: (CollectionEntry) -&gt; Unit, viewModel: PlatformGamesViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:QuickAddSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun QuickAddSheet( candidate: AddCandidate, form: QuickAddForm, actions: QuickAddActions, alreadyOwned: Int = 0, )</ID>
+    <ID>LongMethod:QuickCheck.kt$@Composable fun QuickCheckScreen( onBack: () -&gt; Unit, onOpen: (CollectionEntry) -&gt; Unit, viewModel: QuickCheckViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:SetDetailScreen.kt$@Composable fun SetDetailScreen( setId: String, onBack: () -&gt; Unit, viewModel: SetDetailViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:SetsScreen.kt$@Composable fun SetsScreen( onBack: () -&gt; Unit, onOpen: (String) -&gt; Unit, viewModel: SetsViewModel = koinViewModel(), )</ID>
+    <ID>LongMethod:StatsSections.kt$@Composable internal fun Months(months: List&lt;MonthSpend&gt;)</ID>
+    <ID>LongMethod:VaultNavHost.kt$private fun NavGraphBuilder.detailDestinations( nav: NavHostController, app: AppViewModel, )</ID>
+    <ID>LongParameterList:BackupMapper.kt$( id: String, kind: String, title: String, platform: String, status: ItemStatus, details: CopyDetails, value: Double?, )</ID>
+    <ID>MagicNumber:AddItemViewModel.kt$10</ID>
+    <ID>MagicNumber:BulkEdit.kt$1.4f</ID>
+    <ID>MagicNumber:CopyForm.kt$1.3f</ID>
+    <ID>MagicNumber:CopyForm.kt$1.4f</ID>
+    <ID>MagicNumber:CopyForm.kt$3</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1977</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1981</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1982</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1983</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1985</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1986</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1987</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1988</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1989</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1990</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1991</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1993</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1994</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1995</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1996</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1998</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$1999</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2000</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2001</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2003</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2004</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2005</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2006</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2008</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2011</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2012</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2013</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2014</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2016</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2017</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2020</ID>
+    <ID>MagicNumber:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$2025</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$1.5f</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$10f</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$16</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$16f</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$250f</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$340f</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$40</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$430f</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$500f</ID>
+    <ID>MagicNumber:InsuranceExportSection.kt$9f</ID>
+    <ID>MatchingDeclarationName:BulkEdit.kt$BulkChange</ID>
+    <ID>MatchingDeclarationName:Catalog.kt$CatalogSheet</ID>
+    <ID>MatchingDeclarationName:CopyPanel.kt$CopyPurchase</ID>
+    <ID>MatchingDeclarationName:Dialogs.kt$MenuEntry</ID>
+    <ID>MatchingDeclarationName:GameDetailScreen.kt$DetailDialog</ID>
+    <ID>MatchingDeclarationName:InsuranceReport.kt$InsuranceLine</ID>
+    <ID>MatchingDeclarationName:Mappers.kt$CopyColumns</ID>
+    <ID>MatchingDeclarationName:QuickAddSheet.kt$QuickAddActions</ID>
+    <ID>MatchingDeclarationName:QuoteReportScreen.kt$QuoteReportViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:SoldSection.kt$SalesSummary</ID>
+    <ID>MatchingDeclarationName:StatsData.kt$MonthSpend</ID>
+    <ID>MatchingDeclarationName:Tags.kt$LedColor</ID>
+    <ID>MatchingDeclarationName:Typography.kt$VaultType</ID>
+    <ID>MatchingDeclarationName:Valuation.kt$ValueSource</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$"Ta collection est envoyée au serveur, qui complète les fiches (jaquette, studio, année) et relève les cotes eBay de chaque objet."</ID>
+    <ID>MaxLineLength:WishAlertWorker.kt$WishAlertWorker$ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED</ID>
+    <ID>NestedBlockDepth:CsvUtils.kt$CsvUtils$fun parseCsv(csvString: String): List&lt;List&lt;String&gt;&gt;</ID>
+    <ID>OutdatedDocumentation:InsightsRepositoriesImpl.kt$PriceRepositoryImpl : PriceRepository</ID>
+    <ID>OutdatedDocumentation:Models.kt$Game</ID>
+    <ID>OutdatedDocumentation:ObserveVaultStatsUseCase.kt$ObserveVaultStatsUseCase</ID>
+    <ID>OutdatedDocumentation:SettingsViewModel.kt$SettingsUiState</ID>
+    <ID>OutdatedDocumentation:VaultRemoteDataSource.kt$VaultRemoteDataSource$suspend fun putBackup( token: String, backup: VaultBackupDto, force: Boolean = false, ): BackupSavedDto</ID>
+    <ID>OutdatedDocumentation:VaultStatsRepositoryImpl.kt$VaultStatsRepositoryImpl : VaultStatsRepository</ID>
+    <ID>TooManyFunctions:GameyeFormat.kt$GameyeFormat</ID>
+    <ID>UndocumentedPublicClass:BoSearchResultDto.kt$BoSearchResultDto</ID>
+    <ID>UndocumentedPublicClass:CsvUtils.kt$CsvUtils</ID>
+    <ID>UndocumentedPublicClass:GameRemoteDataSource.kt$GameRemoteDataSource</ID>
+    <ID>UndocumentedPublicClass:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$PlatformInfo</ID>
+    <ID>UndocumentedPublicClass:RemoteGame.kt$RemoteGame</ID>
+    <ID>UndocumentedPublicFunction:CsvUtils.kt$CsvUtils$fun generateCsv( headers: List&lt;String&gt;, rows: List&lt;List&lt;String&gt;&gt;, ): String</ID>
+    <ID>UndocumentedPublicFunction:CsvUtils.kt$CsvUtils$fun parseCsv(csvString: String): List&lt;List&lt;String&gt;&gt;</ID>
+    <ID>UndocumentedPublicFunction:GameRemoteDataSource.kt$GameRemoteDataSource$suspend fun searchGames(query: String): List&lt;RemoteGame&gt;</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$@SerialName("cover_url") val coverUrl: String? = null</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$@SerialName("release_year") val releaseYear: Int = 0</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$val developer: String? = null</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$val genres: List&lt;String&gt; = emptyList()</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$val id: String</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$val platforms: List&lt;String&gt; = emptyList()</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$val publisher: String? = null</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$val summary: String? = null</ID>
+    <ID>UndocumentedPublicProperty:BoSearchResultDto.kt$BoSearchResultDto$val title: String</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val BOX_CONDITION = 17</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val CATEGORY = 1</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val COUNTRY = 4</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val CREATED_AT = 9</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val DEVELOPER = 7</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val GENRE = 8</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val ITEM_CONDITION = 16</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val MANUAL_CONDITION = 18</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val NOTES = 19</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val OWNERSHIP = 10</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val PLATFORM = 0</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val PRICE_CIB = 12</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val PRICE_LOOSE = 11</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val PRICE_NEW = 13</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val PRICE_PAID = 15</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val PUBLISHER = 6</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val RECORD_TYPE = 2</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val RELEASE_TYPE = 5</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val TAGS = 20</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val TITLE = 3</ID>
+    <ID>UndocumentedPublicProperty:GameyeFormat.kt$GameyeFormat.Col$const val YOUR_PRICE = 14</ID>
+    <ID>UndocumentedPublicProperty:IgdbPlatformCatalog.kt$IgdbPlatformCatalog.PlatformInfo$val manufacturer: String</ID>
+    <ID>UndocumentedPublicProperty:IgdbPlatformCatalog.kt$IgdbPlatformCatalog.PlatformInfo$val releaseYear: Int</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Game$val developer: String? = null</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Game$val gameModes: String? = null</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Game$val publisher: String? = null</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Game$val rating: Int? = null</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Game$val themes: String? = null</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$ItemStatus$LOANED</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$ItemStatus$OWNED</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$ItemStatus$SOLD</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$ItemStatus$WISHLIST</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Region$NTSC_JP</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Region$NTSC_US</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Region$OTHER</ID>
+    <ID>UndocumentedPublicProperty:Models.kt$Region$PAL</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val coverUrl: String? = null</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val developer: String? = null</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val gameModes: List&lt;String&gt; = emptyList()</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val genres: List&lt;String&gt; = emptyList()</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val id: String</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val platformNames: List&lt;String&gt; = emptyList()</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val publisher: String? = null</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val releaseYear: Int? = null</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val summary: String? = null</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val themes: List&lt;String&gt; = emptyList()</ID>
+    <ID>UndocumentedPublicProperty:RemoteGame.kt$RemoteGame$val title: String</ID>
+    <ID>UndocumentedPublicProperty:SetsViewModels.kt$SetFilter$val label: String</ID>
+    <ID>UndocumentedPublicProperty:SettingsViewModel.kt$SettingsUiState$val valuation: ValuationSplit = ValuationSplit()</ID>
+    <ID>UndocumentedPublicProperty:Vault.kt$ShareScope$val key: String</ID>
+    <ID>UnnecessaryParentheses:Copy.kt$Components$(media &amp;&amp; box &amp;&amp; manual)</ID>
+    <ID>UnnecessaryParentheses:QuickAddSheet.kt$(candidate.kind == ItemKind.Game &amp;&amp; candidate.platforms.size &gt; 1)</ID>
+    <ID>UnnecessaryParentheses:StatsData.kt$(it.year to it.month.ordinal + 1)</ID>
+    <ID>UnnecessaryParentheses:WishlistScreen.kt$( entry.details.wish.target ?.label ?: entry.condition.formatLabel )</ID>
+    <ID>UnnecessaryPartOfBinaryExpression:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$key.contains("game boy") || key.contains("gameboy")</ID>
+    <ID>UnnecessaryPartOfBinaryExpression:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$key.contains("gamecube") || key.contains("game cube")</ID>
+    <ID>UnnecessaryPartOfBinaryExpression:IgdbPlatformCatalog.kt$IgdbPlatformCatalog$key.contains("nintendo") || key.contains("game boy") || key.contains("gameboy")</ID>
+    <ID>UnusedPrivateMember:GameDetailScreen.kt$private fun editions(game: Game): List&lt;String&gt;</ID>
+    <ID>UseCheckOrError:VaultRemoteDataSource.kt$TheVaultBoVaultDataSource$throw IllegalStateException("Sauvegarde refusée (${response.status.value})")</ID>
+    <ID>UseIfInsteadOfWhen:ItemEditViewModel.kt$ItemEditViewModel$when (kind) { ItemKind.Accessory -&gt; getAccessory(id)?.let { it.toForm() } ?: ItemEditUiState(kind) else -&gt; getConsole(id)?.let { it.toForm() } ?: ItemEditUiState(kind) }</ID>
+    <ID>UseIfInsteadOfWhen:Market.kt$when { digital -&gt; null else -&gt; completeness.priceGrade }</ID>
+    <ID>UseIfInsteadOfWhen:Platforms.kt$when { box &amp;&amp; !manual &amp;&amp; !sealed -&gt; "Sans notice" else -&gt; formatGroup.label + if (extras &amp;&amp; formatGroup != FormatGroup.Sealed) "+" else "" }</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -96,9 +96,12 @@ subprojects {
         version = "1.5.0"
         android = true
         filter {
-            exclude("**/generated/**")
-            exclude("**/build/**")
             include("**/*.kt")
         }
+    }
+    // The ktlint filter does not reach the KMP generated source sets (SQLDelight, ApiConfig):
+    // exclude anything under a build directory on the tasks themselves.
+    tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.BaseKtLintCheckTask>().configureEach {
+        exclude { it.file.path.contains("${java.io.File.separator}build${java.io.File.separator}") }
     }
 }

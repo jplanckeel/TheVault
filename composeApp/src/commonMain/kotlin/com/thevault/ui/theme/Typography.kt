@@ -1,4 +1,4 @@
-@file:Suppress("MagicNumber") // Design tokens and geometry of the console mockups.
+@file:Suppress("ktlint:standard:filename", "MagicNumber") // Design tokens and geometry of the console mockups.
 
 package com.thevault.ui.theme
 

@@ -1,0 +1,57 @@
+name: Mobile
+
+on:
+  push:
+    branches: [ main, develop, feat/* ]
+    paths:
+      - 'shared/**'
+      - 'composeApp/**'
+      - 'androidApp/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'config/detekt/**'
+      - '.editorconfig'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'shared/**'
+      - 'composeApp/**'
+      - 'androidApp/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'config/detekt/**'
+      - '.editorconfig'
+      - '.github/workflows/mobile.yml'
+
+# Least privilege: the job only reads the repository.
+permissions:
+  contents: read
+
+jobs:
+  test-mobile:
+    name: Test Mobile (Android)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # No API key in CI: the generated ApiConfig falls back to an empty key.
+      - name: Lint (ktlint) and static analysis (detekt, new issues only)
+        run: ./gradlew ktlintCheck detekt --console=plain
+
+      - name: Unit tests and coverage (≥ 80 % on domain + data)
+        run: ./gradlew :shared:testAndroidHostTest :composeApp:testAndroidHostTest :shared:koverVerify --console=plain
+
+      - name: Build debug APK
+        run: ./gradlew :androidApp:assembleDebug --console=plain

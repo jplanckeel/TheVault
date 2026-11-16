@@ -102,7 +102,8 @@ All dependencies are declared in `gradle/libs.versions.toml`. Before adding a de
 
 ## Code Quality Thresholds
 
-- Detekt config: `config/detekt/detekt.yml`
+- Detekt config: `config/detekt/detekt.yml`; existing debt is recorded in `config/detekt/baseline.xml` (CI fails on new issues only — fix issues rather than regenerating the baseline)
+- CI: `.github/workflows/mobile.yml` (ktlint, detekt, tests, Kover, debug APK), `test.yml` (backend with a Postgres service for the store tests, web lint / tests / build)
 - Kover coverage target: **≥ 80%** on `shared/domain` and `shared/data`
 - Excluded from coverage: generated code, DI modules, Preview composables
 
