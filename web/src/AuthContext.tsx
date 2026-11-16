@@ -12,8 +12,11 @@ interface AuthContextType {
   user: User | null
   token: string | null
   isAdmin: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  /** Signs in; resolves to null on success, otherwise the message to show. */
+  login: (email: string, password: string) => Promise<string | null>
   register: (email: string, password: string, name: string) => Promise<string | null>
+  /** Sets a new password from a reset link and signs in; null on success, else the message. */
+  resetPassword: (token: string, password: string) => Promise<string | null>
   logout: () => void
 }
 
@@ -21,10 +24,22 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   isAdmin: false,
-  login: async () => false,
+  login: async () => null,
   register: async () => null,
+  resetPassword: async () => null,
   logout: () => {},
 })
+
+/** Message for a failed sign-in: wrong credentials, rate limit or server error. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function loginError(status: number, retryAfter: string | null): string {
+  if (status === 401) return 'Email ou mot de passe incorrect.'
+  if (status === 429) {
+    const s = Number(retryAfter)
+    return `Trop de tentatives de connexion. Réessaie dans ${Number.isFinite(s) && s > 0 ? `${s} s` : 'une minute'}.`
+  }
+  return `Le serveur n'a pas pu te connecter (erreur ${status}). Réessaie plus tard.`
+}
 
 function readStoredUser(): User | null {
   try {
@@ -73,15 +88,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
   }, [token])
 
-  async function login(email: string, password: string): Promise<boolean> {
-    const res = await fetch('/api/v1/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    if (!res.ok) return false
-    saveSession(await res.json())
-    return true
+  async function login(email: string, password: string): Promise<string | null> {
+    let res: Response
+    try {
+      res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      })
+    } catch {
+      return 'Serveur injoignable : vérifie ta connexion.'
+    }
+    if (res.ok) {
+      saveSession(await res.json())
+      return null
+    }
+    return loginError(res.status, res.headers.get('Retry-After'))
   }
 
   async function register(email: string, password: string, name: string): Promise<string | null> {
@@ -90,13 +112,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name }),
     })
+    if (res.status === 429) return loginError(429, res.headers.get('Retry-After'))
+    if (res.status === 409) return 'Un compte existe déjà avec cet e-mail : connecte-toi.'
     if (!res.ok) return (await res.text()) || "L'inscription a échoué"
     saveSession(await res.json())
     return null
   }
 
+  async function resetPassword(resetToken: string, password: string): Promise<string | null> {
+    let res: Response
+    try {
+      res = await fetch('/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password }),
+      })
+    } catch {
+      return 'Serveur injoignable : vérifie ta connexion.'
+    }
+    if (res.ok) {
+      saveSession(await res.json())
+      return null
+    }
+    if (res.status === 429) return loginError(429, res.headers.get('Retry-After'))
+    if (res.status === 400) return (await res.text()).trim() || 'Lien invalide, déjà utilisé ou expiré.'
+    return loginError(res.status, null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, isAdmin: user?.is_admin === true, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isAdmin: user?.is_admin === true, login, register, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   )

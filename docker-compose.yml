@@ -18,6 +18,8 @@ services:
       IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET}
       IGDB_CRON: ${IGDB_CRON:-0 4 * * 0}
       ADMIN_EMAILS: ${ADMIN_EMAILS}
+      # Site address used in the links printed by `./server reset-password <email>`.
+      PUBLIC_URL: ${PUBLIC_URL:-}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (openssl rand -hex 32)}
       API_KEY: ${API_KEY}
     volumes:

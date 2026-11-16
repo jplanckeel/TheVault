@@ -29,6 +29,7 @@ func NewRouter(
 	users store.UserStore,
 	collections store.UserCollectionStore,
 	vaults store.VaultStore,
+	resets store.PasswordResetStore,
 	adminItems store.AdminItemStore,
 	events store.SyncEventStore,
 	adminEmails []string,
@@ -66,7 +67,7 @@ func NewRouter(
 	ch := handlers.NewConsolesHandler(items)
 	ah := handlers.NewAccessoriesHandler(items)
 	srch := handlers.NewSearchHandler(igdbClient)
-	uah := handlers.NewUserAuthHandler(users, adminEmails...)
+	uah := handlers.NewUserAuthHandler(users, adminEmails...).WithResets(resets)
 	var igdbSyncer handlers.IGDBSyncer
 	if igdbRunner != nil {
 		igdbSyncer = igdbRunner
@@ -102,6 +103,7 @@ func NewRouter(
 			// Public routes (consultation)
 			r.With(authLimit.Middleware).Post("/auth/register", uah.Register)
 			r.With(authLimit.Middleware).Post("/auth/login", uah.Login)
+			r.With(authLimit.Middleware).Post("/auth/reset-password", uah.ResetPassword)
 			r.Get("/items", ih.ListItems)
 			r.Get("/items/{id}", ih.GetItem)
 			r.Get("/items/{id}/prices", ih.GetItemPrices)
