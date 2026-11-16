@@ -54,7 +54,7 @@ val generateApiConfig =
 kotlin {
     android {
         namespace = "com.thevault.shared"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 24
 
         compilerOptions {
