@@ -7,6 +7,7 @@ import { ISSUES, ISSUE_ORDER } from '../../lib/adminItems'
 import ItemThumb from './ItemThumb'
 import ItemForm from './ItemForm'
 import MergeSection from './MergeSection'
+import ImageSuggestions from './ImageSuggestions'
 import ItemHistory from './ItemHistory'
 
 const TYPE_LABEL: Record<Item['type'], string> = { game: 'Jeu', console: 'Console', accessory: 'Accessoire' }
@@ -123,6 +124,17 @@ export default function ItemDrawer({ item, all, onClose, onChanged }: Props) {
               Importer une jaquette
             </Button>
           </div>
+        </Block>
+
+        <Block title="Images proposées">
+          <ImageSuggestions
+            key={item.id}
+            item={item}
+            onApplied={() => {
+              setHistoryKey((k) => k + 1)
+              onChanged(item.id)
+            }}
+          />
         </Block>
 
         <Block title="Informations">

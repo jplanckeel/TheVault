@@ -93,3 +93,17 @@ export interface SyncSummary {
   since: string
   counts: Partial<Record<SyncSource, Partial<Record<SyncAction, number>>>>
 }
+
+/** Image the back-office can pick as a cover (GET /admin/items/{id}/images). */
+export interface ImageCandidate {
+  url: string
+  source: 'commons' | 'igdb' | 'ebay'
+  label: string
+  page_url?: string
+}
+
+export interface ImageCandidates {
+  candidates: ImageCandidate[]
+  /** Sources that failed (not configured, quota, network). */
+  unavailable: string[]
+}

@@ -1,4 +1,4 @@
-import type { AdminItem, Item, ItemPatch, PriceSnapshot, ScrapeJob, SyncEvent, SyncSummary, TopMover } from './types'
+import type { AdminItem, ImageCandidates, Item, ItemPatch, PriceSnapshot, ScrapeJob, SyncEvent, SyncSummary, TopMover } from './types'
 
 export interface IGDBSearchResult {
   id: string
@@ -99,6 +99,8 @@ export const api = {
     remove: (id: string) => del(`/admin/items/${id}`),
     merge: (sourceId: string, targetId: string) => post<Item>(`/admin/items/${sourceId}/merge`, { target_id: targetId }),
     refreshIGDB: (id: string) => post<ScrapeJob>(`/admin/items/${id}/igdb`),
+    imageCandidates: (id: string) => get<ImageCandidates>(`/admin/items/${id}/images`),
+    importCover: (id: string, url: string) => post<{ cover_url: string }>(`/admin/items/${id}/cover/import`, { url }),
     refreshPrice: (id: string) => post<ScrapeJob>('/scrape', { triggered_by: 'admin', item_ids: [id] }),
     syncEvents: (filter: { source?: string; action?: string; item_id?: string; limit?: number } = {}) =>
       get<SyncEvent[]>(`/admin/sync-events${query(filter)}`),
