@@ -99,6 +99,8 @@ export const api = {
     remove: (id: string) => del(`/admin/items/${id}`),
     merge: (sourceId: string, targetId: string) => post<Item>(`/admin/items/${sourceId}/merge`, { target_id: targetId }),
     refreshIGDB: (id: string) => post<ScrapeJob>(`/admin/items/${id}/igdb`),
+    /** Applies the free console photos now (otherwise hourly). */
+    consolePhotos: () => post<{ updated: number; failed: number; unmatched: number }>('/admin/console-photos'),
     imageCandidates: (id: string) => get<ImageCandidates>(`/admin/items/${id}/images`),
     importCover: (id: string, url: string) => post<{ cover_url: string }>(`/admin/items/${id}/cover/import`, { url }),
     refreshPrice: (id: string) => post<ScrapeJob>('/scrape', { triggered_by: 'admin', item_ids: [id] }),

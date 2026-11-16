@@ -81,7 +81,8 @@ func existingCover(uploadDir, name string) (string, bool) {
 
 // allowedHosts are the image hosts covers may be imported from. Anything else is
 // refused, so the import cannot be used to reach internal services.
-var allowedHosts = []string{"i.ebayimg.com", "images.igdb.com", "upload.wikimedia.org", "commons.wikimedia.org"}
+// Commons serves its renditions from thumb.wikimedia.org (Special:FilePath redirects there).
+var allowedHosts = []string{"i.ebayimg.com", "images.igdb.com", "upload.wikimedia.org", "thumb.wikimedia.org", "commons.wikimedia.org"}
 
 // AllowedURL reports whether raw is an https URL on an allowed image host.
 func AllowedURL(raw string) bool {

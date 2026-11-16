@@ -56,13 +56,22 @@ function ErrorDialog({ error, onClose }: { error: string; onClose: () => void })
 }
 
 /** eBay price scraping and IGDB enrichment runs, with manual triggers. */
+/** Summary of a console photo run, for the toast. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function consolePhotosMessage(res: { updated: number; failed: number; unmatched: number }): string {
+  const parts = [res.updated === 0 ? 'Aucune console à mettre à jour' : `${res.updated} console(s) mises à jour`]
+  if (res.failed > 0) parts.push(`${res.failed} échec(s) de téléchargement`)
+  if (res.unmatched > 0) parts.push(`${res.unmatched} sans photo libre (à choisir dans Données)`)
+  return parts.join(' · ')
+}
+
 export default function JobsPanel() {
   const toast = useToast()
   const [jobs, setJobs] = useState<ScrapeJob[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedError, setSelectedError] = useState<string | null>(null)
-  const [busy, setBusy] = useState<'igdb' | 'ebay' | null>(null)
+  const [busy, setBusy] = useState<'igdb' | 'ebay' | 'photos' | null>(null)
 
   function loadJobs() {
     return api.scrape
@@ -80,10 +89,13 @@ export default function JobsPanel() {
     return () => clearInterval(interval)
   }, [])
 
-  async function run(kind: 'igdb' | 'ebay') {
+  async function run(kind: 'igdb' | 'ebay' | 'photos') {
     setBusy(kind)
     try {
-      if (kind === 'igdb') {
+      if (kind === 'photos') {
+        const res = await api.admin.consolePhotos()
+        toast.push(consolePhotosMessage(res), res.failed > 0 ? 'error' : 'success')
+      } else if (kind === 'igdb') {
         const res = await api.items.syncIGDB()
         toast.push(res.message, 'success')
       } else {
@@ -105,6 +117,9 @@ export default function JobsPanel() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <p className="text-sm text-ink-muted">Actualisation automatique toutes les 5 secondes.</p>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="ghost" leftIcon="photo_camera" disabled={busy !== null} onClick={() => run('photos')}>
+            {busy === 'photos' ? 'Photos en cours…' : 'Photos des consoles'}
+          </Button>
           <Button variant="ghost" leftIcon="auto_awesome" disabled={busy !== null} onClick={() => run('igdb')}>
             {busy === 'igdb' ? 'Synchronisation…' : 'Enrichir via IGDB'}
           </Button>

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
@@ -25,12 +26,45 @@ type CoverImporter interface {
 	Import(ctx context.Context, name, rawURL string) (string, error)
 }
 
+// ConsolePhotoJob applies the free photos of console models (images.ConsolePhotos).
+type ConsolePhotoJob interface {
+	Run(ctx context.Context) (images.ConsolePhotosResult, error)
+}
+
 // ImagesHandler serves the cover suggestions of the back-office.
 type ImagesHandler struct {
-	items    store.ItemStore
-	sources  []ImageSource
-	importer CoverImporter
+	items         store.ItemStore
+	sources       []ImageSource
+	importer      CoverImporter
+	consolePhotos ConsolePhotoJob
 }
+
+// WithConsolePhotos enables POST /admin/console-photos.
+func (h *ImagesHandler) WithConsolePhotos(job ConsolePhotoJob) *ImagesHandler {
+	h.consolePhotos = job
+	return h
+}
+
+// RunConsolePhotos handles POST /api/v1/admin/console-photos — applies the console photos
+// now instead of waiting for the hourly run, and returns what changed.
+func (h *ImagesHandler) RunConsolePhotos(w http.ResponseWriter, r *http.Request) {
+	if h.consolePhotos == nil {
+		http.Error(w, "console photos not configured", http.StatusNotImplemented)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), consolePhotosTimeout)
+	defer cancel()
+	res, err := h.consolePhotos.Run(ctx)
+	if err != nil {
+		slog.Error("console photos", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+// consolePhotosTimeout bounds a manual run (a few dozen downloads at most).
+const consolePhotosTimeout = 2 * time.Minute
 
 // NewImagesHandler creates an ImagesHandler.
 func NewImagesHandler(items store.ItemStore, importer CoverImporter, sources ...ImageSource) *ImagesHandler {
