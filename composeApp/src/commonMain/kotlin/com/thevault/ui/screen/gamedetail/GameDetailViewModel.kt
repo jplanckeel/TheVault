@@ -14,6 +14,7 @@ import com.thevault.domain.usecase.ObserveGamesUseCase
 import com.thevault.domain.usecase.ObservePriceSnapshotsUseCase
 import com.thevault.domain.usecase.ObserveQuotesUseCase
 import com.thevault.domain.usecase.SaveGameUseCase
+import com.thevault.ui.screen.collection.ItemPhotos
 import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.screen.collection.effectiveValue
 import com.thevault.ui.screen.collection.localHistory
@@ -39,6 +40,7 @@ import kotlinx.coroutines.launch
  * @property usPrice Indicative US price of the import for the game's completeness.
  * @property grade Grade shown in the « Cote eBay » section.
  * @property history Price history, oldest first.
+ * @property photo URI of the user's photo of the copy, shown instead of the cover.
  */
 data class GameDetailUiState(
     val game: Game? = null,
@@ -50,12 +52,14 @@ data class GameDetailUiState(
     val usPrice: Double? = null,
     val grade: PriceGrade = PriceGrade.CIB,
     val history: List<PricePoint> = emptyList(),
+    val photo: String? = null,
 ) {
     /** Quote of [grade], null when unknown. */
     val gradeQuote: PriceQuote? get() = quotes.find { it.grade == grade }
 }
 
 /** ViewModel of the game detail. */
+@Suppress("LongParameterList")
 class GameDetailViewModel(
     observeGames: ObserveGamesUseCase,
     observeQuotes: ObserveQuotesUseCase,
@@ -63,6 +67,7 @@ class GameDetailViewModel(
     private val getHistory: GetPriceHistoryUseCase,
     private val deleteGame: DeleteGameUseCase,
     private val saveGame: SaveGameUseCase,
+    private val photos: ItemPhotos,
 ) : ViewModel() {
     private val id = MutableStateFlow<String?>(null)
     private val grade = MutableStateFlow<PriceGrade?>(null)
@@ -90,6 +95,7 @@ class GameDetailViewModel(
             )
         }.combine(history) { s, remote -> s.copy(history = mergeHistory(remote, s.history)) }
             .combine(deleted) { s, d -> s.copy(isDeleted = d) }
+            .combine(photos.observe()) { s, p -> s.copy(photo = s.game?.id?.let(p::get)) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GameDetailUiState())
 
     /** Shows the game [gameId] and loads its price history. */
@@ -110,10 +116,23 @@ class GameDetailViewModel(
         viewModelScope.launch { saveGame(game.copy(status = status)) }
     }
 
+    /** Makes [uri] the photo of the game. */
+    fun setPhoto(uri: String) {
+        val gameId = id.value ?: return
+        viewModelScope.launch { photos.set(gameId, uri) }
+    }
+
+    /** Removes the photo of the game: the catalogue cover is shown again. */
+    fun removePhoto() {
+        val gameId = id.value ?: return
+        viewModelScope.launch { photos.remove(gameId) }
+    }
+
     /** Deletes the game. */
     fun delete() {
         val gameId = id.value ?: return
         viewModelScope.launch {
+            photos.remove(gameId)
             deleteGame(gameId)
             deleted.value = true
         }

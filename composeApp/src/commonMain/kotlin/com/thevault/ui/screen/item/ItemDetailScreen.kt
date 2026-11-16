@@ -37,9 +37,11 @@ import com.thevault.ui.component.StatusDialog
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.label
 import com.thevault.ui.component.needsDetails
+import com.thevault.ui.component.photoMenuEntries
 import com.thevault.ui.screen.collection.CollectionEntry
 import com.thevault.ui.screen.collection.ItemActions
 import com.thevault.ui.screen.collection.ItemKind
+import com.thevault.ui.screen.collection.ItemPhotos
 import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.screen.collection.VaultEntriesSource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,6 +69,7 @@ data class ItemDetailUiState(
 class ItemDetailViewModel(
     source: VaultEntriesSource,
     private val actions: ItemActions,
+    private val photos: ItemPhotos,
 ) : ViewModel() {
     private val target = MutableStateFlow<Pair<ItemKind, String>?>(null)
     private val grade = MutableStateFlow<PriceGrade?>(null)
@@ -98,10 +101,23 @@ class ItemDetailViewModel(
         viewModelScope.launch { actions.setStatus(kind, id, status) }
     }
 
+    /** Makes [uri] the photo of the item. */
+    fun setPhoto(uri: String) {
+        val (_, id) = target.value ?: return
+        viewModelScope.launch { photos.set(id, uri) }
+    }
+
+    /** Removes the photo of the item: the catalogue cover is shown again. */
+    fun removePhoto() {
+        val (_, id) = target.value ?: return
+        viewModelScope.launch { photos.remove(id) }
+    }
+
     /** Deletes the item. */
     fun delete() {
         val (kind, id) = target.value ?: return
         viewModelScope.launch {
+            photos.remove(id)
             actions.delete(kind, id)
             deleted.value = true
         }
@@ -135,6 +151,7 @@ fun ItemDetailScreen(
     var statusDialog by remember { mutableStateOf(false) }
     var deleteDialog by remember { mutableStateOf(false) }
     val entry = state.entry ?: return LoadingBox()
+    val photoMenu = photoMenuEntries(entry.hasPhoto, viewModel::setPhoto, viewModel::removePhoto)
     if (statusDialog) {
         StatusDialog(entry.status, {
             viewModel.setStatus(it)
@@ -163,8 +180,7 @@ fun ItemDetailScreen(
                 listOf(
                     MenuEntry("Modifier", onClick = onEdit),
                     MenuEntry("Changer le statut", onClick = { statusDialog = true }),
-                    MenuEntry("Supprimer", destructive = true, onClick = { deleteDialog = true }),
-                ),
+                ) + photoMenu + MenuEntry("Supprimer", destructive = true, onClick = { deleteDialog = true }),
         )
         val credits = listOf(entry.manufacturer.label, entry.subtype).filter { it.isNotBlank() && it != "Autres" }.joinToString(" · ")
         DetailHeader(entry.title, entry.platform, entry.region, entry.details.regionVariant, entry.coverUrl, credits, fromIgdb = false)

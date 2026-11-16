@@ -39,6 +39,7 @@ import com.thevault.ui.component.StatusDialog
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.label
 import com.thevault.ui.component.needsDetails
+import com.thevault.ui.component.photoMenuEntries
 import com.thevault.ui.screen.collection.ValueSource
 import com.thevault.ui.theme.Vault
 import org.koin.compose.viewmodel.koinViewModel
@@ -70,6 +71,7 @@ fun GameDetailScreen(
         return
     }
     DetailDialogs(dialog, game, viewModel, onEdit) { dialog = null }
+    val photoMenu = photoMenuEntries(state.photo != null, viewModel::setPhoto, viewModel::removePhoto)
     Column(
         Modifier
             .fillMaxSize()
@@ -85,17 +87,16 @@ fun GameDetailScreen(
                 listOf(
                     MenuEntry("Modifier la fiche", onClick = onEdit),
                     MenuEntry("Changer le statut", onClick = { dialog = DetailDialog.Status }),
-                    MenuEntry("Supprimer", destructive = true, onClick = { dialog = DetailDialog.Delete }),
-                ),
+                ) + photoMenu + MenuEntry("Supprimer", destructive = true, onClick = { dialog = DetailDialog.Delete }),
         )
         DetailHeader(
             game.title,
             game.platform,
             game.region,
             game.details.regionVariant,
-            game.coverUrl,
+            state.photo ?: game.coverUrl,
             credits(game),
-            fromIgdb = game.coverUrl != null,
+            fromIgdb = state.photo == null && game.coverUrl != null,
         )
         CopyPanel(
             game.details,
