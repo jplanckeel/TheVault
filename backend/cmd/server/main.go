@@ -14,6 +14,7 @@ import (
 	"github.com/jplanckeel/thevaultbo/internal/api"
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
 	"github.com/jplanckeel/thevaultbo/internal/igdb"
+	"github.com/jplanckeel/thevaultbo/internal/images"
 	"github.com/jplanckeel/thevaultbo/internal/scheduler"
 	"github.com/jplanckeel/thevaultbo/internal/scraper"
 	"github.com/jplanckeel/thevaultbo/internal/store"
@@ -102,7 +103,13 @@ func main() {
 		uploadDir = "./uploads"
 	}
 	router := api.NewRouter(items, prices, jobs, settings, users, collections, store.NewVaultStore(pool), items, events, adminEmails,
-		ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir)
+		ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir,
+		igdbClient, scraper.NewEbayImages(settings, opts...))
+
+	// Consoles: a free-licence photo of the model instead of the IGDB logo, at startup
+	// and after each IGDB run (new consoles get the logo first).
+	consolePhotos := images.NewConsolePhotos(items, uploadDir)
+	go runConsolePhotos(consolePhotos, time.Hour)
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%s", port),
@@ -144,4 +151,17 @@ func atoiOr(s string, def int) int {
 		return def
 	}
 	return n
+}
+
+// runConsolePhotos applies the console photos now, then every interval.
+func runConsolePhotos(job *images.ConsolePhotos, interval time.Duration) {
+	for {
+		n, err := job.Run(context.Background())
+		if err != nil {
+			slog.Error("console photos", "err", err)
+		} else if n > 0 {
+			slog.Info("console photos applied", "updated", n)
+		}
+		time.Sleep(interval)
+	}
 }

@@ -131,3 +131,15 @@ type CatalogEntry struct {
 	AdminEdited bool      `json:"admin_edited"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+// ImageCandidate is an image the back-office can pick as an item cover.
+type ImageCandidate struct {
+	// URL of the image (an allowed host: eBay, IGDB or Wikimedia Commons).
+	URL string `json:"url"`
+	// Source is "ebay", "igdb" or "commons".
+	Source string `json:"source"`
+	// Label describes the image (listing title, IGDB game or edition name…).
+	Label string `json:"label"`
+	// PageURL links to the page the image comes from (listing, Commons file page).
+	PageURL string `json:"page_url,omitempty"`
+}

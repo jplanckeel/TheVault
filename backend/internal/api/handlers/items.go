@@ -6,11 +6,10 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
+	"github.com/jplanckeel/thevaultbo/internal/images"
 	"github.com/jplanckeel/thevaultbo/internal/store"
 )
 
@@ -180,10 +179,7 @@ func (h *ItemsHandler) UpdateCover(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"cover_url": body.CoverURL})
 }
 
-// allowedCoverTypes maps sniffed MIME types to the extension used on disk.
-var allowedCoverTypes = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
-
-const maxCoverBytes = 8 << 20
+const maxCoverBytes = images.MaxCoverBytes
 
 // maxMultipartOverhead leaves room for the multipart boundaries and headers.
 const maxMultipartOverhead = 64 << 10
@@ -230,36 +226,15 @@ func (h *ItemsHandler) UploadCover(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "file too large", http.StatusRequestEntityTooLarge)
 		return
 	}
-	ext, ok := allowedCoverTypes[http.DetectContentType(data)]
-	if !ok {
-		http.Error(w, "unsupported file type (jpeg, png or webp)", http.StatusBadRequest)
+	coverURL, err := images.SaveCover(h.uploadDir, id, data)
+	switch {
+	case errors.Is(err, images.ErrUnsupportedType):
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
-
-	coversDir := filepath.Join(h.uploadDir, "covers")
-	if err := os.MkdirAll(coversDir, 0o750); err != nil {
+	case err != nil:
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	// Writes are confined to the covers directory, whatever the file name.
-	root, err := os.OpenRoot(coversDir)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	defer root.Close()
-	// Remove a previous cover with another extension so it is not left behind.
-	for _, other := range allowedCoverTypes {
-		if other != ext {
-			_ = root.Remove(id + other)
-		}
-	}
-	if err := root.WriteFile(id+ext, data, 0o600); err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	coverURL := "/covers/" + id + ext
 	if err := h.items.UpdateCoverURL(r.Context(), id, coverURL); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

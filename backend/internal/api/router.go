@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
 	"github.com/jplanckeel/thevaultbo/internal/igdb"
+	"github.com/jplanckeel/thevaultbo/internal/images"
 	"github.com/jplanckeel/thevaultbo/internal/store"
 )
 
@@ -36,6 +37,7 @@ func NewRouter(
 	igdbClient *igdb.Client,
 	staticDir string,
 	uploadDir string,
+	imageSources ...handlers.ImageSource,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -53,6 +55,7 @@ func NewRouter(
 	authLimit := NewRateLimiter(10, time.Minute)    // login / register: slows brute force
 	searchLimit := NewRateLimiter(60, time.Minute)  // IGDB proxy: protects our IGDB quota
 	writeLimit := NewRateLimiter(1000, time.Minute) // catalogue upserts: allows a full CSV import
+	imageLimit := NewRateLimiter(30, time.Minute)   // cover suggestions: each one calls eBay and IGDB
 	priceLimit := NewRateLimiter(120, time.Minute)  // quotes and price history read by the apps
 
 	ih := handlers.NewItemsHandler(items, prices, uploadDir).WithSyncEvents(events)
@@ -68,6 +71,7 @@ func NewRouter(
 		igdbSyncer = igdbRunner
 	}
 	adm := handlers.NewAdminHandler(items, adminItems, events, jobs, igdbSyncer)
+	imgs := handlers.NewImagesHandler(items, images.NewImporter(uploadDir), imageSources...)
 	uch := handlers.NewUserCollectionHandler(collections)
 	vh := handlers.NewVaultHandler(vaults)
 	shareLimit := NewRateLimiter(60, time.Minute) // public share pages
@@ -148,6 +152,8 @@ func NewRouter(
 					r.Delete("/items/{id}", adm.DeleteItem)
 					r.Post("/items/{id}/merge", adm.MergeItem)
 					r.Post("/items/{id}/igdb", adm.RefreshIGDB)
+					r.With(imageLimit.Middleware).Get("/items/{id}/images", imgs.Candidates)
+					r.With(imageLimit.Middleware).Post("/items/{id}/cover/import", imgs.ImportCover)
 					r.Get("/sync-events", adm.ListSyncEvents)
 					r.Get("/sync-summary", adm.SyncSummary)
 				})

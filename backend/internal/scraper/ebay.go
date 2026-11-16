@@ -221,6 +221,10 @@ type ebayItemSummary struct {
 		Currency string `json:"currency"`
 	} `json:"price"`
 	Condition string `json:"condition"`
+	Image     struct {
+		ImageURL string `json:"imageUrl"`
+	} `json:"image"`
+	ItemWebURL string `json:"itemWebUrl"`
 }
 
 // marketplace is an eBay site queried for PAL prices, with the rate converting its
