@@ -21,8 +21,8 @@ interface Props {
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl bg-vault-surface-low border border-vault-outline-variant/30 p-5">
-      <h3 className="text-label-bold text-vault-primary mb-4">{title}</h3>
+    <section className="rounded-lg bg-panel border border-line/30 p-5">
+      <h3 className="tv-engrave text-indigo-ink mb-4">{title}</h3>
       {children}
     </section>
   )
@@ -60,18 +60,18 @@ export default function ItemDrawer({ item, all, onClose, onChanged }: Props) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onClick={onClose} role="dialog" aria-modal aria-label={`Corriger ${item.title}`}>
       <aside
-        className="h-full w-full max-w-2xl overflow-y-auto bg-vault-bg border-l border-vault-outline-variant/30 p-4 md:p-6 space-y-4 animate-fade-in-up"
+        className="h-full w-full max-w-2xl overflow-y-auto bg-shell border-l border-line/30 p-4 md:p-6 space-y-4 tv-enter"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-start gap-4">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="group relative focus-ring rounded-lg"
+            className="group relative focus-ring rounded-md"
             title="Importer une jaquette"
           >
-            <ItemThumb item={item} className="h-28 w-20 rounded-lg" />
-            <span className="absolute inset-0 hidden group-hover:flex items-center justify-center rounded-lg bg-black/60 text-xs font-semibold text-vault-on-surface">
+            <ItemThumb item={item} className="h-28 w-20 rounded-md" />
+            <span className="absolute inset-0 hidden group-hover:flex items-center justify-center rounded-md bg-black/60 text-xs font-semibold text-ink">
               Changer
             </span>
           </button>
@@ -87,12 +87,12 @@ export default function ItemDrawer({ item, all, onClose, onChanged }: Props) {
             }}
           />
           <div className="min-w-0 flex-1">
-            <h2 className="text-headline-md text-vault-on-surface">{item.title}</h2>
-            <p className="text-xs text-vault-on-surface-variant font-mono truncate">{item.external_id}</p>
+            <h2 className="tv-section text-ink">{item.title}</h2>
+            <p className="text-xs text-ink-muted font-mono truncate">{item.external_id}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              <Chip size="sm" tone="primary">{TYPE_LABEL[item.type]}</Chip>
-              {item.admin_edited && <Chip size="sm" tone="secondary" icon="lock">Corrigé · protégé des synchros</Chip>}
-              <Chip size="sm">{item.owners} propriétaire(s)</Chip>
+              <Chip tone="primary">{TYPE_LABEL[item.type]}</Chip>
+              {item.admin_edited && <Chip tone="primary" icon="lock">Corrigé · protégé des synchros</Chip>}
+              <Chip>{item.owners} propriétaire(s)</Chip>
             </div>
           </div>
           <IconButton icon="close" aria-label="Fermer" onClick={onClose} />
@@ -100,7 +100,7 @@ export default function ItemDrawer({ item, all, onClose, onChanged }: Props) {
 
         <Block title="À corriger">
           {issues.length === 0 ? (
-            <p className="text-sm text-vault-success">Aucun problème détecté.</p>
+            <p className="text-sm text-gain">Aucun problème détecté.</p>
           ) : (
             <div className="flex flex-wrap gap-2 mb-4">
               {issues.map((i) => (
@@ -110,16 +110,16 @@ export default function ItemDrawer({ item, all, onClose, onChanged }: Props) {
           )}
           <div className="flex flex-wrap gap-2">
             {item.type === 'game' && (
-              <Button size="sm" variant="subtle" leftIcon="auto_awesome" disabled={busy !== null}
+              <Button size="sm" variant="secondary" leftIcon="auto_awesome" disabled={busy !== null}
                 onClick={() => run('igdb', () => api.admin.refreshIGDB(item.id), 'Enrichissement IGDB lancé')}>
                 Relancer IGDB
               </Button>
             )}
-            <Button size="sm" variant="subtle" leftIcon="sell" disabled={busy !== null}
+            <Button size="sm" variant="secondary" leftIcon="sell" disabled={busy !== null}
               onClick={() => run('price', () => api.admin.refreshPrice(item.id), 'Scraping du prix lancé')}>
               Rafraîchir le prix
             </Button>
-            <Button size="sm" variant="subtle" leftIcon="image" disabled={busy !== null} onClick={() => fileRef.current?.click()}>
+            <Button size="sm" variant="secondary" leftIcon="image" disabled={busy !== null} onClick={() => fileRef.current?.click()}>
               Importer une jaquette
             </Button>
           </div>
@@ -137,9 +137,9 @@ export default function ItemDrawer({ item, all, onClose, onChanged }: Props) {
           <ItemHistory itemId={item.id} refreshKey={historyKey} />
         </Block>
 
-        <section className="rounded-2xl border border-vault-error/30 p-5">
-          <h3 className="text-label-bold text-vault-error mb-2">Zone dangereuse</h3>
-          <p className="text-sm text-vault-on-surface-variant mb-4">
+        <section className="rounded-lg border border-led-power/30 p-5">
+          <h3 className="tv-engrave text-loss mb-2">Zone dangereuse</h3>
+          <p className="text-sm text-ink-muted mb-4">
             La suppression retire l'objet des collections ({item.owners}) et de l'historique des prix. Les prochaines synchros de cet objet seront refusées.
           </p>
           {confirmDelete ? (

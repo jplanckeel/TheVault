@@ -26,10 +26,10 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
   return (
     <div className="flex items-center gap-3 min-w-[140px]">
-      <div className="flex-1 h-1.5 rounded-full bg-vault-surface-high overflow-hidden">
-        <div className="h-full rounded-full bg-vault-primary transition-all" style={{ width: `${pct}%` }} />
+      <div className="flex-1 h-1.5 rounded-full bg-well overflow-hidden">
+        <div className="h-full rounded-full bg-indigo transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs text-vault-on-surface-variant tabular-nums whitespace-nowrap">
+      <span className="text-xs text-ink-muted tabular-nums whitespace-nowrap">
         {done}/{total}
       </span>
     </div>
@@ -39,14 +39,14 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
 function ErrorDialog({ error, onClose }: { error: string; onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onClick={onClose} role="dialog" aria-modal>
-      <Card padding="lg" radius="2xl" className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+      <Card padding="lg" className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <p className="text-label-bold text-vault-error">Détail de l'erreur</p>
-          <Button variant="subtle" size="sm" onClick={onClose}>
+          <p className="tv-engrave text-loss">Détail de l'erreur</p>
+          <Button variant="secondary" size="sm" onClick={onClose}>
             Fermer
           </Button>
         </div>
-        <pre className="text-xs text-vault-error whitespace-pre-wrap break-all font-mono bg-vault-surface rounded-lg p-4 max-h-72 overflow-y-auto">
+        <pre className="text-xs text-loss whitespace-pre-wrap break-all font-mono bg-panel rounded-md p-4 max-h-72 overflow-y-auto">
           {error}
         </pre>
       </Card>
@@ -103,7 +103,7 @@ export default function JobsPanel() {
       {selectedError && <ErrorDialog error={selectedError} onClose={() => setSelectedError(null)} />}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <p className="text-sm text-vault-on-surface-variant">Actualisation automatique toutes les 5 secondes.</p>
+        <p className="text-sm text-ink-muted">Actualisation automatique toutes les 5 secondes.</p>
         <div className="flex gap-2 flex-wrap">
           <Button variant="ghost" leftIcon="auto_awesome" disabled={busy !== null} onClick={() => run('igdb')}>
             {busy === 'igdb' ? 'Synchronisation…' : 'Enrichir via IGDB'}
@@ -121,12 +121,12 @@ export default function JobsPanel() {
       ) : jobs.length === 0 ? (
         <EmptyState icon="sync" title="Aucune synchronisation" description="Lancez un enrichissement IGDB ou un scraping eBay." />
       ) : (
-        <Card padding="none" radius="2xl" className="overflow-x-auto">
+        <Card padding="none" className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-vault-outline-variant/30">
+              <tr className="border-b border-line/30">
                 {['Démarré', 'Type', 'Déclenché par', 'Statut', 'Progression', 'Erreur'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-label-bold text-vault-on-surface-variant">
+                  <th key={h} className="text-left px-4 py-3 tv-engrave text-ink-muted">
                     {h}
                   </th>
                 ))}
@@ -137,16 +137,16 @@ export default function JobsPanel() {
                 const status = STATUS[job.status] ?? STATUS.pending
                 const type = JOB_TYPES[job.job_type] ?? { label: job.job_type, tone: 'neutral' as Tone }
                 return (
-                  <tr key={job.id} className="border-b border-vault-outline-variant/15 last:border-0 hover:bg-vault-surface-high/40">
-                    <td className="px-4 py-3 text-vault-on-surface-variant whitespace-nowrap" title={new Date(job.started_at).toLocaleString('fr-FR')}>
+                  <tr key={job.id} className="border-b border-line/15 last:border-0 hover:bg-well/40">
+                    <td className="px-4 py-3 text-ink-muted whitespace-nowrap" title={new Date(job.started_at).toLocaleString('fr-FR')}>
                       {formatRelative(job.started_at)}
                     </td>
                     <td className="px-4 py-3">
-                      <Chip tone={type.tone} size="sm">{type.label}</Chip>
+                      <Chip tone={type.tone}>{type.label}</Chip>
                     </td>
-                    <td className="px-4 py-3 text-vault-on-surface">{job.triggered_by}</td>
+                    <td className="px-4 py-3 text-ink">{job.triggered_by}</td>
                     <td className="px-4 py-3">
-                      <Chip tone={status.tone} size="sm" icon={status.icon} className={job.status === 'running' ? 'animate-pulse' : ''}>
+                      <Chip tone={status.tone} icon={status.icon} className={job.status === 'running' ? 'animate-pulse' : ''}>
                         {status.label}
                       </Chip>
                     </td>
@@ -157,7 +157,7 @@ export default function JobsPanel() {
                       {job.error && (
                         <button
                           onClick={() => setSelectedError(job.error ?? '')}
-                          className="text-xs text-vault-error truncate max-w-[220px] block text-left hover:underline focus-ring rounded"
+                          className="text-xs text-loss truncate max-w-[220px] block text-left hover:underline focus-ring rounded"
                           title="Voir le détail"
                         >
                           {job.error}

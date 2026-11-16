@@ -1,68 +1,33 @@
-import type { InputHTMLAttributes } from 'react'
+import type { InputHTMLAttributes, ReactNode } from 'react'
 import { forwardRef, useId } from 'react'
 import MaterialIcon from './MaterialIcon'
 
 interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
-  /** Material symbol name shown on the left */
   leftIcon?: string
-  /** Right-side adornment (e.g. a clear button) */
-  rightAdornment?: React.ReactNode
-  /** Above-field label */
+  rightAdornment?: ReactNode
+  /** Engraved label above the field. */
   label?: string
-  /** Error message under field */
   error?: string
-  /** Larger input variant */
-  size?: 'md' | 'lg'
-  /** Glassmorphic background */
-  glass?: boolean
+  size?: 'sm' | 'md'
 }
 
-const SIZES = {
-  md: 'h-10 text-sm',
-  lg: 'h-12 text-base',
-}
-
-const Input = forwardRef<HTMLInputElement, Props>(function Input(
-  { leftIcon, rightAdornment, label, error, size = 'md', glass, className = '', id, ...rest },
-  ref,
-) {
-  const generatedId = useId()
-  const inputId = id || rest.name || generatedId
+/** Recessed field (`well`), as on mobile. */
+const Input = forwardRef<HTMLInputElement, Props>(function Input({ leftIcon, rightAdornment, label, error, size = 'md', className = '', id, ...rest }, ref) {
+  const generated = useId()
+  const inputId = id || generated
   return (
-    <div className="w-full">
+    <div className={`w-full ${className}`}>
       {label && (
-        <label
-          htmlFor={inputId}
-          className="text-label-bold text-vault-on-surface-variant mb-2 block"
-        >
+        <label htmlFor={inputId} className="tv-engrave tv-label">
           {label}
         </label>
       )}
-      <div
-        className={[
-          'flex items-center rounded-lg transition-colors',
-          glass
-            ? 'glass border border-vault-outline-variant/40'
-            : 'bg-vault-surface-low border border-vault-outline-variant/40',
-          'focus-within:border-vault-primary focus-within:ring-2 focus-within:ring-vault-primary/30',
-          SIZES[size],
-          className,
-        ].join(' ')}
-      >
-        {leftIcon && (
-          <span className="pl-3 text-vault-on-surface-variant">
-            <MaterialIcon name={leftIcon} size={size === 'lg' ? 20 : 18} />
-          </span>
-        )}
-        <input
-          id={inputId}
-          ref={ref}
-          className="flex-1 bg-transparent border-0 outline-none px-3 py-2 text-vault-on-surface placeholder:text-vault-on-surface-variant/60"
-          {...rest}
-        />
-        {rightAdornment && <div className="pr-2 flex items-center">{rightAdornment}</div>}
+      <div className={`tv-field ${size === 'sm' ? 'tv-field-sm' : ''} ${error ? 'tv-field-error' : ''}`}>
+        {leftIcon && <MaterialIcon name={leftIcon} size={20} />}
+        <input id={inputId} ref={ref} aria-invalid={error ? true : undefined} {...rest} />
+        {rightAdornment}
       </div>
-      {error && <p className="text-xs text-vault-error mt-1.5">{error}</p>}
+      {error && <p className="mt-1.5 text-[13px] text-loss">{error}</p>}
     </div>
   )
 })

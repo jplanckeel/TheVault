@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { CollectionCard, EmptyState, Logo, Skeleton, SourceBadge } from '../components/ui'
+import { formatEuro } from '../lib/format'
+import type { Condition } from '../lib/condition'
 
 /** One shared item (the backend never sends notes, purchase prices or storage places). */
 interface SharedItem {
@@ -21,9 +24,7 @@ interface PublicView {
   items: SharedItem[]
 }
 
-const euro = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-
-const COMPLETENESS: Record<string, string> = { LOOSE: 'Loose', CIB: 'Complet', NEW: 'Neuf' }
+const COMPLETENESS: Record<string, Condition> = { LOOSE: 'loose', CIB: 'cib', NEW: 'new' }
 
 /** Read-only public page of a shared collection or wishlist (no account needed). */
 export default function SharePage() {
@@ -38,48 +39,46 @@ export default function SharePage() {
       .catch(() => setError(true))
   }, [token])
 
-  if (error) {
-    return (
-      <main className="min-h-screen bg-vault-surface text-vault-on-surface flex items-center justify-center p-6">
-        <p className="text-base">Ce lien n'existe pas ou a été révoqué.</p>
-      </main>
-    )
-  }
-  if (!view) {
-    return <main className="min-h-screen bg-vault-surface" aria-busy="true" />
-  }
-
-  const heading = view.title || (view.scope === 'wishlist' ? 'Liste d’envies' : 'Collection')
   return (
-    <main className="min-h-screen bg-vault-surface text-vault-on-surface px-4 py-8 sm:px-8">
-      <header className="max-w-6xl mx-auto mb-8">
-        <p className="text-label-bold uppercase tracking-widest text-vault-on-surface-variant">TheVault · partage en lecture seule</p>
-        <h1 className="text-headline-md mt-2">{heading}</h1>
-        <p className="text-sm text-vault-on-surface-variant mt-2">
-          {view.count} objets
-          {view.total != null && <> · {euro(view.total)}</>}
-          {' · '}mis à jour le {new Date(view.updated_at).toLocaleDateString('fr-FR')}
-        </p>
-      </header>
-      <ul className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-        {view.items.map((item, i) => (
-          <li key={`${item.title}-${item.platform}-${i}`} className="flex flex-col gap-2">
-            <div className="aspect-[3/4] rounded-lg overflow-hidden bg-vault-surface-high">
-              {item.coverUrl ? (
-                <img src={item.coverUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-end p-2 text-sm font-bold">{item.title}</div>
-              )}
-            </div>
-            <p className="text-sm font-semibold leading-tight line-clamp-2">{item.title}</p>
-            <p className="text-xs text-vault-on-surface-variant">
-              {item.platform}
-              {item.completeness && <> · {COMPLETENESS[item.completeness] ?? item.completeness}</>}
-              {item.value != null && <> · {euro(item.value)}</>}
-            </p>
-          </li>
-        ))}
-      </ul>
+    <main className="min-h-screen bg-shell text-ink px-4 py-8 sm:px-8">
+      <div className="max-w-6xl mx-auto flex flex-col gap-8">
+        <Logo size={30} />
+        {error ? (
+          <EmptyState title="Lien introuvable" description="Ce lien n'existe pas ou a été révoqué par son propriétaire." />
+        ) : !view ? (
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-3" aria-busy="true">
+            {Array.from({ length: 14 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[3/4] rounded-sm" />
+            ))}
+          </div>
+        ) : (
+          <>
+            <header className="flex flex-col gap-2">
+              <span className="tv-engrave">Partage en lecture seule · {view.scope === 'wishlist' ? 'Envies' : 'Collection'}</span>
+              <h1 className="tv-title">{view.title || (view.scope === 'wishlist' ? 'Liste d’envies' : 'Collection')}</h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="tv-price text-[15px]">
+                  {view.count.toLocaleString('fr-FR')} objets{view.total != null ? ` · ${formatEuro(view.total)}` : ''}
+                </span>
+                <SourceBadge updated={new Date(view.updated_at).toLocaleDateString('fr-FR')}>Mis à jour</SourceBadge>
+              </div>
+            </header>
+            <ul className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-x-3 gap-y-5">
+              {view.items.map((item, i) => (
+                <li key={`${item.title}-${item.platform}-${i}`}>
+                  <CollectionCard
+                    title={item.title}
+                    platform={item.platform}
+                    src={item.coverUrl || undefined}
+                    condition={item.completeness ? COMPLETENESS[item.completeness] ?? null : null}
+                    value={item.value != null ? formatEuro(item.value) : view.total == null ? '' : '—'}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
     </main>
   )
 }

@@ -1,62 +1,33 @@
 import type { SelectHTMLAttributes } from 'react'
 import { forwardRef, useId } from 'react'
-
-interface Option {
-  value: string
-  label: string
-}
+import MaterialIcon from './MaterialIcon'
 
 interface Props extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
-  options: Option[]
+  options: { value: string; label: string }[]
   label?: string
-  size?: 'md' | 'lg'
+  size?: 'sm' | 'md'
 }
 
-const SIZES = {
-  md: 'h-10 text-sm',
-  lg: 'h-12 text-base',
-}
-
-const Select = forwardRef<HTMLSelectElement, Props>(function Select(
-  { options, label, size = 'md', className = '', id, ...rest },
-  ref,
-) {
-  const generatedId = useId()
-  const selectId = id || rest.name || generatedId
+/** Native select in a recessed field. */
+const Select = forwardRef<HTMLSelectElement, Props>(function Select({ options, label, size = 'md', className = '', id, ...rest }, ref) {
+  const generated = useId()
+  const selectId = id || generated
   return (
-    <div className="w-full">
+    <div className={`w-full ${className}`}>
       {label && (
-        <label
-          htmlFor={selectId}
-          className="text-label-bold text-vault-on-surface-variant mb-2 block"
-        >
+        <label htmlFor={selectId} className="tv-engrave tv-label">
           {label}
         </label>
       )}
-      <div
-        className={[
-          'relative flex items-center rounded-lg transition-colors',
-          'bg-vault-surface-low border border-vault-outline-variant/40',
-          'focus-within:border-vault-primary focus-within:ring-2 focus-within:ring-vault-primary/30',
-          SIZES[size],
-          className,
-        ].join(' ')}
-      >
-        <select
-          ref={ref}
-          id={selectId}
-          className="appearance-none bg-transparent w-full px-3 py-2 pr-9 text-vault-on-surface outline-none cursor-pointer"
-          {...rest}
-        >
+      <div className={`tv-field relative ${size === 'sm' ? 'tv-field-sm' : ''}`}>
+        <select ref={ref} id={selectId} className="pr-6" {...rest}>
           {options.map((o) => (
-            <option key={o.value} value={o.value} className="bg-vault-surface-low">
+            <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
         </select>
-        <span className="material-symbols-outlined absolute right-2 pointer-events-none text-vault-on-surface-variant" style={{ fontSize: 18 }}>
-          expand_more
-        </span>
+        <MaterialIcon name="expand_more" size={20} className="absolute right-3 pointer-events-none" />
       </div>
     </div>
   )

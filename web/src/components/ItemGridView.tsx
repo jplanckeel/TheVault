@@ -1,130 +1,176 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import type { Item } from '../types'
-import { EmptyState, FilterChip, GameCard, Input, Skeleton } from './ui'
+import { CollectionCard, EmptyState, FilterChip, Input, PageHeader, PlatformTile, Section, SegmentedControl, Skeleton } from './ui'
 import { buildCollectionView, ITEM_TYPES, SORT_MODES, type ItemType, type SortMode } from '../lib/collectionView'
 import { bestPrice, totalValue, type PriceMap } from '../lib/prices'
-import { formatEuro } from '../lib/format'
+import { formatEuro, formatEuroOrDash } from '../lib/format'
+import { parseCondition } from '../lib/condition'
 import { itemPath } from '../lib/routes'
 
 interface Props {
   title: string
+  eyebrow: string
   items: Item[]
   prices: PriceMap
   loading: boolean
   /** Empty state when the list itself is empty (not because of filters). */
-  empty: { icon: string; title: string; description: string; cta?: { label: string; icon?: string; onClick: () => void } }
-  /** Buttons shown on the right of the header. */
+  empty: { title: string; description: string; cta?: { label: string; icon?: string; onClick: () => void } }
   actions?: ReactNode
-  /** Shows the wishlist star instead of the condition badge. */
-  wishlist?: boolean
 }
+
+/** `?platform=*` shows every item of the type at once. */
+const ALL = '*'
 
 function parseType(value: string | null): ItemType {
   return ITEM_TYPES.some((t) => t.value === value) ? (value as ItemType) : 'game'
 }
 
+const UNIT: Record<ItemType, string> = { game: 'jeux', console: 'consoles', accessory: 'accessoires' }
+const UNIT_ONE: Record<ItemType, string> = { game: 'jeu', console: 'console', accessory: 'accessoire' }
+
 /**
- * Filterable grid shared by Collection, Wishlist and Explorer — same layout and
- * filters as the mobile Collection screen. The selected type lives in `?type=`.
+ * Collection, Envies and Explorer: type selector, then platform rows (as on mobile),
+ * then the cartridge grid of a platform. Type, platform and search live in the URL.
  */
-export default function ItemGridView({ title, items, prices, loading, empty, actions, wishlist }: Props) {
-  const navigate = useNavigate()
+export default function ItemGridView({ title, eyebrow, items, prices, loading, empty, actions }: Props) {
   const [params, setParams] = useSearchParams()
   const type = parseType(params.get('type'))
-  const [query, setQuery] = useState(params.get('q') ?? '')
-  const [platform, setPlatform] = useState<string | null>(null)
+  const platform = params.get('platform')
+  const query = params.get('q') ?? ''
   const [sort, setSort] = useState<SortMode>('recent')
-  // Header search navigates to `?q=` — keep the field in sync when already on the page.
-  const urlQuery = params.get('q')
-  const [syncedUrlQuery, setSyncedUrlQuery] = useState(urlQuery)
-  if (urlQuery !== syncedUrlQuery) {
-    setSyncedUrlQuery(urlQuery)
-    if (urlQuery !== null) setQuery(urlQuery)
-  }
 
   const view = useMemo(
-    () => buildCollectionView(items, { type, query, platform, sort }, prices),
+    () => buildCollectionView(items, { type, query, platform: platform && platform !== ALL ? platform : null, sort }, prices),
     [items, type, query, platform, sort, prices],
   )
 
-  function selectType(next: ItemType) {
-    setPlatform(null)
-    setParams((p) => {
-      p.set('type', next)
-      return p
-    })
+  function update(changes: Record<string, string | null>) {
+    setParams(
+      (p) => {
+        for (const [k, v] of Object.entries(changes)) {
+          if (v === null || v === '') p.delete(k)
+          else p.set(k, v)
+        }
+        return p
+      },
+      { replace: 'q' in changes },
+    )
   }
 
   if (loading) return <GridSkeleton />
 
-  const filtered = query.trim() !== '' || platform !== null
-  return (
-    <div className="space-y-6 animate-fade-in-up">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <h1 className="text-display-lg text-vault-on-surface">{title}</h1>
-          <p className="mt-1 text-vault-on-surface-variant tabular-nums">
-            {items.length.toLocaleString('fr-FR')} objets · {formatEuro(totalValue(items, prices))} estimés
-          </p>
-        </div>
-        {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
-      </header>
+  const total = totalValue(items, prices)
+  const header = (
+    <PageHeader
+      eyebrow={eyebrow}
+      title={title}
+      subtitle={
+        <span className="tv-price font-medium">
+          {items.length.toLocaleString('fr-FR')} objets{total > 0 ? ` · ${formatEuro(total)}` : ''}
+        </span>
+      }
+      actions={actions}
+    />
+  )
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {ITEM_TYPES.map((t) => (
-            <FilterChip key={t.value} label={t.label} count={view.countByType[t.value]} selected={type === t.value} onClick={() => selectType(t.value)} />
-          ))}
-        </div>
-        <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
-          <div className="w-full lg:max-w-md">
-            <Input
-            leftIcon="search"
-            placeholder={`Rechercher dans ${ITEM_TYPES.find((t) => t.value === type)?.label.toLowerCase()}…`}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2 overflow-x-auto shrink-0">
+  if (items.length === 0) {
+    return (
+      <div className="tv-enter">
+        {header}
+        <EmptyState title={empty.title} description={empty.description} cta={empty.cta} />
+      </div>
+    )
+  }
+
+  const showGrid = platform !== null || query.trim() !== ''
+  const unit = UNIT[type]
+  return (
+    <div className="tv-enter flex flex-col gap-5">
+      {header}
+      <SegmentedControl
+        label="Type d'objet"
+        options={ITEM_TYPES.map((t) => ({ value: t.value, label: `${t.label} · ${view.countByType[t.value]}` }))}
+        value={type}
+        onChange={(t) => update({ type: t, platform: null })}
+        className="md:max-w-xl"
+      />
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+        <Input
+          className="lg:max-w-md"
+          leftIcon="search"
+          placeholder={`Rechercher dans les ${ITEM_TYPES.find((t) => t.value === type)?.label.toLowerCase()}…`}
+          value={query}
+          onChange={(e) => update({ q: e.target.value })}
+          aria-label="Rechercher"
+        />
+        {showGrid && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-none p-1 -m-1">
             {SORT_MODES.map((s) => (
               <FilterChip key={s.value} label={s.label} selected={sort === s.value} onClick={() => setSort(s.value)} />
-            ))}
-          </div>
-        </div>
-        {view.platforms.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <FilterChip label="Toutes" selected={platform === null} onClick={() => setPlatform(null)} />
-            {view.platforms.map((p) => (
-              <FilterChip key={p} label={p} selected={platform === p} onClick={() => setPlatform(p)} />
             ))}
           </div>
         )}
       </div>
 
-      {view.items.length === 0 ? (
-        filtered ? (
-          <EmptyState
-            icon="filter_alt_off"
-            title="Aucun résultat"
-            description="Essayez une autre recherche ou plateforme."
-            cta={{ label: 'Réinitialiser', icon: 'restart_alt', onClick: () => { setQuery(''); setPlatform(null) } }}
-          />
-        ) : (
-          <EmptyState icon={empty.icon} title={empty.title} description={empty.description} cta={empty.cta} />
-        )
+      {!showGrid ? (
+        <Section
+          title="Plateformes"
+          action={
+            <button type="button" className="tv-link" onClick={() => update({ platform: ALL })}>
+              Tout afficher
+            </button>
+          }
+        >
+          {view.platformSummaries.length === 0 ? (
+            <EmptyState title={`Aucun objet de ce type`} description="Choisis un autre type ou ajoute un objet." />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {view.platformSummaries.map((p) => (
+                <PlatformTile
+                  key={p.platform}
+                  platform={p.platform}
+                  count={p.count}
+                  unit={p.count > 1 ? unit : UNIT_ONE[type]}
+                  value={p.value > 0 ? formatEuro(p.value) : undefined}
+                  onClick={() => update({ platform: p.platform })}
+                />
+              ))}
+            </div>
+          )}
+        </Section>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-          {view.items.map((item) => (
-            <GameCard
-              key={item.id}
-              item={item}
-              price={bestPrice(item, prices)}
-              wishlist={wishlist}
-              onClick={() => navigate(itemPath(item))}
+        <Section
+          title={platform && platform !== ALL ? platform : query.trim() ? `Résultats` : `Tous les ${unit}`}
+          description={`${view.items.length.toLocaleString('fr-FR')} ${unit}`}
+          action={
+            <button type="button" className="tv-link" onClick={() => update({ platform: null, q: null })}>
+              ← Plateformes
+            </button>
+          }
+        >
+          {view.items.length === 0 ? (
+            <EmptyState
+              title="Aucun résultat"
+              description="Essaie une autre recherche ou une autre plateforme."
+              cta={{ label: 'Réinitialiser', icon: 'restart_alt', onClick: () => update({ platform: null, q: null }) }}
             />
-          ))}
-        </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-5">
+              {view.items.map((item) => (
+                <CollectionCard
+                  key={item.id}
+                  to={itemPath(item)}
+                  title={item.title}
+                  platform={item.platform}
+                  src={item.cover_url || undefined}
+                  condition={parseCondition(item.condition)}
+                  value={formatEuroOrDash(bestPrice(item, prices))}
+                />
+              ))}
+            </div>
+          )}
+        </Section>
       )}
     </div>
   )
@@ -132,11 +178,12 @@ export default function ItemGridView({ title, items, prices, loading, empty, act
 
 function GridSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton variant="text" lines={2} className="max-w-md" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-[3/4]" />
+    <div className="flex flex-col gap-5">
+      <Skeleton variant="text" lines={2} className="max-w-xs" />
+      <Skeleton className="h-11 max-w-xl" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 rounded-lg" />
         ))}
       </div>
     </div>

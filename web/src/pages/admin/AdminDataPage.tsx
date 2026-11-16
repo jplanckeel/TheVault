@@ -17,11 +17,11 @@ const TYPES: { value: AdminFilters['type']; label: string }[] = [
 const TYPE_LABEL: Record<Item['type'], string> = { game: 'Jeu', console: 'Console', accessory: 'Accessoire' }
 
 function IssueChips({ issues }: { issues: ItemIssue[] }) {
-  if (issues.length === 0) return <Chip size="sm" tone="success" icon="check">OK</Chip>
+  if (issues.length === 0) return <Chip tone="success" icon="check">OK</Chip>
   return (
     <div className="flex flex-wrap gap-1">
       {ISSUE_ORDER.filter((i) => issues.includes(i)).map((i) => (
-        <Chip key={i} size="sm" tone={ISSUES[i].tone}>{ISSUES[i].label}</Chip>
+        <Chip key={i} tone={ISSUES[i].tone}>{ISSUES[i].label}</Chip>
       ))}
     </div>
   )
@@ -62,11 +62,11 @@ export default function AdminDataPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 tv-enter">
       <header>
-        <p className="text-label-bold text-vault-primary">Back-office</p>
-        <h1 className="text-display-lg text-vault-on-surface">Données</h1>
-        <p className="mt-1 text-vault-on-surface-variant tabular-nums">
+        <p className="tv-engrave text-indigo-ink">Back-office</p>
+        <h1 className="tv-title text-ink">Données</h1>
+        <p className="mt-1 text-ink-muted tabular-nums">
           {items.length.toLocaleString('fr-FR')} objets au catalogue · {toFix.toLocaleString('fr-FR')} à corriger
         </p>
       </header>
@@ -103,12 +103,12 @@ export default function AdminDataPage() {
         />
       ) : (
         <>
-          <div className="hidden md:block rounded-2xl bg-vault-surface-low border border-vault-outline-variant/30 overflow-x-auto">
+          <div className="hidden md:block rounded-lg bg-panel border border-line/30 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-vault-outline-variant/30">
+                <tr className="border-b border-line/30">
                   {['Objet', 'Type', 'Plateforme', 'Problèmes', 'Propriétaires', 'Mis à jour'].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-label-bold text-vault-on-surface-variant whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 tv-engrave text-ink-muted whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -119,25 +119,25 @@ export default function AdminDataPage() {
                     onClick={() => setSelectedId(item.id)}
                     onKeyDown={(e) => e.key === 'Enter' && setSelectedId(item.id)}
                     tabIndex={0}
-                    className="cursor-pointer border-b border-vault-outline-variant/15 last:border-0 hover:bg-vault-surface-high/40 focus:outline-none focus:bg-vault-surface-high/60"
+                    className="cursor-pointer border-b border-line/15 last:border-0 hover:bg-well/40 focus:outline-none focus:bg-well/60"
                   >
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3 min-w-0">
                         <ItemThumb item={item} />
                         <div className="min-w-0">
-                          <p className="font-semibold text-vault-on-surface truncate max-w-[320px]">
+                          <p className="font-semibold text-ink truncate max-w-[320px]">
                             {item.title}
-                            {item.admin_edited && <MaterialIcon name="lock" size={14} className="ml-1 text-vault-secondary" />}
+                            {item.admin_edited && <MaterialIcon name="lock" size={14} className="ml-1 text-indigo-ink" />}
                           </p>
-                          <p className="text-xs text-vault-on-surface-variant font-mono truncate max-w-[320px]">{item.external_id}</p>
+                          <p className="text-xs text-ink-muted font-mono truncate max-w-[320px]">{item.external_id}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-vault-on-surface-variant">{TYPE_LABEL[item.type]}</td>
-                    <td className="px-4 py-2.5 text-vault-on-surface">{item.platform || <span className="text-vault-warning">—</span>}</td>
+                    <td className="px-4 py-2.5 text-ink-muted">{TYPE_LABEL[item.type]}</td>
+                    <td className="px-4 py-2.5 text-ink">{item.platform || <span className="text-ink">—</span>}</td>
                     <td className="px-4 py-2.5"><IssueChips issues={item.issues} /></td>
-                    <td className="px-4 py-2.5 text-vault-on-surface-variant tabular-nums">{item.owners}</td>
-                    <td className="px-4 py-2.5 text-vault-on-surface-variant whitespace-nowrap">{formatRelative(item.updated_at)}</td>
+                    <td className="px-4 py-2.5 text-ink-muted tabular-nums">{item.owners}</td>
+                    <td className="px-4 py-2.5 text-ink-muted whitespace-nowrap">{formatRelative(item.updated_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -149,12 +149,12 @@ export default function AdminDataPage() {
               <li key={item.id}>
                 <button
                   onClick={() => setSelectedId(item.id)}
-                  className="w-full flex items-center gap-3 rounded-xl bg-vault-surface-low border border-vault-outline-variant/30 p-3 text-left focus-ring"
+                  className="w-full flex items-center gap-3 rounded-lg bg-panel border border-line/30 p-3 text-left focus-ring"
                 >
                   <ItemThumb item={item} />
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-sm font-semibold text-vault-on-surface truncate">{item.title}</p>
-                    <p className="text-xs text-vault-on-surface-variant truncate">{TYPE_LABEL[item.type]} · {item.platform || '—'}</p>
+                    <p className="text-sm font-semibold text-ink truncate">{item.title}</p>
+                    <p className="text-xs text-ink-muted truncate">{TYPE_LABEL[item.type]} · {item.platform || '—'}</p>
                     <IssueChips issues={item.issues} />
                   </div>
                 </button>

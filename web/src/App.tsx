@@ -4,8 +4,6 @@ import { AuthProvider, useAuth } from './AuthContext'
 import { ToastProvider } from './components/ui'
 import AppLayout from './components/layout/AppLayout'
 import CataloguePage from './pages/CataloguePage'
-import ConsoleDetailPage from './pages/ConsoleDetailPage'
-import AccessoryDetailPage from './pages/AccessoryDetailPage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import AdminDataPage from './pages/admin/AdminDataPage'
 import AdminSyncPage from './pages/admin/AdminSyncPage'
@@ -29,9 +27,8 @@ function RequireAdmin({ children }: { children: ReactNode }) {
   if (!isAdmin) {
     return (
       <EmptyState
-        icon="shield_lock"
         title="Accès réservé aux administrateurs"
-        description="Votre compte n'a pas le rôle admin. Il est attribué via la variable ADMIN_EMAILS du backend."
+        description="Ton compte n'a pas le rôle admin. Il est attribué par la variable ADMIN_EMAILS du backend."
       />
     )
   }
@@ -40,10 +37,7 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 
 function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center h-96 text-center">
-      <p className="text-display-lg text-vault-primary">404</p>
-      <p className="text-vault-on-surface-variant mt-2">Page introuvable</p>
-    </div>
+    <EmptyState title="Page introuvable" description="Cette adresse ne mène nulle part. Reviens à l'accueil." />
   )
 }
 
@@ -64,9 +58,9 @@ export default function App() {
               <Route path="catalogue" element={<CataloguePage />} />
               <Route path="games" element={<Navigate to="/catalogue?type=game" replace />} />
               <Route path="consoles" element={<Navigate to="/catalogue?type=console" replace />} />
-              <Route path="consoles/:id" element={<ConsoleDetailPage />} />
+              <Route path="consoles/:id" element={<ItemDetailPage />} />
               <Route path="accessories" element={<Navigate to="/catalogue?type=accessory" replace />} />
-              <Route path="accessories/:id" element={<AccessoryDetailPage />} />
+              <Route path="accessories/:id" element={<ItemDetailPage />} />
               <Route path="items/:id" element={<ItemDetailPage />} />
               <Route path="admin" element={<Navigate to="/admin/data" replace />} />
               <Route path="admin/data" element={<RequireAdmin><AdminDataPage /></RequireAdmin>} />

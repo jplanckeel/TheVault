@@ -1,45 +1,20 @@
 interface Props {
   className?: string
-  /** Predefined shape */
-  variant?: 'text' | 'box' | 'circle' | 'card'
-  /** Number of rows for "text" variant */
+  variant?: 'text' | 'box' | 'card'
   lines?: number
 }
 
-/**
- * Loading skeleton with subtle pulse on a glass background.
- * Use directly: <Skeleton variant="card" /> or compose with className.
- */
+/** Loading placeholder in the recessed colour. */
 export default function Skeleton({ className = '', variant = 'box', lines = 3 }: Props) {
   if (variant === 'text') {
     return (
-      <div className={`space-y-2 ${className}`}>
+      <div className={`space-y-2 ${className}`} aria-hidden="true">
         {Array.from({ length: lines }).map((_, i) => (
-          <div
-            key={i}
-            className="h-3 rounded bg-vault-surface-high animate-pulse"
-            style={{ width: `${100 - i * 12}%` }}
-          />
+          <div key={i} className="tv-skel h-3" style={{ width: `${100 - i * 12}%` }} />
         ))}
       </div>
     )
   }
-  if (variant === 'circle') {
-    return (
-      <div
-        className={`rounded-full bg-vault-surface-high animate-pulse ${className}`}
-        style={{ width: 40, height: 40 }}
-      />
-    )
-  }
-  if (variant === 'card') {
-    return (
-      <div className={`rounded-xl bg-vault-surface-low border border-vault-outline-variant/30 p-5 animate-pulse ${className}`}>
-        <div className="h-3 w-24 rounded bg-vault-surface-high mb-4" />
-        <div className="h-8 w-40 rounded bg-vault-surface-high mb-2" />
-        <div className="h-3 w-32 rounded bg-vault-surface-high" />
-      </div>
-    )
-  }
-  return <div className={`rounded-lg bg-vault-surface-high animate-pulse ${className}`} />
+  if (variant === 'card') return <div className={`tv-skel rounded-lg h-32 ${className}`} aria-hidden="true" />
+  return <div className={`tv-skel ${className}`} aria-hidden="true" />
 }

@@ -1,63 +1,19 @@
-# TheVaultBO — Design Guidelines
+# TheVault web — design
 
-## Brand Placeholders
+The web app uses the same « Collector System » design system as the mobile app
+(design system artifact « TheVault », mobile reference `design/console/`).
 
-Quand un item n'a pas de `cover_url`, on affiche le logo du constructeur avec un fond de couleur de marque.
+- **Tokens**: `src/index.css` — both shells (*Coque grise* light, *Black Edition* dark) as CSS
+  variables, exposed to Tailwind (`bg-panel`, `text-ink-muted`, `bg-indigo`…). The shell follows
+  the system or the choice made in the sidebar (`data-theme`, stored in `localStorage`).
+- **Component classes**: `tv-*` in `@layer components` (so Tailwind utilities still win).
+- **Components**: `src/components/ui/` — `Logo`, `SnesDots`, `StatusLed`, `GameCover` (cartridge
+  corner + manufacturer band), `CollectionCard`, `PlatformTile`, `ListRow`, `SegmentedControl`,
+  `PlatformBadge`, `ConditionTag`, `SourceBadge`, `PriceDelta`, `Button`, `IconButton`, `Input`…
+- **Fonts**: Archivo, IBM Plex Sans and Mono, bundled in `public/fonts/` (OFL).
+- **Rules**: one indigo action per screen; never a hard-coded colour in a page; unknown values
+  render as `—`; prices come from the backend eBay quotes only.
 
-Composant : `web/src/components/BrandPlaceholder.tsx`
-
-| Constructeur | Fichier source | Fichier public | Fond |
-|---|---|---|---|
-| **Xbox / Microsoft** | `logo/Xbox/Xbox_Symbol_9.svg` | `/public/logos/xbox.svg` | `#107C10` |
-| **Nintendo** | `logo/Nintendo/Nintendo_Logo_3.svg` | `/public/logos/nintendo.svg` | `#E60012` |
-| **PlayStation / Sony** | `logo/PlayStation®/PlayStation®_Logo_3.svg` | `/public/logos/playstation.svg` | `#0070CC` |
-
-Le logo est rendu en blanc (`filter: brightness(0) invert(1)`) sur le fond coloré.
-
-### Détection de plateforme (regex, insensible à la casse)
-
-- **Xbox** : `xbox`, `microsoft`
-- **Nintendo** : `nintendo`, `nes`, `snes`, `n64`, `gamecube`, `wii`, `switch`, `game boy`, `gba`, `ds`, `3ds`
-- **PlayStation** : `playstation`, `sony`, `ps1`, `ps2`, `ps3`, `ps4`, `ps5`, `psp`, `vita`
-- **Fallback** : SVG depuis `/public/controllercons/{platform-slug}.svg`, puis `joy-cons.svg`
-
-### Usage
-
-```tsx
-import BrandPlaceholder from '../components/BrandPlaceholder'
-
-{item.cover_url ? (
-  <img src={item.cover_url} alt={item.title} className="w-full h-full object-cover" />
-) : (
-  <BrandPlaceholder platform={item.platform} className="w-full h-full" />
-)}
-```
-
----
-
-## Cover Upload (Admin)
-
-Survoler le thumbnail d'un item en mode admin affiche un overlay ✏️.  
-Cliquer ouvre un file picker (JPEG, PNG, WebP, max 8 Mo).  
-L'image est sauvegardée dans `{UPLOAD_DIR}/covers/{item-id}.ext` et servie via `/covers/`.
-
-- Dev : `UPLOAD_DIR` = `./uploads` (créé automatiquement)
-- Prod : configurer `STATIC_DIR` ou `UPLOAD_DIR` en variable d'environnement
-
----
-
-## Palette de couleurs
-
-Tokens CSS définis dans `web/src/index.css` (préfixe `vault-`).
-
-| Token | Usage |
-|---|---|
-| `vault-primary` `#BA9EFF` | Accent violet |
-| `vault-bg` | Fond principal |
-| `vault-surface` | Surface carte / panel |
-| `vault-on-surface` | Texte principal |
-| `vault-on-surface-variant` | Texte secondaire |
-| `vault-outline-variant` | Bordures |
-| `vault-success` | Indicateurs positifs |
-| `vault-error` | Erreurs / destructif |
-| `vault-warning` | Avertissements |
+Covers without an image show the title on the blank cartridge (`--cover-blank`); manufacturer
+logos for platform rows are in `public/logos/` (tinted with the ink colour through a CSS mask).
+Uploaded covers are stored in `{UPLOAD_DIR}/covers/{item-id}.ext` and served under `/covers/`.

@@ -1,17 +1,11 @@
-import { useState } from 'react'
 import type { Item } from '../../types'
-import BrandPlaceholder from '../BrandPlaceholder'
+import { GameCover } from '../ui'
 
-/** Small cover thumbnail with the brand placeholder as fallback. */
-export default function ItemThumb({ item, className = 'h-12 w-9' }: { item: Pick<Item, 'cover_url' | 'platform' | 'title'>; className?: string }) {
-  const [failed, setFailed] = useState(false)
+/** Small cartridge thumbnail of a catalogue item. */
+export default function ItemThumb({ item, className = 'w-9' }: { item: Pick<Item, 'cover_url' | 'platform' | 'title'>; className?: string }) {
   return (
-    <div className={`shrink-0 overflow-hidden rounded-md bg-vault-surface-high ${className}`}>
-      {item.cover_url && !failed ? (
-        <img src={item.cover_url} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setFailed(true)} />
-      ) : (
-        <BrandPlaceholder platform={item.platform} />
-      )}
+    <div className={`shrink-0 ${className}`}>
+      <GameCover size="xs" title={item.title} platform={item.platform} src={item.cover_url || undefined} />
     </div>
   )
 }

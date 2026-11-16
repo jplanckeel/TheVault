@@ -26,15 +26,14 @@ export default function WishlistPage() {
 
   return (
     <ItemGridView
-      title="Wishlist"
+      eyebrow="Liste d'envies"
+      title="Envies"
       items={items}
       prices={prices}
       loading={loading}
-      wishlist
       empty={{
-        icon: 'favorite',
-        title: 'Aucun objet convoité',
-        description: "Ajoutez des objets à votre wishlist depuis l'Explorer ou la fiche d'un objet.",
+        title: 'Aucune envie pour l’instant',
+        description: "Ajoute des objets à tes envies depuis l'Explorer ou la fiche d'un objet.",
         cta: { label: "Ouvrir l'Explorer", icon: 'travel_explore', onClick: () => navigate('/catalogue') },
       }}
     />

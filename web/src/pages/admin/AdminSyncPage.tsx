@@ -20,43 +20,43 @@ function SummaryRow({ summary }: { summary: SyncSummary | null }) {
   const admin = count(summary, 'admin', ['edited', 'merged', 'deleted'])
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <Stat label="Synchros mobile · 24 h" value={mobile} icon="smartphone" />
-      <Stat label="Nouveaux objets · 24 h" value={created} icon="add_circle" />
-      <Stat label="Refusées · 24 h" value={rejected} icon="block" hint="Objets supprimés par un admin" />
-      <Stat label="Corrections · 24 h" value={admin} icon="shield_person" />
+      <Stat label="Synchros mobile · 24 h" value={mobile} />
+      <Stat label="Nouveaux objets · 24 h" value={created} />
+      <Stat label="Refusées · 24 h" value={rejected} hint="Objets supprimés par un admin" />
+      <Stat label="Corrections · 24 h" value={admin} />
     </div>
   )
 }
 
 function EventsTable({ events }: { events: SyncEvent[] }) {
   return (
-    <Card padding="none" radius="2xl" className="overflow-x-auto">
+    <Card padding="none" className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-vault-outline-variant/30">
+          <tr className="border-b border-line/30">
             {['Quand', 'Source', 'Action', 'Objet', 'Par', 'Détail'].map((h) => (
-              <th key={h} className="text-left px-4 py-3 text-label-bold text-vault-on-surface-variant whitespace-nowrap">{h}</th>
+              <th key={h} className="text-left px-4 py-3 tv-engrave text-ink-muted whitespace-nowrap">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {events.map((e) => (
-            <tr key={e.id} className="border-b border-vault-outline-variant/15 last:border-0 hover:bg-vault-surface-high/40">
-              <td className="px-4 py-2.5 text-vault-on-surface-variant whitespace-nowrap" title={new Date(e.created_at).toLocaleString('fr-FR')}>
+            <tr key={e.id} className="border-b border-line/15 last:border-0 hover:bg-well/40">
+              <td className="px-4 py-2.5 text-ink-muted whitespace-nowrap" title={new Date(e.created_at).toLocaleString('fr-FR')}>
                 {formatRelative(e.created_at)}
               </td>
               <td className="px-4 py-2.5">
-                <Chip size="sm" tone={SOURCES[e.source].tone} icon={SOURCES[e.source].icon}>{SOURCES[e.source].label}</Chip>
+                <Chip tone={SOURCES[e.source].tone} icon={SOURCES[e.source].icon}>{SOURCES[e.source].label}</Chip>
               </td>
               <td className="px-4 py-2.5">
-                <Chip size="sm" tone={ACTIONS[e.action].tone}>{ACTIONS[e.action].label}</Chip>
+                <Chip tone={ACTIONS[e.action].tone}>{ACTIONS[e.action].label}</Chip>
               </td>
               <td className="px-4 py-2.5">
-                <p className="text-vault-on-surface truncate max-w-[260px]">{e.title || '—'}</p>
-                <p className="text-xs text-vault-on-surface-variant font-mono truncate max-w-[260px]">{e.external_id}</p>
+                <p className="text-ink truncate max-w-[260px]">{e.title || '—'}</p>
+                <p className="text-xs text-ink-muted font-mono truncate max-w-[260px]">{e.external_id}</p>
               </td>
-              <td className="px-4 py-2.5 text-vault-on-surface-variant truncate max-w-[180px]">{e.actor}</td>
-              <td className="px-4 py-2.5 text-vault-on-surface-variant truncate max-w-[240px]">{e.detail}</td>
+              <td className="px-4 py-2.5 text-ink-muted truncate max-w-[180px]">{e.actor}</td>
+              <td className="px-4 py-2.5 text-ink-muted truncate max-w-[240px]">{e.detail}</td>
             </tr>
           ))}
         </tbody>
@@ -91,11 +91,11 @@ export default function AdminSyncPage() {
   }, [load])
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 tv-enter">
       <header>
-        <p className="text-label-bold text-vault-primary">Back-office</p>
-        <h1 className="text-display-lg text-vault-on-surface">Synchronisations</h1>
-        <p className="mt-1 text-vault-on-surface-variant">Envois des applications, corrections admin et tâches de scraping.</p>
+        <p className="tv-engrave text-indigo-ink">Back-office</p>
+        <h1 className="tv-title text-ink">Synchronisations</h1>
+        <p className="mt-1 text-ink-muted">Envois des applications, corrections admin et tâches de scraping.</p>
       </header>
 
       <SummaryRow summary={summary} />
@@ -114,7 +114,7 @@ export default function AdminSyncPage() {
             {(Object.keys(SOURCES) as SyncSource[]).map((s) => (
               <FilterChip key={s} label={SOURCES[s].label} selected={source === s} onClick={() => setSource(s)} />
             ))}
-            <span className="mx-1 w-px bg-vault-outline-variant/40" />
+            <span className="mx-1 w-px bg-line/40" />
             <FilterChip label="Toutes actions" selected={action === ''} onClick={() => setAction('')} />
             {(Object.keys(ACTIONS) as SyncAction[]).map((a) => (
               <FilterChip key={a} label={ACTIONS[a].label} selected={action === a} onClick={() => setAction(a)} />

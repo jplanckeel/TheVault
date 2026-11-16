@@ -24,12 +24,12 @@ export default function CataloguePage() {
 
   return (
     <ItemGridView
+      eyebrow="Catalogue partagé"
       title="Explorer"
       items={items}
       prices={prices}
       loading={loading}
       empty={{
-        icon: 'travel_explore',
         title: 'Catalogue vide',
         description: "Les objets apparaissent ici dès qu'ils sont synchronisés depuis l'application mobile.",
       }}

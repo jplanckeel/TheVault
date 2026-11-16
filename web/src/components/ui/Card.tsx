@@ -2,55 +2,18 @@ import type { HTMLAttributes, ReactNode } from 'react'
 
 interface Props extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
-  /** Glassmorphic background */
-  glass?: boolean
-  /** Outer purple glow */
-  glow?: boolean
-  /** Padding scale */
+  /** `raised` panel on the shell, or recessed `well` (selectors, chart screen). */
+  tone?: 'raised' | 'well'
   padding?: 'none' | 'sm' | 'md' | 'lg'
-  /** Radius scale */
-  radius?: 'md' | 'lg' | 'xl' | '2xl'
-  className?: string
 }
 
-const PADDING = {
-  none: '',
-  sm: 'p-4',
-  md: 'p-5',
-  lg: 'p-6',
-}
+const PADDING = { none: 'p-0', sm: 'p-3', md: 'p-4', lg: 'p-5 md:p-6' }
 
-const RADIUS = {
-  md: 'rounded-md',
-  lg: 'rounded-lg',
-  xl: 'rounded-xl',
-  '2xl': 'rounded-2xl',
-}
-
-/**
- * Premium card container — base building block of the UI.
- * Default: solid surface-low with subtle border. With `glass`, becomes glassmorphic.
- */
-export default function Card({
-  children,
-  glass,
-  glow,
-  padding = 'md',
-  radius = 'xl',
-  className = '',
-  ...rest
-}: Props) {
-  const base = glass
-    ? 'glass border border-vault-outline-variant/40'
-    : 'bg-vault-surface-low border border-vault-outline-variant/30'
-
+/** Flat panel with large radius (`radius-lg`). */
+export default function Card({ children, tone = 'raised', padding = 'md', className = '', ...rest }: Props) {
+  const base = tone === 'well' ? 'tv-well' : 'tv-panel'
   return (
-    <div
-      className={`${base} ${RADIUS[radius]} ${PADDING[padding]} ${
-        glow ? 'glow-purple' : ''
-      } ${className}`}
-      {...rest}
-    >
+    <div className={`${base} ${PADDING[padding]} ${className}`} {...rest}>
       {children}
     </div>
   )

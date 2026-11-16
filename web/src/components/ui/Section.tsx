@@ -2,44 +2,23 @@ import type { ReactNode } from 'react'
 
 interface Props {
   title: ReactNode
-  /** Right-side action (button, link, chevrons) */
-  action?: ReactNode
-  /** Description under the title */
+  /** Small engraved label above the title. */
+  eyebrow?: string
   description?: ReactNode
-  /** Use Montserrat headline-sm (20px), as the mobile SectionHeader. Default true. */
-  headline?: boolean
+  action?: ReactNode
   children: ReactNode
   className?: string
 }
 
-/**
- * Page / module section with consistent header.
- * Used for "Latest Additions", "Price Alerts", "Market Listings", etc.
- */
-export default function Section({
-  title,
-  action,
-  description,
-  headline = true,
-  children,
-  className = '',
-}: Props) {
+/** Section with the « Plus fortes hausses » header style: lowercase bold title, link on the right. */
+export default function Section({ title, eyebrow, description, action, children, className = '' }: Props) {
   return (
     <section className={className}>
-      <div className="flex items-end justify-between gap-4 mb-4">
-        <div className="min-w-0">
-          <h2
-            className={
-              headline
-                ? 'text-headline-sm text-vault-on-surface'
-                : 'text-label-bold text-vault-on-surface-variant'
-            }
-          >
-            {title}
-          </h2>
-          {description && (
-            <p className="text-sm text-vault-on-surface-variant mt-1">{description}</p>
-          )}
+      <div className="flex items-end justify-between gap-3 mb-3">
+        <div className="min-w-0 flex flex-col gap-1">
+          {eyebrow && <span className="tv-engrave">{eyebrow}</span>}
+          <h2 className="tv-section">{title}</h2>
+          {description && <p className="text-[13px] text-ink-muted">{description}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>

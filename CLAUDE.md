@@ -83,7 +83,7 @@ shared/commonMain
 ## Design System
 
 - **Mobile — « console »** (deux coques : *Coque grise* claire, *Black Edition* sombre, au choix dans Réglages) : source of truth `design/console/README.md`, visual reference `design/console/maquettes-app-mobile.html`. Tokens in `composeApp/src/commonMain/kotlin/com/thevault/ui/theme/` (`Color.kt`, `Typography.kt`, `VaultRadius.kt`, `Surfaces.kt`), read through `Vault.colors` / `Vault.type`.
-- **Web — « Premium Security »**: `design/DESIGN_SYSTEM.md`, tokens in `web/src/index.css` (`vault-*`). Not ported to the console design.
+- **Web — « console »** (same design system as mobile): tokens and `tv-*` component classes in `web/src/index.css` (two shells via `data-theme`, picker in the sidebar), components in `web/src/components/ui/`.
 
 Mobile rules:
 - Never hardcode a color in a screen: use `Vault.colors.*` so both shells work

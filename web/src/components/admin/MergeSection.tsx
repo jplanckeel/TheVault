@@ -48,12 +48,12 @@ export default function MergeSection({ item, all, onMerged }: Props) {
     <li key={other.id} className="flex items-center gap-3 py-2">
       <ItemThumb item={other} className="h-10 w-8" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-vault-on-surface truncate">{other.title}</p>
-        <p className="text-xs text-vault-on-surface-variant truncate">
+        <p className="text-sm font-semibold text-ink truncate">{other.title}</p>
+        <p className="text-xs text-ink-muted truncate">
           {other.platform || '—'} · {other.owners} propriétaire(s) · {other.external_id}
         </p>
       </div>
-      <Button size="sm" variant="subtle" disabled={busy !== null} onClick={() => merge(action.source, action.target)}>
+      <Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => merge(action.source, action.target)}>
         {action.label}
       </Button>
     </li>
@@ -64,11 +64,11 @@ export default function MergeSection({ item, all, onMerged }: Props) {
       {duplicates.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Chip tone="error" size="sm" icon="content_copy">
+            <Chip tone="error" icon="content_copy">
               {duplicates.length} doublon(s) probable(s)
             </Chip>
           </div>
-          <ul className="divide-y divide-vault-outline-variant/15">
+          <ul className="divide-y divide-line/15">
             {duplicates.map((d) => row(d, { label: 'Absorber', source: d.id, target: item.id }))}
           </ul>
         </div>
@@ -76,12 +76,12 @@ export default function MergeSection({ item, all, onMerged }: Props) {
       <div>
         <Input leftIcon="search" placeholder="Fusionner dans un autre objet : rechercher un titre…" value={query} onChange={(e) => setQuery(e.target.value)} />
         {matches.length > 0 && (
-          <ul className="mt-2 divide-y divide-vault-outline-variant/15">
+          <ul className="mt-2 divide-y divide-line/15">
             {matches.map((m) => row(m, { label: 'Fusionner dedans', source: item.id, target: m.id }))}
           </ul>
         )}
         {query.trim().length >= 2 && matches.length === 0 && (
-          <p className="mt-2 text-xs text-vault-on-surface-variant">Aucun objet du même type ne correspond.</p>
+          <p className="mt-2 text-xs text-ink-muted">Aucun objet du même type ne correspond.</p>
         )}
       </div>
     </div>
