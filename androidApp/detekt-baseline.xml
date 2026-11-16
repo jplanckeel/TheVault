@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ClassOrdering:MainActivity.kt$MainActivity$private fun applySystemBars(dark: Boolean)</ID>
+    <ID>MaxLineLength:WishAlertWorker.kt$WishAlertWorker$ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -36,6 +36,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # the commit count is the Android version code
 
       - name: Set up JDK
         uses: actions/setup-java@v4
