@@ -39,7 +39,7 @@ func NewRouter(
 ) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
+	r.Use(RequestLogger)
 	r.Use(middleware.Recoverer)
 	r.Use(SecurityHeaders)
 	if origins := corsOrigins(); len(origins) > 0 {
