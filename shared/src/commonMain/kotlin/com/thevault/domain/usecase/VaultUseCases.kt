@@ -1,6 +1,7 @@
 package com.thevault.domain.usecase
 
 import com.thevault.domain.model.Account
+import com.thevault.domain.model.BackupVersion
 import com.thevault.domain.model.ShareLink
 import com.thevault.domain.model.ShareScope
 import com.thevault.domain.model.VaultContent
@@ -61,8 +62,15 @@ class BackupVaultUseCase(
     private val sets: SetRepository,
     private val repository: VaultRepository,
 ) {
-    /** Uploads everything, with the effective [values] for share links; returns the backup time. */
-    suspend operator fun invoke(values: Map<String, Double?>): Result<String> =
+    /**
+     * Uploads everything, with the effective [values] for share links; returns the backup time.
+     * Fails with [com.thevault.domain.model.BackupShrinkException] when it would replace a much
+     * bigger backup, unless [force].
+     */
+    suspend operator fun invoke(
+        values: Map<String, Double?>,
+        force: Boolean = false,
+    ): Result<String> =
         repository.upload(
             VaultContent(
                 games.observeAll().first(),
@@ -71,6 +79,7 @@ class BackupVaultUseCase(
                 sets.observe().first(),
                 values,
             ),
+            force,
         )
 }
 
@@ -91,9 +100,9 @@ class RestoreVaultUseCase(
     private val sets: SetRepository,
     private val repository: VaultRepository,
 ) {
-    /** Restores; returns the number of items written. */
-    suspend operator fun invoke(): Result<Int> =
-        repository.download().map { content ->
+    /** Restores the current backup, or the saved [version]; returns the number of items written. */
+    suspend operator fun invoke(version: Long? = null): Result<Int> =
+        repository.download(version).map { content ->
             content.games.forEach { games.save(it) }
             content.consoles.forEach { consoles.save(it) }
             content.accessories.forEach { accessories.save(it) }
@@ -130,4 +139,16 @@ class EditShareUseCase(
         revoke: String? = null,
     ): Result<ShareLink?> =
         if (revoke != null) repository.revokeShare(revoke).map { null } else repository.createShare(scope, title, hidePrices)
+}
+
+/**
+ * Backups saved on the account (the server keeps the latest ten).
+ *
+ * @param repository Vault repository.
+ */
+class BackupVersionsUseCase(
+    private val repository: VaultRepository,
+) {
+    /** Saved backups, newest first. */
+    suspend operator fun invoke(): Result<List<BackupVersion>> = repository.backupVersions()
 }

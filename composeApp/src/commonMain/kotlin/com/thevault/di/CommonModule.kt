@@ -38,7 +38,7 @@ val commonModule =
         viewModel { ProfileViewModel(get()) }
         viewModel {
             com.thevault.ui.screen.cloud
-                .CloudViewModel(get(), get(), get(), get(), get(), get(), get())
+                .CloudViewModel(get(), get(), get(), get(), get(), get(), get(), get())
         }
         viewModel {
             com.thevault.ui.screen.check

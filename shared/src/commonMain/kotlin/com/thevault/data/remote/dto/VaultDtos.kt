@@ -80,3 +80,29 @@ data class ShareDto(
     @SerialName("hide_prices") val hidePrices: Boolean = false,
     @SerialName("created_at") val createdAt: String = "",
 )
+
+/**
+ * One saved backup (`GET /backup/versions`).
+ *
+ * @property id Version identifier.
+ * @property itemCount Number of items.
+ * @property createdAt Save time.
+ */
+@Serializable
+data class BackupVersionDto(
+    val id: Long,
+    @SerialName("item_count") val itemCount: Int,
+    @SerialName("created_at") val createdAt: String,
+)
+
+/**
+ * Body of the 409 answer to a backup that loses too many items.
+ *
+ * @property currentCount Items of the backup on the server.
+ * @property newCount Items of the refused backup.
+ */
+@Serializable
+data class BackupConflictDto(
+    @SerialName("current_count") val currentCount: Int,
+    @SerialName("new_count") val newCount: Int,
+)

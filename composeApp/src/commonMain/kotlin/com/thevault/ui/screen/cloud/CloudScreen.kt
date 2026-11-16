@@ -61,7 +61,12 @@ fun CloudScreen(
     val account by viewModel.account.collectAsState()
     val state by viewModel.uiState.collectAsState()
     val shareText = rememberShareText()
-    LaunchedEffect(account) { if (account != null) viewModel.loadLinks() }
+    LaunchedEffect(account) {
+        if (account != null) {
+            viewModel.loadLinks()
+            viewModel.loadVersions()
+        }
+    }
     LaunchedEffect(state.created) {
         state.created?.let {
             shareText(it.url)
@@ -172,17 +177,19 @@ private fun SignedIn(
             modifier = Modifier.padding(vertical = 8.dp),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            VaultButton("Sauvegarder", viewModel::backupNow, Modifier.weight(1f), size = ButtonSize.Small, enabled = !state.busy)
+            VaultButton("Sauvegarder", { viewModel.backupNow() }, Modifier.weight(1f), size = ButtonSize.Small, enabled = !state.busy)
             VaultButton(
                 "Restaurer",
-                viewModel::restoreNow,
+                { viewModel.restoreNow() },
                 Modifier.weight(1f),
                 ButtonVariant.Secondary,
                 ButtonSize.Small,
                 enabled = !state.busy,
             )
         }
+        BackupHistory(state.versions, enabled = !state.busy) { viewModel.restoreNow(it) }
     }
+    state.shrink?.let { ShrinkConfirmDialog(it, viewModel::confirmShrink, viewModel::dismissShrink) }
     SharePanel(state, viewModel, shareText)
 }
 
