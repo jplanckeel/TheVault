@@ -15,6 +15,8 @@ interface AuthContextType {
   /** Signs in; resolves to null on success, otherwise the message to show. */
   login: (email: string, password: string) => Promise<string | null>
   register: (email: string, password: string, name: string) => Promise<string | null>
+  /** Sets a new password from a reset link and signs in; null on success, else the message. */
+  resetPassword: (token: string, password: string) => Promise<string | null>
   logout: () => void
 }
 
@@ -24,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   login: async () => null,
   register: async () => null,
+  resetPassword: async () => null,
   logout: () => {},
 })
 
@@ -116,8 +119,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null
   }
 
+  async function resetPassword(resetToken: string, password: string): Promise<string | null> {
+    let res: Response
+    try {
+      res = await fetch('/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password }),
+      })
+    } catch {
+      return 'Serveur injoignable : vérifie ta connexion.'
+    }
+    if (res.ok) {
+      saveSession(await res.json())
+      return null
+    }
+    if (res.status === 429) return loginError(429, res.headers.get('Retry-After'))
+    if (res.status === 400) return (await res.text()).trim() || 'Lien invalide, déjà utilisé ou expiré.'
+    return loginError(res.status, null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, isAdmin: user?.is_admin === true, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isAdmin: user?.is_admin === true, login, register, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   )

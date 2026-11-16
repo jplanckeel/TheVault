@@ -19,6 +19,7 @@ type UserAuthHandler struct {
 	users       store.UserStore
 	secret      []byte
 	adminEmails []string
+	resets      store.PasswordResetStore // optional: POST /auth/reset-password
 }
 
 // NewUserAuthHandler creates the handler. adminEmails (lower-case) get the admin role
@@ -155,12 +156,21 @@ func validateRegistration(email, password, name string) string {
 	switch {
 	case len(email) > maxEmailLen || !emailPattern.MatchString(email):
 		return "adresse e-mail invalide"
+	case validatePassword(password) != "":
+		return validatePassword(password)
+	case utf8.RuneCountInString(name) > maxNameLen:
+		return fmt.Sprintf("le nom ne doit pas dépasser %d caractères", maxNameLen)
+	}
+	return ""
+}
+
+// validatePassword checks the length rules of a new password ("" when valid).
+func validatePassword(password string) string {
+	switch {
 	case len(password) < minPasswordLen:
 		return fmt.Sprintf("le mot de passe doit contenir au moins %d caractères", minPasswordLen)
 	case len(password) > maxPasswordLen:
 		return fmt.Sprintf("le mot de passe ne doit pas dépasser %d octets", maxPasswordLen)
-	case utf8.RuneCountInString(name) > maxNameLen:
-		return fmt.Sprintf("le nom ne doit pas dépasser %d caractères", maxNameLen)
 	}
 	return ""
 }

@@ -9,6 +9,7 @@ const AdminDataPage = lazy(() => import('./pages/admin/AdminDataPage'))
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const SharePage = lazy(() => import('./pages/SharePage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const CollectionPage = lazy(() => import('./pages/CollectionPage'))
@@ -55,6 +56,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/share/:token" element={<SharePage />} />
             <Route path="/" element={<AppLayout />}>
               <Route index element={<RequireAuth fallback="/catalogue"><DashboardPage /></RequireAuth>} />
