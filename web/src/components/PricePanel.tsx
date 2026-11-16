@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { PriceSnapshot } from '../types'
-import { PriceChart, PriceDelta, SegmentedControl, SourceBadge } from './ui'
-import type { ChartPoint } from './ui'
+import { PriceDelta, SegmentedControl, SourceBadge } from './ui'
+import PriceChart, { type ChartPoint } from './ui/PriceChart'
 import { PRICE_CONDITIONS, type PriceCondition } from '../lib/condition'
 import { formatEuro, formatRelative } from '../lib/format'
 
