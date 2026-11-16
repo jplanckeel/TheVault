@@ -10,6 +10,7 @@ import com.thevault.domain.usecase.GetGameByIdUseCase
 import com.thevault.domain.usecase.ObserveAccessoriesUseCase
 import com.thevault.domain.usecase.ObserveConsolesUseCase
 import com.thevault.domain.usecase.ObserveGamesUseCase
+import com.thevault.domain.usecase.ObserveItemPhotosUseCase
 import com.thevault.domain.usecase.ObservePriceSnapshotsUseCase
 import com.thevault.domain.usecase.ObserveQuotesUseCase
 import com.thevault.domain.usecase.SaveAccessoryUseCase
@@ -26,18 +27,23 @@ import kotlinx.coroutines.flow.combine
  * @param observeAccessories Accessories.
  * @param observeQuotes Cached eBay quotes.
  * @param observeSnapshots Price history and imported US prices.
+ * @param observePhotos Photos of the copies, shown instead of the catalogue cover.
  */
+@Suppress("LongParameterList")
 class VaultEntriesSource(
     private val observeGames: ObserveGamesUseCase,
     private val observeConsoles: ObserveConsolesUseCase,
     private val observeAccessories: ObserveAccessoriesUseCase,
     private val observeQuotes: ObserveQuotesUseCase,
     private val observeSnapshots: ObservePriceSnapshotsUseCase,
+    private val observePhotos: ObserveItemPhotosUseCase,
 ) {
     /** All entries, whatever their status, valued with the eBay quotes and imported US prices. */
     fun entries(): Flow<List<CollectionEntry>> =
         combine(observeGames(), observeConsoles(), observeAccessories(), observeQuotes(), observeSnapshots()) { g, c, a, quotes, snaps ->
             (g.map { it.toEntry() } + c.map { it.toEntry() } + a.map { it.toEntry() }).withMarket(quotes, snaps)
+        }.combine(observePhotos()) { entries, photos ->
+            if (photos.isEmpty()) entries else entries.map { e -> photos[e.id]?.let { e.copy(coverUrl = it, hasPhoto = true) } ?: e }
         }
 }
 

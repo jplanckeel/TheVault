@@ -265,6 +265,12 @@ INSERT OR REPLACE INTO item_photo VALUES ?;
 deletePhoto:
 DELETE FROM item_photo WHERE id = :id;
 
+selectAllPhotos:
+SELECT * FROM item_photo ORDER BY created_at ASC;
+
+deletePhotosOf:
+DELETE FROM item_photo WHERE item_id = :itemId;
+
 -- Completion lists (sets): a platform, a series or any personal list of wanted titles.
 -- ─────────────────────────────────────────────────────────────────────────────
 

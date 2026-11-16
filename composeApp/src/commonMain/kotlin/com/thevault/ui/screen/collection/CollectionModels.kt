@@ -55,6 +55,7 @@ enum class ItemKind(
  * @property quotes Every eBay quote of the item (all grades).
  * @property usPrice US price of the Gameye import for the item's completeness (indicative).
  * @property valueSource Where [value] comes from.
+ * @property hasPhoto Whether [coverUrl] is the user's photo of the copy.
  */
 data class CollectionEntry(
     val id: String,
@@ -75,6 +76,7 @@ data class CollectionEntry(
     val quotes: List<PriceQuote> = emptyList(),
     val usPrice: Double? = null,
     val valueSource: ValueSource = if (value != null) ValueSource.Manual else ValueSource.None,
+    val hasPhoto: Boolean = false,
 ) {
     /** Change of the quote over 30 days, in percent; null when unknown. */
     val changePercent: Double?

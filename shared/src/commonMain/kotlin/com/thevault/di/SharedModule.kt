@@ -153,6 +153,18 @@ val sharedModule =
                 .GetImportedPricesUseCase(get())
         }
         factory { ObserveValueHistoryUseCase(get()) }
+        factory {
+            com.thevault.domain.usecase
+                .ObserveItemPhotosUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .SetItemPhotoUseCase(get())
+        }
+        factory {
+            com.thevault.domain.usecase
+                .RemoveItemPhotoUseCase(get())
+        }
         factory { RecordValueSnapshotUseCase(get()) }
         factory { ObserveAchievementUnlocksUseCase(get()) }
         factory { RecordAchievementUnlocksUseCase(get()) }
@@ -214,6 +226,10 @@ val sharedModule =
         single<ValueHistoryRepository> { ValueHistoryRepositoryImpl(get()) }
         single<AchievementRepository> { AchievementRepositoryImpl(get()) }
         single<SettingsRepository> { SettingsRepositoryImpl(get()) }
+        single<com.thevault.domain.repository.PhotoRepository> {
+            com.thevault.data.repository
+                .PhotoRepositoryImpl(get())
+        }
         single<CatalogSyncRepository> { CatalogSyncRepositoryImpl(get(), get()) }
         single<com.thevault.domain.repository.VaultRepository> {
             com.thevault.data.repository
