@@ -26,9 +26,11 @@ import com.thevault.domain.model.ItemStatus
 import com.thevault.ui.component.CollectionCard
 import com.thevault.ui.component.KeyButton
 import com.thevault.ui.component.LoadingBox
+import com.thevault.ui.component.RefreshFeedback
 import com.thevault.ui.component.ScreenHeader
 import com.thevault.ui.component.SearchField
 import com.thevault.ui.component.VaultChip
+import com.thevault.ui.component.VaultPullRefresh
 import com.thevault.ui.component.formatCount
 import com.thevault.ui.navigation.tabBarClearance
 import org.koin.compose.viewmodel.koinViewModel
@@ -56,7 +58,10 @@ fun CollectionScreen(
     viewModel: CollectionViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
-    CollectionContent(state, viewModel, navigation)
+    val refresh by viewModel.refresh.collectAsState()
+    VaultPullRefresh(refresh.isRefreshing, viewModel::onRefresh) {
+        CollectionContent(state, viewModel, navigation, refresh.message)
+    }
 }
 
 /**
@@ -65,12 +70,14 @@ fun CollectionScreen(
  * @param state UI state.
  * @param viewModel Receives the filter changes.
  * @param navigation Navigation callbacks.
+ * @param refreshMessage Outcome of the last pull to refresh, if any.
  */
 @Composable
 fun CollectionContent(
     state: CollectionUiState,
     viewModel: CollectionViewModel,
     navigation: CollectionNavigation,
+    refreshMessage: RefreshMessage? = null,
 ) {
     val kind = state.filters.kind
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -88,29 +95,36 @@ fun CollectionContent(
                 searching = !searching
             }
         }
+        refreshMessage?.let { fullWidth { RefreshFeedback(it.text, it.success) } }
         if (searching) fullWidth { SearchField(state.filters.query, viewModel::onQueryChanged, "Chercher un jeu", Modifier.fillMaxWidth()) }
-        fullWidth {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(ItemKind.entries) { k ->
-                    VaultChip(
-                        k.label,
-                        k == kind && !state.filters.showSold,
-                        { viewModel.onKindSelected(k) },
-                        count =
-                            state.totals[k]?.count ?: 0,
-                    )
-                }
-                if (state.sold.isNotEmpty()) {
-                    item { VaultChip("Vendus", state.filters.showSold, viewModel::onSoldSelected, count = state.sold.size) }
-                }
-            }
-        }
+        fullWidth { KindChips(state, viewModel) }
         when {
             state.isLoading -> fullWidth { LoadingBox() }
             state.filters.showSold -> soldSection(state.sold, navigation)
             kind == ItemKind.Game -> gamesSection(state, viewModel, navigation)
             kind == ItemKind.Console -> consolesSection(state, viewModel, navigation)
             else -> accessoriesSection(state, viewModel, navigation)
+        }
+    }
+}
+
+@Composable
+private fun KindChips(
+    state: CollectionUiState,
+    viewModel: CollectionViewModel,
+) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(ItemKind.entries) { k ->
+            VaultChip(
+                k.label,
+                k == state.filters.kind && !state.filters.showSold,
+                { viewModel.onKindSelected(k) },
+                count =
+                    state.totals[k]?.count ?: 0,
+            )
+        }
+        if (state.sold.isNotEmpty()) {
+            item { VaultChip("Vendus", state.filters.showSold, viewModel::onSoldSelected, count = state.sold.size) }
         }
     }
 }

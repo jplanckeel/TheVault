@@ -135,6 +135,10 @@ val sharedModule =
         }
         factory { CsvService(get(), get(), get()) }
         factory { RefreshCatalogUseCase(get(), get(), get(), get(), get()) }
+        factory {
+            com.thevault.domain.usecase
+                .RefreshCollectionUseCase(get(), get(), get(), get(), get(), get())
+        }
         factory { SyncPendingItemsUseCase(get(), get(), get(), get()) }
         factory { ObserveSyncedIdsUseCase(get()) }
         factory { ObserveQuotesUseCase(get()) }

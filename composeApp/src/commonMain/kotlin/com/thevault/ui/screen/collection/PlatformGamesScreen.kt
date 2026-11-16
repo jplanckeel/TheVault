@@ -25,11 +25,13 @@ import com.thevault.ui.component.ButtonSize
 import com.thevault.ui.component.EmptyState
 import com.thevault.ui.component.Engrave
 import com.thevault.ui.component.KeyButton
+import com.thevault.ui.component.RefreshFeedback
 import com.thevault.ui.component.ScreenHeader
 import com.thevault.ui.component.Segment
 import com.thevault.ui.component.SegmentedControl
 import com.thevault.ui.component.VaultButton
 import com.thevault.ui.component.VaultChip
+import com.thevault.ui.component.VaultPullRefresh
 import com.thevault.ui.component.formatEuro
 import com.thevault.ui.component.gameCount
 import com.thevault.ui.component.label
@@ -55,10 +57,27 @@ fun PlatformGamesScreen(
     LaunchedEffect(platform) { viewModel.onPlatformSelected(platform) }
     val state by viewModel.uiState.collectAsState()
     val selection by viewModel.selection.collectAsState()
+    val refresh by viewModel.refresh.collectAsState()
     var bulk by remember { mutableStateOf(false) }
     if (bulk) {
         BulkEditSheet(selection.size, { viewModel.applyBulk(it).also { bulk = false } }, { bulk = false })
     }
+    VaultPullRefresh(refresh.isRefreshing, viewModel::onRefresh) {
+        PlatformGamesGrid(state, selection, refresh.message, viewModel, onBack, onEntryClick) { bulk = true }
+    }
+}
+
+@Suppress("LongParameterList")
+@Composable
+private fun PlatformGamesGrid(
+    state: PlatformGamesUiState,
+    selection: Set<String>,
+    refreshMessage: RefreshMessage?,
+    viewModel: PlatformGamesViewModel,
+    onBack: () -> Unit,
+    onEntryClick: (CollectionEntry) -> Unit,
+    onBulkEdit: () -> Unit,
+) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(GRID_COLUMNS),
         modifier = Modifier.fillMaxSize(),
@@ -70,9 +89,10 @@ fun PlatformGamesScreen(
             if (selection.isEmpty()) {
                 Header(state, onBack, viewModel::onSortToggled)
             } else {
-                SelectionBar(selection.size, viewModel::clearSelection) { bulk = true }
+                SelectionBar(selection.size, viewModel::clearSelection, onBulkEdit)
             }
         }
+        refreshMessage?.let { fullWidth { RefreshFeedback(it.text, it.success) } }
         fullWidth { Engrave("${gameCount(state.ownedCount)} · ${formatEuro(state.value)} · tri ${state.filters.sort.label}") }
         fullWidth {
             val options =
