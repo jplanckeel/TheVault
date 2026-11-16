@@ -156,21 +156,40 @@ export default function ItemGridView({ title, eyebrow, items, prices, loading, e
               cta={{ label: 'Réinitialiser', icon: 'restart_alt', onClick: () => update({ platform: null, q: null }) }}
             />
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-5">
-              {view.items.map((item) => (
-                <CollectionCard
-                  key={item.id}
-                  to={itemPath(item)}
-                  title={item.title}
-                  platform={item.platform}
-                  src={item.cover_url || undefined}
-                  condition={parseCondition(item.condition)}
-                  value={formatEuroOrDash(bestPrice(item, prices))}
-                />
-              ))}
-            </div>
+            <PagedGrid key={`${type}|${platform}|${query}|${sort}`} items={view.items} prices={prices} />
           )}
         </Section>
+      )}
+    </div>
+  )
+}
+
+/** Covers shown at once; « Afficher plus » adds the next batch (the catalogue can be large). */
+const PAGE_SIZE = 120
+
+/** Cartridge grid rendered by batches. Remounted (reset) when the filters change. */
+function PagedGrid({ items, prices }: { items: Item[]; prices: PriceMap }) {
+  const [shown, setShown] = useState(PAGE_SIZE)
+  const rest = items.length - shown
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-5">
+        {items.slice(0, shown).map((item) => (
+          <CollectionCard
+            key={item.id}
+            to={itemPath(item)}
+            title={item.title}
+            platform={item.platform}
+            src={item.cover_url || undefined}
+            condition={parseCondition(item.condition)}
+            value={formatEuroOrDash(bestPrice(item, prices))}
+          />
+        ))}
+      </div>
+      {rest > 0 && (
+        <button type="button" className="tv-btn tv-btn-md tv-btn-secondary self-center" onClick={() => setShown(shown + PAGE_SIZE)}>
+          Afficher plus · {rest.toLocaleString('fr-FR')} restants
+        </button>
       )}
     </div>
   )

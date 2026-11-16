@@ -1,20 +1,25 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './AuthContext'
 import { ToastProvider } from './components/ui'
 import AppLayout from './components/layout/AppLayout'
-import CataloguePage from './pages/CataloguePage'
-import ItemDetailPage from './pages/ItemDetailPage'
-import AdminDataPage from './pages/admin/AdminDataPage'
-import AdminSyncPage from './pages/admin/AdminSyncPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import SharePage from './pages/SharePage'
-import DashboardPage from './pages/DashboardPage'
-import CollectionPage from './pages/CollectionPage'
-import WishlistPage from './pages/WishlistPage'
-import AddItemPage from './pages/AddItemPage'
+const CataloguePage = lazy(() => import('./pages/CataloguePage'))
+const ItemDetailPage = lazy(() => import('./pages/ItemDetailPage'))
+const AdminDataPage = lazy(() => import('./pages/admin/AdminDataPage'))
+const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const SharePage = lazy(() => import('./pages/SharePage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const CollectionPage = lazy(() => import('./pages/CollectionPage'))
+const WishlistPage = lazy(() => import('./pages/WishlistPage'))
+const AddItemPage = lazy(() => import('./pages/AddItemPage'))
 import { EmptyState } from './components/ui'
+
+/** Shown while a page's code loads (each page is its own chunk). */
+function PageLoading() {
+  return <div className="min-h-[50vh]" aria-busy="true" />
+}
 
 function RequireAuth({ children, fallback = '/login' }: { children: ReactNode; fallback?: string }) {
   const { user } = useAuth()
@@ -46,6 +51,7 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <BrowserRouter>
+          <Suspense fallback={<PageLoading />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -69,6 +75,7 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </ToastProvider>
     </AuthProvider>
