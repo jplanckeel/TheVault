@@ -22,13 +22,18 @@ import (
 )
 
 func main() {
+	databaseURL := getenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/thevaultbo?sslmode=disable")
+	ctx := context.Background()
+
+	// `server reset-password <email>`: prints a one-time link to choose a new password.
+	if len(os.Args) > 1 && os.Args[1] == "reset-password" {
+		os.Exit(resetPasswordCommand(ctx, databaseURL, os.Args[2:]))
+	}
+
 	// JSON logs (also used by the standard log package and the request logger).
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
-	databaseURL := getenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/thevaultbo?sslmode=disable")
 	port := getenv("PORT", "8080")
-
-	ctx := context.Background()
 
 	if err := handlers.CheckSecrets(); err != nil {
 		log.Fatalf("configuration: %v", err)
@@ -108,7 +113,7 @@ func main() {
 	if uploadDir == "" {
 		uploadDir = "./uploads"
 	}
-	router := api.NewRouter(items, prices, jobs, settings, users, collections, store.NewVaultStore(pool), items, events, adminEmails,
+	router := api.NewRouter(items, prices, jobs, settings, users, collections, store.NewVaultStore(pool), store.NewPasswordResetStore(pool), items, events, adminEmails,
 		ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir,
 		igdbClient, scraper.NewEbayImages(settings, opts...))
 
@@ -170,4 +175,36 @@ func runConsolePhotos(job *images.ConsolePhotos, interval time.Duration) {
 		}
 		time.Sleep(interval)
 	}
+}
+
+// resetPasswordCommand prints a one-time password reset link for an account. It runs in
+// the server container (docker exec … ./server reset-password <email>), so only someone
+// with access to the server can reset a password.
+func resetPasswordCommand(ctx context.Context, databaseURL string, args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "usage: server reset-password <email>")
+		return 2
+	}
+	if err := store.RunMigrations(migrations.FS, databaseURL); err != nil {
+		fmt.Fprintf(os.Stderr, "migrations: %v\n", err)
+		return 1
+	}
+	pool, err := store.OpenDB(ctx, databaseURL)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db: %v\n", err)
+		return 1
+	}
+	defer pool.Close()
+	token, user, err := handlers.NewResetLink(ctx, store.NewUserStore(pool), store.NewPasswordResetStore(pool), strings.TrimSpace(args[0]), time.Now())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "reset-password: %v\n", err)
+		return 1
+	}
+	site := strings.TrimRight(getenv("PUBLIC_URL", ""), "/")
+	if site == "" {
+		site = "https://<adresse du site>"
+	}
+	fmt.Printf("Lien de réinitialisation pour %s (valable %.0f h, utilisable une fois) :\n%s/reset-password#token=%s\n",
+		user.Email, handlers.ResetLinkTTL.Hours(), site, token)
+	return 0
 }

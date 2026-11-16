@@ -43,6 +43,9 @@ export default function LoginPage() {
       <Button type="submit" size="lg" fullWidth disabled={loading || !email || !password}>
         {loading ? 'Connexion…' : 'Se connecter'}
       </Button>
+      <Link to="/reset-password" className="tv-link text-[13px] self-center">
+        Mot de passe oublié ?
+      </Link>
     </AuthShell>
   )
 }
