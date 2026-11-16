@@ -38,6 +38,7 @@ func NewRouter(
 	igdbClient *igdb.Client,
 	staticDir string,
 	uploadDir string,
+	consolePhotos handlers.ConsolePhotoJob,
 	imageSources ...handlers.ImageSource,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -72,7 +73,7 @@ func NewRouter(
 		igdbSyncer = igdbRunner
 	}
 	adm := handlers.NewAdminHandler(items, adminItems, events, jobs, igdbSyncer)
-	imgs := handlers.NewImagesHandler(items, images.NewImporter(uploadDir), imageSources...)
+	imgs := handlers.NewImagesHandler(items, images.NewImporter(uploadDir), imageSources...).WithConsolePhotos(consolePhotos)
 	uch := handlers.NewUserCollectionHandler(collections)
 	vh := handlers.NewVaultHandler(vaults)
 	shareLimit := NewRateLimiter(60, time.Minute) // public share pages
@@ -156,6 +157,7 @@ func NewRouter(
 					r.Post("/items/{id}/igdb", adm.RefreshIGDB)
 					r.With(imageLimit.Middleware).Get("/items/{id}/images", imgs.Candidates)
 					r.With(imageLimit.Middleware).Post("/items/{id}/cover/import", imgs.ImportCover)
+					r.With(imageLimit.Middleware).Post("/console-photos", imgs.RunConsolePhotos)
 					r.Get("/sync-events", adm.ListSyncEvents)
 					r.Get("/sync-summary", adm.SyncSummary)
 				})

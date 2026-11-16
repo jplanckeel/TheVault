@@ -44,7 +44,8 @@ func TestPhotoForConsole(t *testing.T) {
 		}
 	}
 	// Models without a free photo are not given another model's photo.
-	for _, in := range [][2]string{{"Xbox Series X", "Xbox Series"}, {"DSi XL", "Nintendo DS"}, {"Vectrex", "Vectrex"}} {
+	for _, in := range [][2]string{{"Xbox Series X", "Xbox Series"}, {"DSi XL", "Nintendo DS"}, {"Vectrex", "Vectrex"},
+		{"Nintendo Switch 2 [Mario Kart World Bundle]", ""}, {"Game Boy Micro [Silver]", ""}} {
 		if got, ok := PhotoForConsole(in[0], in[1]); ok {
 			t.Errorf("%v: got %q, want none", in, got.Key)
 		}
@@ -56,6 +57,7 @@ func TestAllowedURL(t *testing.T) {
 		"https://i.ebayimg.com/images/g/x/s-l800.jpg":                    true,
 		"https://images.igdb.com/igdb/image/upload/t_cover_big_2x/a.jpg": true,
 		"https://commons.wikimedia.org/wiki/Special:FilePath/a.jpg":      true,
+		"https://thumb.wikimedia.org/wikipedia/commons/thumb/a.jpg":      true,
 		"http://i.ebayimg.com/a.jpg":                                     false,
 		"https://i.ebayimg.com:8443/a.jpg":                               false,
 		"https://user@i.ebayimg.com/a.jpg":                               false,
@@ -122,9 +124,9 @@ func TestConsolePhotosRun(t *testing.T) {
 		{ID: "game", Type: domain.ItemTypeGame, Title: "GameCube"},
 		{ID: "unknown", Type: domain.ItemTypeConsole, Title: "Vectrex"},
 	}}
-	n, err := NewConsolePhotos(s, dir).Run(context.Background())
-	if err != nil || n != 2 {
-		t.Fatalf("updated %d, err %v", n, err)
+	res, err := NewConsolePhotos(s, dir).Run(context.Background())
+	if err != nil || res != (ConsolePhotosResult{Updated: 2, Unmatched: 1}) {
+		t.Fatalf("result %+v, err %v", res, err)
 	}
 	if s.updated["logo"] != "/covers/console-gamecube.png" || s.updated["empty"] != "/covers/console-gamecube.png" || len(s.updated) != 2 {
 		t.Errorf("updated = %v", s.updated)

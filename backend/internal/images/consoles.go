@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/jplanckeel/thevaultbo/internal/domain"
 	"github.com/jplanckeel/thevaultbo/internal/store"
@@ -54,10 +55,12 @@ var consoleRules = []consoleRule{
 	{regexp.MustCompile(`\bps1\b|\bpsx\b|\bps ?one\b|playstation`), ConsolePhoto{"ps1", "PSX-Console-wController.jpg"}},
 	{regexp.MustCompile(`wii u`), ConsolePhoto{"wii-u", "Nintendo-Wii-U-Console-FL.jpg"}},
 	{regexp.MustCompile(`\bwii\b`), ConsolePhoto{"wii", "Wii-console.jpg"}},
+	{regexp.MustCompile(`switch 2`), ConsolePhoto{}},
 	{regexp.MustCompile(`switch`), ConsolePhoto{"switch", "Nintendo-Switch-wJoyCons-BlRd-Standing-FL.jpg"}},
 	{regexp.MustCompile(`gamecube|game cube`), ConsolePhoto{"gamecube", "GameCube-Set.jpg"}},
 	{regexp.MustCompile(`nintendo 64|\bn64\b`), ConsolePhoto{"n64", "N64-Console-Set.png"}},
 	{regexp.MustCompile(`virtual boy`), ConsolePhoto{"virtual-boy", "Virtual-Boy-wController.jpg"}},
+	{regexp.MustCompile(`game ?boy micro`), ConsolePhoto{}},
 	{regexp.MustCompile(`advance sp|\bgba sp\b`), ConsolePhoto{"gba-sp", "Gameboy-Advance-SP-Mk2.jpg"}},
 	{regexp.MustCompile(`game ?boy advance|\bgba\b`), ConsolePhoto{"gba", "Nintendo-Game-Boy-Advance-Purple-FL.jpg"}},
 	{regexp.MustCompile(`game ?boy colou?r|\bgbc\b`), ConsolePhoto{"gbc", "Nintendo-Game-Boy-Color-FL.jpg"}},
@@ -98,12 +101,24 @@ func needsConsolePhoto(item domain.Item) bool {
 	return item.CoverURL == "" || strings.Contains(item.CoverURL, "images.igdb.com")
 }
 
+// ConsolePhotosResult sums up a run of the console photo job.
+type ConsolePhotosResult struct {
+	// Updated consoles now show the photo of their model.
+	Updated int `json:"updated"`
+	// Failed consoles whose photo could not be downloaded (network, Wikimedia).
+	Failed int `json:"failed"`
+	// Unmatched consoles whose model has no free photo (or is not recognised).
+	Unmatched int `json:"unmatched"`
+}
+
 // ConsolePhotos replaces the missing pictures and IGDB logos of consoles with a photo
 // of the model. Each photo is downloaded once and shared by every console of the model.
+// Runs one at a time (hourly loop and back-office button).
 type ConsolePhotos struct {
 	items     store.ItemStore
 	importer  *Importer
 	uploadDir string
+	mu        sync.Mutex
 }
 
 // NewConsolePhotos returns the console photo job.
@@ -111,33 +126,37 @@ func NewConsolePhotos(items store.ItemStore, uploadDir string) *ConsolePhotos {
 	return &ConsolePhotos{items: items, importer: NewImporter(uploadDir), uploadDir: uploadDir}
 }
 
-// Run applies the photos and returns how many consoles were updated.
-func (c *ConsolePhotos) Run(ctx context.Context) (int, error) {
+// Run applies the photos to the consoles that need one.
+func (c *ConsolePhotos) Run(ctx context.Context) (ConsolePhotosResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var res ConsolePhotosResult
 	all, err := c.items.List(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("list items: %w", err)
+		return res, fmt.Errorf("list items: %w", err)
 	}
 	stored := map[string]string{}
-	updated := 0
 	for _, item := range all {
 		if !needsConsolePhoto(item) {
 			continue
 		}
 		photo, ok := PhotoForConsole(item.Title, item.Platform)
 		if !ok {
+			res.Unmatched++
 			continue
 		}
 		cover, err := c.cover(ctx, photo, stored)
 		if err != nil {
 			slog.Warn("console photo", "key", photo.Key, "err", err)
+			res.Failed++
 			continue
 		}
 		if err := c.items.UpdateIGDB(ctx, item.ID, domain.IGDBData{CoverURL: cover}); err != nil {
-			return updated, fmt.Errorf("update %s: %w", item.ID, err)
+			return res, fmt.Errorf("update %s: %w", item.ID, err)
 		}
-		updated++
+		res.Updated++
 	}
-	return updated, nil
+	return res, nil
 }
 
 // cover returns the stored photo of a model, downloading it the first time.

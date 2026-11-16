@@ -113,13 +113,12 @@ func main() {
 	if uploadDir == "" {
 		uploadDir = "./uploads"
 	}
+	// Consoles: a free-licence photo of the model instead of the IGDB logo, at startup,
+	// every hour (new consoles get the logo first) and from the back-office.
+	consolePhotos := images.NewConsolePhotos(items, uploadDir)
 	router := api.NewRouter(items, prices, jobs, settings, users, collections, store.NewVaultStore(pool), store.NewPasswordResetStore(pool), items, events, adminEmails,
 		ebayRunner, igdbRunner, igdbClient, staticDir, uploadDir,
-		igdbClient, scraper.NewEbayImages(settings, opts...))
-
-	// Consoles: a free-licence photo of the model instead of the IGDB logo, at startup
-	// and after each IGDB run (new consoles get the logo first).
-	consolePhotos := images.NewConsolePhotos(items, uploadDir)
+		consolePhotos, igdbClient, scraper.NewEbayImages(settings, opts...))
 	go runConsolePhotos(consolePhotos, time.Hour)
 
 	srv := &http.Server{
@@ -167,11 +166,11 @@ func atoiOr(s string, def int) int {
 // runConsolePhotos applies the console photos now, then every interval.
 func runConsolePhotos(job *images.ConsolePhotos, interval time.Duration) {
 	for {
-		n, err := job.Run(context.Background())
+		res, err := job.Run(context.Background())
 		if err != nil {
 			slog.Error("console photos", "err", err)
-		} else if n > 0 {
-			slog.Info("console photos applied", "updated", n)
+		} else if res.Updated > 0 || res.Failed > 0 {
+			slog.Info("console photos", "updated", res.Updated, "failed", res.Failed, "unmatched", res.Unmatched)
 		}
 		time.Sleep(interval)
 	}

@@ -120,3 +120,11 @@ describe('loginError', () => {
     expect(loginError(502, null)).toContain('erreur 502')
   })
 })
+
+describe('consolePhotosMessage', () => {
+  it('sums up a console photo run', async () => {
+    const { consolePhotosMessage } = await import('../../components/admin/JobsPanel')
+    expect(consolePhotosMessage({ updated: 20, failed: 0, unmatched: 3 })).toBe('20 console(s) mises à jour · 3 sans photo libre (à choisir dans Données)')
+    expect(consolePhotosMessage({ updated: 0, failed: 2, unmatched: 0 })).toBe('Aucune console à mettre à jour · 2 échec(s) de téléchargement')
+  })
+})

@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jplanckeel/thevaultbo/internal/api/handlers"
 	"github.com/jplanckeel/thevaultbo/internal/domain"
+	"github.com/jplanckeel/thevaultbo/internal/images"
 )
 
 type fakeSource struct {
@@ -89,5 +90,22 @@ func TestImportCover(t *testing.T) {
 	}
 	if got := items.items["ext"].CoverURL; got != "/covers/"+consoleID+".jpg?v=1" {
 		t.Errorf("cover = %q", got)
+	}
+}
+
+type fakeConsoleJob struct{ runs int }
+
+func (f *fakeConsoleJob) Run(context.Context) (images.ConsolePhotosResult, error) {
+	f.runs++
+	return images.ConsolePhotosResult{Updated: 3, Unmatched: 1}, nil
+}
+
+func TestRunConsolePhotos(t *testing.T) {
+	job := &fakeConsoleJob{}
+	h := handlers.NewImagesHandler(newMockItemStore(), &fakeImporter{}).WithConsolePhotos(job)
+	rec := httptest.NewRecorder()
+	h.RunConsolePhotos(rec, httptest.NewRequest(http.MethodPost, "/admin/console-photos", nil))
+	if rec.Code != http.StatusOK || job.runs != 1 || !strings.Contains(rec.Body.String(), `"updated":3`) {
+		t.Fatalf("status %d, runs %d, body %s", rec.Code, job.runs, rec.Body)
 	}
 }
