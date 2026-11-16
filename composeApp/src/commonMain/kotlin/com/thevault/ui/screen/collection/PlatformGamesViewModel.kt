@@ -61,9 +61,16 @@ data class PlatformGamesUiState(
 class PlatformGamesViewModel(
     source: VaultEntriesSource,
     private val actions: ItemActions,
+    private val refresher: CollectionRefresher,
 ) : ViewModel() {
+    /** Pull to refresh state. */
+    val refresh: StateFlow<RefreshUiState> = refresher.state
+
     /** Identifiers selected for a bulk edit (empty outside of selection mode). */
     val selection = kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
+
+    /** Downloads the covers, sheets and quotes from the backend (pull to refresh). */
+    fun onRefresh() = refresher.refresh()
 
     /** Adds or removes a game from the selection. */
     fun toggleSelection(id: String) = selection.update { if (id in it) it - id else it + id }

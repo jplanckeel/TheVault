@@ -3,6 +3,7 @@ package com.thevault.di
 import com.thevault.ui.app.AppViewModel
 import com.thevault.ui.screen.add.AddViewModel
 import com.thevault.ui.screen.additem.AddItemViewModel
+import com.thevault.ui.screen.collection.CollectionRefresher
 import com.thevault.ui.screen.collection.CollectionViewModel
 import com.thevault.ui.screen.collection.ItemActions
 import com.thevault.ui.screen.collection.PlatformGamesViewModel
@@ -32,8 +33,14 @@ val commonModule =
             com.thevault.ui.screen.report
                 .QuoteReportViewModel(get(), get())
         }
-        viewModel { CollectionViewModel(get()) }
-        viewModel { PlatformGamesViewModel(get(), get()) }
+        single {
+            CollectionRefresher(
+                get(),
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default),
+            )
+        }
+        viewModel { CollectionViewModel(get(), get()) }
+        viewModel { PlatformGamesViewModel(get(), get(), get()) }
         viewModel { WishlistViewModel(get()) }
         viewModel { ProfileViewModel(get()) }
         viewModel {

@@ -104,13 +104,20 @@ data class CollectionUiState(
 /** ViewModel of the collection screen (games by platform, consoles, accessories). */
 class CollectionViewModel(
     source: VaultEntriesSource,
+    private val refresher: CollectionRefresher,
 ) : ViewModel() {
     private val filters = MutableStateFlow(CollectionFilters())
+
+    /** Pull to refresh state. */
+    val refresh: StateFlow<RefreshUiState> = refresher.state
 
     /** Observable UI state. */
     val uiState: StateFlow<CollectionUiState> =
         combine(source.entries(), filters) { all, f -> buildCollectionState(all.owned(), f, all.filter { it.status == ItemStatus.SOLD }) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CollectionUiState(isLoading = true))
+
+    /** Downloads the covers, sheets and quotes from the backend (pull to refresh). */
+    fun onRefresh() = refresher.refresh()
 
     /** Selects a category. */
     fun onKindSelected(kind: ItemKind) = filters.update { it.copy(kind = kind, showSold = false) }
