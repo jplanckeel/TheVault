@@ -57,10 +57,16 @@ func main() {
 
 	// Admin role bootstrap: accounts listed in ADMIN_EMAILS become admins.
 	adminEmails := parseEmails(getenv("ADMIN_EMAILS", ""))
-	if n, err := users.PromoteAdmins(ctx, adminEmails); err != nil {
-		log.Printf("admin bootstrap: %v", err)
-	} else if n > 0 {
-		log.Printf("admin bootstrap: %d account(s) promoted", n)
+	if len(adminEmails) == 0 {
+		slog.Warn("admin bootstrap: ADMIN_EMAILS is empty, nobody can open the back-office")
+	} else if n, err := users.PromoteAdmins(ctx, adminEmails); err != nil {
+		slog.Error("admin bootstrap", "err", err)
+	} else {
+		// Accounts are promoted at startup if they exist, otherwise at their next sign-in.
+		slog.Info("admin bootstrap", "admin_emails", len(adminEmails), "promoted_now", n)
+	}
+	if v, _ := strconv.ParseBool(getenv("TRUST_PROXY", "")); !v {
+		slog.Warn("TRUST_PROXY is not set: behind a reverse proxy every visitor shares the proxy's rate limits (sign-in: 10 per minute)")
 	}
 
 	// Build eBay runner

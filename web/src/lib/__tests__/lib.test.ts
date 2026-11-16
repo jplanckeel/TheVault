@@ -110,3 +110,13 @@ describe('collection view', () => {
     expect(itemPath({ id: '1', type: 'game' })).toBe('/items/1')
   })
 })
+
+describe('loginError', () => {
+  it('tells a wrong password from a rate limit and a server error', async () => {
+    const { loginError } = await import('../../AuthContext')
+    expect(loginError(401, null)).toBe('Email ou mot de passe incorrect.')
+    expect(loginError(429, '42')).toBe('Trop de tentatives de connexion. Réessaie dans 42 s.')
+    expect(loginError(429, null)).toContain('une minute')
+    expect(loginError(502, null)).toContain('erreur 502')
+  })
+})

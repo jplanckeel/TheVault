@@ -96,7 +96,8 @@ func (h *UserAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.users.GetByEmail(r.Context(), body.Email)
+	// Keyboards often add a space after an autocompleted address; sign-up trims it too.
+	user, err := h.users.GetByEmail(r.Context(), strings.TrimSpace(body.Email))
 	if err != nil {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
